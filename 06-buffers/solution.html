@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 06 Solution Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Solution walkthrough</h1><p>Embedded Linux Camera Course · Lab 06</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#step-1--the-first-run">Step 1 — the first run</a></li><li><a href="#step-2--the-step">Step 2 — the step</a></li><li><a href="#step-3--the-slow-reader">Step 3 — the slow reader</a></li><li><a href="#step-4--the-exported-buffer">Step 4 — the exported buffer</a></li><li><a href="#step-5--the-two-answers">Step 5 — the two answers</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
+<p><a href="lab.html">Lab 06</a> · <a href="index.html">Lesson 06</a></p>
+<ul>
+<li><span class="fileref" title="grab.c">grab.c</span> in this folder is the program after the three changes. <code>verify-build-jp7.sh</code> compiles it, and the program of <code>examples/</code>, on every battery run.</li>
+<li>Every board output of the lab is <em>(illustrative)</em>, and its on-target status is <em>(verified-on-target: pending)</em>.</li>
+</ul>
+<h2 id="step-1--the-first-run">Step 1 — the first run</h2>
+<ul>
+<li><strong>The count.</strong> The program asks for 4 buffers and gets 4. The driver allows 1 to 240, and vb2 allows 32.</li>
+<li><strong>The size.</strong> 4,147,200 bytes is 1920 × 1080 × 2, the <code>sizeimage</code> of the format.</li>
+<li><strong>The offsets.</strong> 0x0, 0x8000, 0x10000 and 0x18000. Each is the index of the buffer, shifted left by 15 bits.</li>
+<li><strong>The rotation.</strong> The indexes run 0, 1, 2, 3 and start again. Four buffers carry all eight frames.</li>
+</ul>
+<h2 id="step-2--the-step">Step 2 — the step</h2>
+<p>The change is three lines in the loop and one variable:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/solutions/grab.c</span><span>lines 94–98</span></div><pre><code>        t = buf.timestamp.tv_sec * 1000.0 + buf.timestamp.tv_usec / 1000.0;
+        printf(&quot;buffer %u: sequence %u, %u bytes, step %.3f ms, first bytes %02x %02x\n&quot;,
+               buf.index, buf.sequence, buf.bytesused, last ? t - last : 0.0,
+               map[buf.index].start[0], map[buf.index].start[1]);
+        last = t;</code></pre></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Frames in a second</th>
+<th>Expected step</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1920×1080, <code>sensor_mode=1</code></td>
+<td>60</td>
+<td>16.667 ms</td>
+</tr>
+<tr>
+<td>3840×2160, <code>sensor_mode=0</code></td>
+<td>30</td>
+<td>33.333 ms</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>The step comes from the timestamps of the driver, not from the clock of the program. So a late program does not change it.</li>
+<li>The first line shows 0.000, because no earlier buffer exists.</li>
+</ul>
+<h2 id="step-3--the-slow-reader">Step 3 — the slow reader</h2>
+<p>The change is one argument and one call:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/solutions/grab.c</span><span>lines 100–102</span></div><pre><code>        /* A slow reader: the buffer stays with the program for a while. */
+        if (delay_ms)
+            usleep(delay_ms * 1000);</code></pre></div>
+<ul>
+<li><strong>The first three steps stay at 16.667 ms.</strong> All four buffers were queued before the stream started. The hardware filled them one frame apart, while the program slept on the first one.</li>
+<li><strong>The fifth step is shorter than the later ones.</strong> Buffer 0 returned to the driver after the first sleep, in time for an early frame.</li>
+<li><strong>Then the step is 50 ms.</strong> A buffer returns to the driver only every 50 ms. Three frame times pass, and two frames find no buffer.</li>
+<li><strong>The sequence column hides the loss.</strong> The Jetson driver counts the buffers that it returns, so the numbers run 1 to 8. The step column shows the loss.</li>
+<li>On a Raspberry Pi 5, the sequence numbers jump by more than one in the second half of the run.</li>
+</ul>
+<h2 id="step-4--the-exported-buffer">Step 4 — the exported buffer</h2>
+<p>The export goes after <code>VIDIOC_STREAMOFF</code>:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/solutions/grab.c</span><span>lines 111–118</span></div><pre><code>    /* EXPBUF: buffer 0 gets a second name, a dmabuf file descriptor. */
+    memset(&amp;exp, 0, sizeof(exp));
+    exp.type = type;
+    exp.index = 0;
+    exp.flags = O_RDONLY;
+    check(ioctl(fd, VIDIOC_EXPBUF, &amp;exp), &quot;VIDIOC_EXPBUF&quot;);
+    printf(&quot;buffer 0 through the mapping: %02x %02x\n&quot;,
+           map[0].start[0], map[0].start[1]);</code></pre></div>
+<p>The second mapping goes after the <code>close</code> of the video node:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/solutions/grab.c</span><span>lines 125–130</span></div><pre><code>    /* The queue and the video node are gone. The dmabuf still names the pages. */
+    shared = mmap(NULL, map[0].length, PROT_READ, MAP_SHARED, exp.fd, 0);
+    check(shared == MAP_FAILED ? -1 : 0, &quot;mmap of the dmabuf&quot;);
+    printf(&quot;buffer 0 through the dmabuf: %02x %02x\n&quot;, shared[0], shared[1]);
+    munmap(shared, map[0].length);
+    close(exp.fd);</code></pre></div>
+<ul>
+<li>The two lines print the same bytes, because both mappings show the same pages.</li>
+<li><code>VIDIOC_REQBUFS</code> with a count of 0 does not free these pages. The dmabuf holds a reference, as section 6 showed in the allocator.</li>
+<li>The pages are freed at <code>close(exp.fd)</code>, the last use of the descriptor.</li>
+</ul>
+<h2 id="step-5--the-two-answers">Step 5 — the two answers</h2>
+<h3 id="copies-on-the-way-to-grab">Copies on the way to <code>grab</code></h3>
+<ul>
+<li>None. The hardware writes the frame into the pages of a buffer.</li>
+<li>The program maps the same pages and reads two bytes from them.</li>
+<li><code>VIDIOC_DQBUF</code> passes an index and a few numbers. It passes no pixels.</li>
+</ul>
+<h3 id="the-first-copy-of-the-capture-to-a-file">The first copy of the capture to a file</h3>
+<ul>
+<li>The path to the buffer is the same, so the frame arrives without a copy.</li>
+<li>The first copy is the <code>write</code> of <code>v4l2-ctl</code> to the file. The kernel copies the frame from the buffer into its file cache.</li>
+<li>A second transfer follows, from the cache to the storage device.</li>
+<li>So a capture to a file is limited by the storage, not by the camera.</li>
+</ul>
+<h2 id="mechanical-verification">Mechanical verification</h2>
+<ul>
+<li><span class="fileref" title="verify-build-jp7.sh">verify-build-jp7.sh</span> runs inside the course container against the pristine r39.2.1 tree. It compiles both programs with all warnings as errors, and it re-runs every container transcript of the sections.</li>
+<li><span class="fileref" title="verify-build-rpi.sh">verify-build-rpi.sh</span> checks the Raspberry Pi parts of the sections against the pinned Raspberry Pi tree.</li>
+</ul>
+</main>
+</body>
+</html>

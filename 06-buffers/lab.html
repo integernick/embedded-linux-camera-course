@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 06 One Program</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>One program, three small changes</h1><p>Embedded Linux Camera Course · Lab 06</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<p>Section 3 of the lesson read <code>grab.c</code>. In this lab you build it on the board and run it. Then you change it three times. Each change is a few lines, and each one shows a rule of the lesson on real frames.</p>
+<h2 id="goal">Goal</h2>
+<ul>
+<li><code>grab</code> built on the board, with the output of section 3.</li>
+<li>The step between two frames, measured from the timestamps of the driver.</li>
+<li>A run with a slow reader, and the frames that it loses.</li>
+<li>A frame read through a dmabuf after its queue and its video node are closed.</li>
+<li>Two written answers about copies.</li>
+</ul>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
+<li>The IMX477 on CAM0, with <code>v4l-utils</code> installed since Lab 03.</li>
+<li>No container. The program builds on the board.</li>
+</ul>
+<h2 id="steps">Steps</h2>
+<h3 id="step-1--build-the-program-and-run-it-10-min">Step 1 — Build the program and run it (10 min)</h3>
+<ol type="1">
+<li>Install the compiler on the board, and make a folder for the lab:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ sudo apt install -y build-essential
+orin$ mkdir -p ~/lab06</code></pre></div>
+<p>The first command prints the progress of <code>apt</code>. The second prints nothing.</p>
+<ol start="2" type="1">
+<li>Copy the program from the course repository to the board:</li>
+</ol>
+<div class="codeblock"><pre><code>host$ scp lessons/06-buffers/examples/grab.c &quot;$BOARD_USER@$BOARD_IP:lab06/&quot;</code></pre></div>
+<p><code>scp</code> prints one progress line.</p>
+<ol start="3" type="1">
+<li>Build it with all warnings on:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ cd ~/lab06 &amp;&amp; gcc -Wall -Wextra -Werror -O2 -o grab grab.c</code></pre></div>
+<p>The compiler prints nothing on success.</p>
+<ol start="4" type="1">
+<li>Select the 60-frame mode and its format, then run the program:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=1</span>
+<span class="cmd"><span class="prompt">orin$</span> v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10</span>
+<span class="cmd"><span class="prompt">orin$</span> ./grab</span>
+<span class="out">asked for 4 buffers, got 4</span>
+<span class="out">buffer 0: 4147200 bytes at offset 0x0</span>
+<span class="out">buffer 1: 4147200 bytes at offset 0x8000</span></code></pre></div>
+<p>Ten more lines follow, as in section 3 of the lesson. Check four things: the count, the size, the offsets and the rotation of the buffers.</p>
+<h3 id="step-2--measure-the-step-between-two-frames-10-min">Step 2 — Measure the step between two frames (10 min)</h3>
+<p>The driver stamps every buffer with the time of its frame. The difference of two stamps is the frame time.</p>
+<ol type="1">
+<li>In the loop, compute the time of the buffer in milliseconds. Keep the time of the buffer before it in a variable.</li>
+<li>Print the difference in place of the time. Use <code>%.3f ms</code>.</li>
+<li>Build and run:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> ./grab | tail -4</span>
+<span class="out">buffer 0: sequence 5, 4147200 bytes, step 16.667 ms, first bytes 5c 01</span>
+<span class="out">buffer 1: sequence 6, 4147200 bytes, step 16.666 ms, first bytes 5c 01</span>
+<span class="out">buffer 2: sequence 7, 4147200 bytes, step 16.667 ms, first bytes 5d 01</span>
+<span class="out">buffer 3: sequence 8, 4147200 bytes, step 16.667 ms, first bytes 5c 01</span></code></pre></div>
+<p>The step is one frame time of the mode. Repeat the run with <code>sensor_mode=0</code> and the 3840×2160 format. Write both steps down.</p>
+<h3 id="step-3--a-slow-reader-10-min">Step 3 — A slow reader (10 min)</h3>
+<p>The loop returns each buffer at once. A real program works on the frame first. This step shows what a slow reader costs.</p>
+<ol type="1">
+<li>Add a second argument to the program: a delay in milliseconds.</li>
+<li>Sleep for that time with <code>usleep</code>, after the <code>printf</code> and before the <code>VIDIOC_QBUF</code> of the loop.</li>
+<li>Select the 60-frame mode again. Build, and run with a delay of 50 ms:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> ./grab /dev/video0 50 | tail -8</span>
+<span class="out">buffer 0: sequence 1, 4147200 bytes, step 0.000 ms, first bytes 5c 01</span>
+<span class="out">buffer 1: sequence 2, 4147200 bytes, step 16.667 ms, first bytes 5d 01</span>
+<span class="out">buffer 2: sequence 3, 4147200 bytes, step 16.667 ms, first bytes 5c 01</span>
+<span class="out">buffer 3: sequence 4, 4147200 bytes, step 16.666 ms, first bytes 5b 01</span>
+<span class="out">buffer 0: sequence 5, 4147200 bytes, step 33.333 ms, first bytes 5c 01</span>
+<span class="out">buffer 1: sequence 6, 4147200 bytes, step 50.001 ms, first bytes 5c 01</span>
+<span class="out">buffer 2: sequence 7, 4147200 bytes, step 50.000 ms, first bytes 5d 01</span>
+<span class="out">buffer 3: sequence 8, 4147200 bytes, step 49.999 ms, first bytes 5c 01</span></code></pre></div>
+<p>Record your eight steps. Two questions follow from them. Why do the first three steps stay at one frame time? And which column of the output hides the lost frames?</p>
+<h3 id="step-4--a-buffer-that-outlives-its-queue-15-min">Step 4 — A buffer that outlives its queue (15 min)</h3>
+<p>This step gives buffer 0 a second name and then removes the first one.</p>
+<ol type="1">
+<li>After <code>VIDIOC_STREAMOFF</code>, export buffer 0 with <code>VIDIOC_EXPBUF</code>. The structure is <code>struct v4l2_exportbuffer</code>. Set its <code>type</code>, its <code>index</code> and <code>flags = O_RDONLY</code>.</li>
+<li>Print the first two bytes of buffer 0 through the mapping of the program.</li>
+<li>Keep the rest of the teardown as it is: <code>munmap</code>, <code>VIDIOC_REQBUFS</code> with a count of 0, and <code>close</code>.</li>
+<li>After the <code>close</code>, map the descriptor of the export with <code>mmap</code>, at offset 0. Print the first two bytes again.</li>
+<li>Build and run:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> ./grab | tail -2</span>
+<span class="out">buffer 0 through the mapping: 5c 01</span>
+<span class="out">buffer 0 through the dmabuf: 5c 01</span></code></pre></div>
+<p>The two lines must show the same bytes. At the second line, the program has no queue and no video node.</p>
+<h3 id="step-5--two-written-answers-10-min">Step 5 — Two written answers (10 min)</h3>
+<p>This step is the writing exercise. Answer each question in three to five sentences.</p>
+<ol type="1">
+<li><code>grab</code> reads two bytes of each frame. How many times is a frame copied between the sensor and that read?</li>
+<li>The capture of Lab 04 used <code>v4l2-ctl --stream-to=mode1.raw</code>. Where is the first copy of a frame on that path, and who makes it?</li>
+</ol>
+<p>None of the transcripts of this lab is captured on a board with JetPack 7.2.1 yet <em>(verified-on-target: pending)</em>. Record what your board prints.</p>
+<h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
+<p>The same file builds and runs on a Raspberry Pi 5. This form is not verified on a board yet <em>(verified-on-target: pending)</em>.</p>
+<ul>
+<li><strong>Before Step 1.</strong> Enable the link to the video node and set the formats of the graph, as in Lesson 03.</li>
+<li><strong>Step 1.</strong> The offsets are 0x20000 apart, and the first sequence number is 0.</li>
+<li><strong>Step 3.</strong> The lost frames show as gaps in the sequence numbers.</li>
+</ul>
+<h2 id="expected-output">Expected output</h2>
+<ol type="1">
+<li><strong>The output of Step 1</strong>, with four buffers and eight frames.</li>
+<li><strong>The two steps</strong> of Step 2, one for each mode.</li>
+<li><strong>The eight steps</strong> of Step 3, with the two answers.</li>
+<li><strong>The two lines</strong> of Step 4, with the same bytes.</li>
+<li><strong>The two written answers.</strong></li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linux/videodev2.h: No such file or directory</code></td>
+<td>The kernel headers for programs are missing</td>
+<td>Install <code>build-essential</code>, which brings <code>linux-libc-dev</code></td>
+</tr>
+<tr>
+<td><code>/dev/video0: Permission denied</code></td>
+<td>The user is not in the group <code>video</code></td>
+<td>Run with <code>sudo</code>, or add the user to the group as in Lab 04</td>
+</tr>
+<tr>
+<td><code>VIDIOC_REQBUFS: Device or resource busy</code></td>
+<td>Another program streams the node</td>
+<td>Find it with <code>sudo fuser -v /dev/video0</code> and stop it</td>
+</tr>
+<tr>
+<td>The program prints the buffers and then hangs</td>
+<td>No frame arrives, and <code>VIDIOC_DQBUF</code> blocks</td>
+<td>Stop it with Ctrl-C. Set <code>bypass_mode=0</code>, then check <code>dmesg</code></td>
+</tr>
+<tr>
+<td>The size is 16588800 bytes</td>
+<td>The node still has the 3840×2160 format</td>
+<td>Set <code>sensor_mode=1</code> and the 1920×1080 format again</td>
+</tr>
+<tr>
+<td>Every step of Step 2 is 0.000 ms</td>
+<td>The time of the earlier buffer is not stored</td>
+<td>Store it after the <code>printf</code></td>
+</tr>
+<tr>
+<td><code>VIDIOC_EXPBUF: Invalid argument</code></td>
+<td>The <code>type</code> or the <code>index</code> of the structure is not set</td>
+<td>Clear the structure with <code>memset</code>, then set both fields</td>
+</tr>
+<tr>
+<td><code>mmap of the dmabuf: Permission denied</code></td>
+<td>The mapping asks for more than the export allows</td>
+<td>Use <code>PROT_READ</code> with <code>O_RDONLY</code></td>
+</tr>
+</tbody>
+</table></div>
+</main>
+</body>
+</html>

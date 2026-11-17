@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 06 Buffers videobuf2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Buffers: videobuf2 and dmabuf</h1><p>Embedded Linux Camera Course · Lesson 06</p><p><span class="chip jetson">Jetson Orin Nano · JetPack 7.2.1</span><span class="chip pi">Raspberry Pi 5 · Linux 6.18</span><span class="chip">7 sections, about 55 min</span></p></div></header>
+<main><nav class="toc"><b>Contents</b><ol><li><a href="#1-one-queue-two-owners">One queue, two owners</a></li><li><a href="#2-a-buffer-is-always-in-one-state">A buffer is always in one state</a></li><li><a href="#3-the-loop-of-a-capture-program">The loop of a capture program</a></li><li><a href="#4-what-the-driver-adds-three-hooks">What the driver adds: three hooks</a></li><li><a href="#5-three-ways-to-put-memory-under-a-buffer">Three ways to put memory under a buffer</a></li><li><a href="#6-dmabuf-memory-with-a-file-descriptor-as-its-name">dmabuf: memory with a file descriptor as its name</a></li><li><a href="#7-the-cost-of-a-copy">The cost of a copy</a></li></ol><div class="rest"><a href="#caveats">Caveats</a><a href="#self-check">Self-check</a><a href="#lab">Lab</a><a href="#references">References</a></div></nav>
+<p>Lesson 04 captured raw frames with <code>v4l2-ctl --stream-mmap</code>, and the tool handled the buffers. This lesson opens that step. A frame is several megabytes, and it arrives many times in a second. So the kernel and the program do not copy it. They pass the ownership of a buffer back and forth.</p>
+<p>The seven sections follow one buffer. They start at the queue in the kernel and at the states of a buffer. Then come the calls of a program, the hooks of a driver, and the three ways to put memory under a buffer. The last two sections cover dmabuf, which shares a buffer between devices, and the cost of a copy. Each section shows its commands together with their output, so the lesson can be read without a board.</p>
+<div class="callout note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>The text describes two boards. The <strong>Jetson Orin Nano</strong> runs JetPack 7.2.1 (Jetson Linux r39.2.1), with kernel 6.8 in the <code>kernel-noble</code> tree. The <strong>Raspberry Pi 5</strong> side is read from the Raspberry Pi kernel at tag <code>stable_20261103</code>, which is Linux 6.18.60. The Jetson is the default board. Each section follows the Jetson first, and its last part shows the same step on the Raspberry Pi 5.</p>
+</div>
+<h2 id="objectives">Objectives</h2>
+<ul>
+<li>The division of work between videobuf2 and the driver of a receiver</li>
+<li>The states of a buffer, and the call that moves it from each state to the next</li>
+<li>The calls of a capture program, in the order that the kernel requires</li>
+<li>The three hooks that a driver adds, and what each board does in them</li>
+<li>The three memory models of a queue, and which ones each board accepts</li>
+<li>dmabuf: how a buffer gets a file descriptor, and what that changes for its lifetime</li>
+<li>The memory traffic of a mode, and the cost of one copy</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Lesson 03 — What a camera is made of: drivers, nodes and the media graph. Its section 2 showed the video node that this lesson opens.</li>
+<li>Lesson 04 — Raw frames and controls from userspace. Its section 6 captured frames with <code>v4l2-ctl</code>, and its section 2 showed the bytes of a frame in memory.</li>
+<li>The course build container with the pristine r39.2.1 tree. The transcripts of the sections come from it.</li>
+<li>For the Raspberry Pi 5 transcripts: the Raspberry Pi kernel tree in the container, per <span class="fileref" title="../../setup/canonical-commands.md#the-raspberry-pi-kernel-tree">the Raspberry Pi kernel tree</span>.</li>
+<li>Hardware, for the lab only: <a href="../glossary.html#the-devkit-path">the devkit path</a>, an Orin Nano devkit with the Raspberry Pi High Quality Camera (IMX477) on CAM0.</li>
+<li>Time: about 55 min for the sections and 60 min for the lab.</li>
+</ul>
+<h2 id="what-this-lesson-reads">What this lesson reads</h2>
+<p><strong>The driver of the receiver on each board.</strong> On the Jetson it is the channel driver of <a href="../glossary.html#vi">VI</a>, in <code>channel.c</code>. On the Raspberry Pi 5 it is the driver of the camera front end, in <code>cfe.c</code>. Each one creates the video nodes of Lesson 03.</p>
+<p><strong>videobuf2 in both kernel trees.</strong> <a href="../glossary.html#videobuf2-vb2">videobuf2</a>, or vb2, is the buffer framework of the kernel. Both drivers use it.</p>
+<p><strong>One small program.</strong> <code>examples/grab.c</code> is 106 lines of C. It takes eight frames from a video node, and section 3 shows all of its calls.</p>
+<p><strong>Five shell variables.</strong> The container transcripts use these names:</p>
+<div class="codeblock"><pre><code>container$ TREE=/build/work-l4t-r39.2.1/Linux_for_Tegra/source
+container$ CH=$TREE/nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c
+container$ VB2=$TREE/kernel/kernel-noble/drivers/media/common/videobuf2
+container$ RPI=/build/work-rpi-6.18/linux
+container$ CFE=$RPI/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</code></pre></div>
+<h2 id="sections">Sections</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Section</th>
+<th>Minutes</th>
+<th>The question that it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="#1-one-queue-two-owners">One queue, two owners</a></td>
+<td>8</td>
+<td>Which code owns the buffers of a video node</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="#2-a-buffer-is-always-in-one-state">A buffer is always in one state</a></td>
+<td>9</td>
+<td>Who may touch a buffer, and when</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="#3-the-loop-of-a-capture-program">The loop of a capture program</a></td>
+<td>9</td>
+<td>Which calls a program makes, and in which order</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="#4-what-the-driver-adds-three-hooks">What the driver adds: three hooks</a></td>
+<td>9</td>
+<td>How little buffer code a driver contains</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="#5-three-ways-to-put-memory-under-a-buffer">Three ways to put memory under a buffer</a></td>
+<td>7</td>
+<td>Who allocates the memory of a frame</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="#6-dmabuf-memory-with-a-file-descriptor-as-its-name">dmabuf: memory with a file descriptor as its name</a></td>
+<td>8</td>
+<td>How a frame reaches another device without a copy</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="#7-the-cost-of-a-copy">The cost of a copy</a></td>
+<td>5</td>
+<td>Why camera software counts its copies</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="1-one-queue-two-owners">1. One queue, two owners</h2>
+<p>Every capture driver has the same problem. A program needs a steady stream of full frames. The hardware needs a steady supply of empty memory. Neither side may wait for the other, and neither may write into memory that the other one reads.</p>
+<p>The kernel solves this problem once. videobuf2 owns the queue of buffers and implements the calls of the program. The driver adds a few hooks that feed its hardware. Lesson 01 showed the same division for a device: the framework owns the object, and the driver fills in the operations.</p>
+<h3 id="the-queue-belongs-to-the-receiver">The queue belongs to the receiver</h3>
+<p>The buffers belong to the driver of the receiver, because the receiver writes the frames to memory. The sensor driver never sees a buffer. Its work ends when the sensor streams.</p>
+<p>On the Jetson, the queue is a field of <code>struct tegra_channel</code>, with one channel for each video node. The channel driver initializes it:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 2821–2832</span></div><pre><code>    chan-&gt;queue.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    chan-&gt;queue.io_modes = VB2_MMAP | VB2_DMABUF | VB2_READ | VB2_USERPTR;
+    chan-&gt;queue.lock = &amp;chan-&gt;video_lock;
+    chan-&gt;queue.drv_priv = chan;
+    chan-&gt;queue.buf_struct_size = sizeof(struct tegra_channel_buffer);
+    chan-&gt;queue.ops = &amp;tegra_channel_queue_qops;
+#if IS_ENABLED(CONFIG_VIDEOBUF2_DMA_CONTIG)
+    chan-&gt;queue.mem_ops = &amp;vb2_dma_contig_memops;
+#endif
+    chan-&gt;queue.timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC
+                   | V4L2_BUF_FLAG_TSTAMP_SRC_EOF;
+    ret = vb2_queue_init(&amp;chan-&gt;queue);</code></pre></div>
+<p>Four of these assignments decide how the queue works:</p>
+<ul>
+<li><strong><code>io_modes</code></strong> lists the memory models that the queue accepts. Section 5 covers them.</li>
+<li><strong><code>mem_ops</code></strong> selects the allocator. <code>vb2_dma_contig_memops</code> gives each buffer one contiguous range of addresses for the hardware.</li>
+<li><strong><code>ops</code></strong> names the table of the driver's hooks. Section 4 reads it.</li>
+<li><strong><code>buf_struct_size</code></strong> makes vb2 allocate the driver's own buffer structure in place of the plain one.</li>
+</ul>
+<p>One grep finds three of them:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -n &#x27;io_modes\|mem_ops\|buf_struct_size&#x27; $CH</span>
+<span class="out">2822:   chan-&gt;queue.io_modes = VB2_MMAP | VB2_DMABUF | VB2_READ | VB2_USERPTR;</span>
+<span class="out">2825:   chan-&gt;queue.buf_struct_size = sizeof(struct tegra_channel_buffer);</span>
+<span class="out">2828:   chan-&gt;queue.mem_ops = &amp;vb2_dma_contig_memops;</span></code></pre></div>
+<h3 id="the-buffer-structure-of-the-driver">The buffer structure of the driver</h3>
+<p>The structure that <code>buf_struct_size</code> names is the driver's wrapper around a vb2 buffer:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/include/media/mc_common.h</span><span>lines 68–81</span></div><pre><code>struct tegra_channel_buffer {
+    struct vb2_v4l2_buffer buf;
+    struct list_head queue;
+    struct tegra_channel *chan;
+
+    unsigned int vb2_state;
+    unsigned int capture_descr_index[TEGRA_CSI_BLOCKS];
+
+    dma_addr_t addr;
+
+    u32 thresh[TEGRA_CSI_BLOCKS];
+    int version;
+    int state;
+};</code></pre></div>
+<p>The first member is the buffer of vb2. The other members belong to the driver: a list node for its own lists, and <code>addr</code>, the address that the hardware writes to. This is the pattern of Lesson 01 again. The framework's structure sits inside the driver's structure, and <code>container_of</code> converts one pointer into the other.</p>
+<details class="more">
+<summary><b>More detail</b>: why the allocator is "contiguous"</summary>
+
+<ul>
+<li>The capture hardware writes a frame through DMA, and it takes one start address for the whole frame.</li>
+<li>So the frame must be one unbroken range in the address space of the device.</li>
+<li>The physical pages do not have to be adjacent. The IOMMU of the SoC maps scattered pages to one range of device addresses.</li>
+<li><code>vb2_dma_contig_memops</code> hides this. The driver gets one address for each buffer.</li>
+</ul>
+</details>
+
+<h3 id="the-queue-of-a-raspberry-pi-5">The queue of a Raspberry Pi 5</h3>
+<p>The driver of the Raspberry Pi receiver sets up the same structure of the same framework:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 1961–1973</span></div><pre><code>    q = &amp;node-&gt;buffer_queue;
+    q-&gt;type = node_supports_image(node) ? node-&gt;vid_fmt.type :
+                          node-&gt;meta_fmt.type;
+    q-&gt;io_modes = VB2_MMAP | VB2_DMABUF;
+    q-&gt;drv_priv = node;
+    q-&gt;ops = &amp;cfe_video_qops;
+    q-&gt;mem_ops = &amp;vb2_dma_contig_memops;
+    q-&gt;buf_struct_size = id == FE_CONFIG ? sizeof(struct cfe_config_buffer)
+                         : sizeof(struct cfe_buffer);
+    q-&gt;timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
+    q-&gt;lock = &amp;node-&gt;lock;
+    q-&gt;min_queued_buffers = 1;
+    q-&gt;dev = &amp;cfe-&gt;pdev-&gt;dev;</code></pre></div>
+<p>Its wrapper is smaller, because this driver keeps less state for each buffer:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 233–236</span></div><pre><code>struct cfe_buffer {
+    struct vb2_v4l2_buffer vb;
+    struct list_head list;
+};</code></pre></div>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -n &#x27;io_modes\|mem_ops\|buf_struct_size\|min_queued_buffers&#x27; $CFE</span>
+<span class="out">1964:   q-&gt;io_modes = VB2_MMAP | VB2_DMABUF;</span>
+<span class="out">1967:   q-&gt;mem_ops = &amp;vb2_dma_contig_memops;</span>
+<span class="out">1968:   q-&gt;buf_struct_size = id == FE_CONFIG ? sizeof(struct cfe_config_buffer)</span>
+<span class="out">1972:   q-&gt;min_queued_buffers = 1;</span></code></pre></div>
+<p>The allocator is the same one. Two lines differ. The list of memory models is shorter, which section 5 explains. And <code>min_queued_buffers</code> makes vb2 start the driver only when at least one buffer is queued.</p>
+<h3 id="side-by-side" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Buffer framework</td>
+<td>videobuf2</td>
+<td>videobuf2</td>
+</tr>
+<tr>
+<td>The queue is a field of</td>
+<td><code>struct tegra_channel</code>, in <code>channel.c</code></td>
+<td><code>struct cfe_node</code>, in <code>cfe.c</code></td>
+</tr>
+<tr>
+<td>Allocator</td>
+<td><code>vb2_dma_contig_memops</code></td>
+<td><code>vb2_dma_contig_memops</code></td>
+</tr>
+<tr>
+<td>Wrapper around a buffer</td>
+<td><code>struct tegra_channel_buffer</code>, with the address and the state</td>
+<td><code>struct cfe_buffer</code>, with a list node only</td>
+</tr>
+<tr>
+<td>Memory models</td>
+<td>four</td>
+<td>two</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="2-a-buffer-is-always-in-one-state">2. A buffer is always in one state</h2>
+<p>videobuf2 models a capture as a loop of ownership. At every moment a buffer is in exactly one state, and the state says who may touch its memory. The header of the framework lists the states:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/include/media/videobuf2-core.h</span><span>lines 209–231</span></div><pre><code>/**
+ * enum vb2_buffer_state - current video buffer state.
+ * @VB2_BUF_STATE_DEQUEUED: buffer under userspace control.
+ * @VB2_BUF_STATE_IN_REQUEST:   buffer is queued in media request.
+ * @VB2_BUF_STATE_PREPARING:    buffer is being prepared in videobuf2.
+ * @VB2_BUF_STATE_QUEUED:   buffer queued in videobuf2, but not in driver.
+ * @VB2_BUF_STATE_ACTIVE:   buffer queued in driver and possibly used
+ *              in a hardware operation.
+ * @VB2_BUF_STATE_DONE:     buffer returned from driver to videobuf2, but
+ *              not yet dequeued to userspace.
+ * @VB2_BUF_STATE_ERROR:    same as above, but the operation on the buffer
+ *              has ended with an error, which will be reported
+ *              to the userspace when it is dequeued.
+ */
+enum vb2_buffer_state {
+    VB2_BUF_STATE_DEQUEUED,
+    VB2_BUF_STATE_IN_REQUEST,
+    VB2_BUF_STATE_PREPARING,
+    VB2_BUF_STATE_QUEUED,
+    VB2_BUF_STATE_ACTIVE,
+    VB2_BUF_STATE_DONE,
+    VB2_BUF_STATE_ERROR,
+};</code></pre></div>
+<p>Five of the seven states carry a capture:</p>
+<div class="fig"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIGRhdGEtZDItdmVyc2lvbj0iMC43LjEiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiIHZpZXdCb3g9IjAgMCA1OTkgODkxIj48c3ZnIGNsYXNzPSJkMi0zNjA4NDgyODQxIGQyLXN2ZyIgd2lkdGg9IjU5OSIgaGVpZ2h0PSI4OTEiIHZpZXdCb3g9Ii0xMiAtMTMgNTk5IDg5MSI+PHJlY3QgeD0iLTEyLjAwMDAwMCIgeT0iLTEzLjAwMDAwMCIgd2lkdGg9IjU5OS4wMDAwMDAiIGhlaWdodD0iODkxLjAwMDAwMCIgcng9IjAuMDAwMDAwIiBmaWxsPSIjRkZGRkZGIiBjbGFzcz0iIGZpbGwtTjciIHN0cm9rZS13aWR0aD0iMCIgLz48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwouZDItMzYwODQ4Mjg0MSAudGV4dC1ib2xkIHsKCWZvbnQtZmFtaWx5OiAiZDItMzYwODQ4Mjg0MS1mb250LWJvbGQiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTM2MDg0ODI4NDEtZm9udC1ib2xkOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQS9ZQUFvQUFBQUFHQmdBQWd1RkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1h4SFhybU50WVhBQUFBRlVBQUFBcXdBQUFOd0VNZ1VhWjJ4NVpnQUFBZ0FBQUFrV0FBQU1hQnEwd3JCb1pXRmtBQUFMR0FBQUFEWUFBQUEyRzM4ZTFHaG9aV0VBQUF0UUFBQUFKQUFBQUNRS2Z3WHBhRzEwZUFBQUMzUUFBQUNoQUFBQXFGUjlCeHBzYjJOaEFBQU1HQUFBQUZZQUFBQldROHBBZ20xaGVIQUFBQXh3QUFBQUlBQUFBQ0FBUWdEM2JtRnRaUUFBREpBQUFBTW9BQUFJS2dqd1ZrRndiM04wQUFBUHVBQUFBQjBBQUFBZy85RUFNZ0FEQWlvQ3ZBQUZBQUFDaWdKWUFBQUFTd0tLQWxnQUFBRmVBRElCS1FBQUFnc0hBd01FQXdJQ0JHQUFBdmNBQUFBREFBQUFBQUFBQUFCQlJFSlBBQ0FBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWjhBQUFBQUFmQUNsQUFBQUNBQUEzaWNkTTI3TGdRQkdFRGhiOHk0RDhiOU5oajNSdVVOTkpKcENCSHRoR2drZXZGTWhCcUY2SlJlWVo5aHUyMyt6VzYyM2ROK3hVRWlsU0NYK1VlcGtNcFZUcHc2Vjd0MDdWYmozcU5uTHhFTTlFenR3cFVialRzUG5ub2FyZWhFTzM3ako3N2pLejdqTHo3aVBkN2l0ZjhaWHVMSW9SR3B6S2d4NHlaTW1qSXROMlBXbkdPRmVRc1dMVm0yWXRXYWRSczJsYlpzMjFIWnRXZmZBVjBBQUFELy93RUFBUC8vOW5vbk53QjRuSVNXYTJ4YjVSbkhuL2Yxc1E5eG5NdXhmWHhzSjQ0dkp6N0h6c1dKZlh6T3ljV0prOWk1TkxXZEcwMVRTSk1TTVNoTmszWnRxZ2FXcmtqbHNvRUxESWRTQnRvbUJOcXRURUxWSklaV0pxRU5odWlIU1lYeFpRUEdVSWZnd3l3VVRReVM0K21jNDZRSlgvWWhmaVByOWZQK24rZjUvWi8zQlNPTUErQUZ2QTRHcUlBYXNBSU5JRkIrS2lqd1BFdktnaXl6akVIbUVVV09ZNnZ5OGt0OG1BaUhpU2JmWmU4RDgvTW9PNGZYdDQ3Zm1WMVkrTTk4ZDdmeWs5KzlybHhFcDE4SHdLV3ZBWEFLNTZFQ0tBQWJLZkFjeDdNbWs4RW0yRmllSlcvV1BsNVRWVmRGV0Z4ZlgzLzErZ3VodDBOb05KR0lMZ3Z4SmVWaG5OOWFlZjU1QUFBRFpBRndBdWVCQWpjRVZHMUN6T0dnN1NhUzFoWVRheEJpa2hqbldKWVNZdHFhL1NoOXZLODFGRXVsVHczUEQwclJXSHhvNnY1RXp4VE9lNGFTelZNMVJOWCsvdFR0WWZSb0U4djVsSm1aNWlBQWdraHBBN2ZqeTFBSFlBeHduQmlYSkNIbVlFaU9Zd01tRTIxM0NERkpaa3pvOE9SalV3Y3VUaWJ2OXVkY010dXlyM2w2SkpSMDVpWXRtV2VXamo4M0lRVG1HRTlzYnVEdWs0MnUyU09BTmYwWm5BZXpYdG15ZWhQTEN6RkoxYTBLZnUzdXB5ZkduenpTV3Q4eEZZbE1kZFRqZlBySmt5ZWZIajRibXMzbERnVkIxWmNGUVAvR2VhalUra1A3YVlGbWFUK2RSWmVWYno3OEVOWGcvTnFGNzExYTI5bjdtVmI3WFh1ejZIbmxxMDgrd2ZtMVo5ZTJZSHNmZkl6ellOQ1VVZG1DV25qOWUwMnpUZnZleGdnY0o0b0N4UnA0MXVHZzZleXp2K29qaU9xOHVoaXJjRjc1L1ZQeEI3dHVicTJnd1Nla3RhNS9BUURXNnZsOWZCbHF2bFZSTFh0ZWIxbEFyU3Vhbm5sNC8vNkhaL1RQVkM2WFN1Vnlsc25uamkwK016WjI2ZGl4NXliUHJ5d3NMQzh2TEt6b2NVZnh6L0JscUFRT0lMZzdUb0RqOTV4Q09zbzlNNkhwY2xqa3Z2Y3A5dWc1L2JTVDg4eFltQTVXdTYzZHg4OGNWVTg0ZWtiNThEc1p4MjhlMDQrKzhPdTZRQU5KTEZaVWxmczRoZk5RRGN4dUNsV1lhV29id2V3WGc2ZlNTWEg5NVhNVG1hNmVucTRNemdkbmNpT0hHZVdiTDc1QVI2THQ3WnhhZHhjQXR1RThrR29rVnZUVExIWDlLdnI2S3E1ZFc5c3E2cjNaVjlyQVl4cjNhdlZFU3FBMEJMVi9UQ2gzL3BIMUxsbE9QSEhCY3VrbE5LY1VqbVF5UjlDUzh1Skxsd0NWL2d1QUJaeUhLZ0RCSU5nY0RrYVFKTmttR043NDB3dTVHcWFHcUhaV1p5LzlFZWVWdjRqM1NOSTlJbXJmV2dFTVRhVU45QjdhQkJld0FFeEFMYWFzOFUveVdsVnBpbFU5TE1ja1dkUTg4VVo2L0tFQ1pzUGV2a2F4YmJGci9wNVZNK0VkdnMwVnRPVVNYc3ZCWkc2bXhzODc2YnM4amN1bmxFK0ZldllVWXp0b2J2WTRHWTJSL3RJR2R1QnJZQWV2bGlYUGtpd2wwT1MzUUdFRHF0blJvRC9sSVN5bkM0UW5IVWpNdENYbVp6aHB1aVZzRDFuOFBoRmZ1NUp4ZTNxL216bHdmM0oxS1BOSTY3dldhdTBNdnJTQk52RTFzSUZ2T3lmTjJMd0s5RTQyWEJtaUwyZFBkTS9Id3gwdVUySFZUTGlIc0pPMzJwcnRyTlJtZWZ6K2lUTzk5YzdNTDdkU1VUZTdhbmU5YTYxT0RlOGJCQXlOcFEzMEQ3UUp6bkllZXlqMHF4aXFGQm9FRFZYa0hUNDFrRHJlUFh5NGpjREtCK2FocUNoRnVia2ZYK1ZiQXBLbGQyVnlZaVdaWEV6YmdoV1M0RC9rYmtCZFliRk5aOElKZ0Zid08rcXFjaVB2SFZLMGFuUHFqb0dCeHZHVU4xNWJWK1cyMURVY09vVE9MUm5yeE9tNHhYVGNhUFJ6RGFlVkMrcGNEWlJhTVlrMm9RMjZZVlNyRENmRzFVS29UUmUzVTJBRW1pMFByQUN2VFVFVkE3dkpaTmpsUEZ1Wi9nQ25iZm15YTY1ajJGYm5jN3JEWFhOaWkvKzNZMlJGZkViMmVLMkI4UGpzWGVtMVVRL1Blenc4SDQ3MThVSEI1YmZVOWR4d2Q3UWtRa1JWeUZzWHF5V3M2ZWJFV01peVdCbXdkNDQybW1zY05tdDNTcGlJb0hlYXdudzRGQW8zS1lWR0YxTnJNRGhkOVI2OU52MXFzeldXVkhlV0dhSXBsdEpVa2xSL2dhemZINXZZVi9ENDZrTk9mTzNLSVZmejRtSGxPdkpMSVJlanZBcWxFc2dBOEhkOEEzTVFBZ0FTd3ZDWUhydTBnYXo0R3RUb0JHMTdVVzNxbnpQZEJhckNTSnFzbHFEbHp2MlkzZnFBc1NLMFpDUjFUUVlQMmdTL3BrazFvZHF0UGNySW5iVmY5YzVRVk95MytVZWo0L3NMSGwrd1hmMW9ROFUrYjJ0ektCRGRsdHV1dkZwZXR2TkdtK1c4eTJmc3pudlZUUGl5TzRtallyS2hkVS9lT3I4YUMvOS9WanVTSjlMcEU4bmtjanE5bkd5TlJGb2pyYTJXbmpPVFV5czlQU3RUazJkNnptYjcrak9aL3I2czd1OFI3RUNiWUlNR0FPYVdPZzBuam1kbzJ5MTdxem85Ky9nN2ppYm1KVi9DYlJ6anBPbm1KbnZvTmZ5THFKdjk0ZWtEcThrNjE5aVBVT09PdVZWdmo2Qk5MYjRQd0NqS1d0aHRVd2l5UUJsMmV4dmRaM0lOQkhTRDk2cVQ1Tk1kYzcvMmJNYnAxUXp1OFVXM1psRGpMWGVYMlVKUG9rMnc3dW1qN2pxOXduVVpqcTQzTzZ0Y3RmVTlkbFE4R0lzYWplY0pJaHhUUGdZRWRHa0QvUlJ0QXEveHc4dmF4YVRlL1h3RWkvRmJ3V2k3ZzJuQXROMTBJM292TnhCSWV2ME5ub2k3b1R0MDM0SE9nOTRCZDl6ZDJjbjVlc0pITFp4MzFsWEgyQ2lIeld4cDdBd1BUdlBPR2J1RGQ3cXFLOW5PU09xdzdnbXF0SUdXOFlwNlk2bDNpTWlLc2l4b2o0RWRmaEhNanFVejFBTm56N0llaTh2TTJHVExzZWwzbGt3UFBYVDY3YWFnaVZnMFdmUllpZElHK2dvVlZjNzJlSUFxajlHL1R1d3JOUGpxT1VkaHRkTGdIYlVzSGtaeDVTTXg3UGFnRWFWMk1OZ0NDQ3dBcUlTSzVYdUpLZDlMc21DNCt2UDFQclBOVEZUWXpQMFhYMFRGejROWm5zOEdQMWRxdCtjZUxxS2k1cVBkdjlzVmdTMi9MMGx5ZmUzcGRwUFpSSkJWRmZMNWpvb2FraUFyeUxZZm5MM1NTbGFSQkZsSnRxRGl6ZUFJeDQyeU43VjFKSGhUcVgyTEhRcUZodGkzdFBNc3BWNjBoWXFxRzI3MVM1YjNTSzdHcXc1L2padTAzaFlNbWNrL3JBOVhXczNFYlZSRjR1SVZwbVBzVFJOeEVoa2JQVzcwei9jRFEwRjJtSDFmcWV3OTBLVFhzZ0VBZllvZmhYb0FRZXpGdXIzS2Q2em1EblY2Q1hSdzR0eFFOQnlRbmVOdEMrbmtuTmc5RzNjbUhBL2VuajEzWDJ0YmxIZVB4WVRZblQzaWlST1N3YmltdjJGN0VjQXJLcWNNTDBsOElLRDdRZmRjcHFHakMyRUNzNUxFeGVLemIrYnMvY0htRUJjWjdaOWNoWExlSytpejB0dnFlNUFSL2JRRi9TMC9OYVh6RCsraDR2WTdzYitBaWtvdG9OSXJ1Qk9tOEEzMVRVcnRPaWdZaVFTRGtRanViR0xaSnZVUC9nY0FBUC8vQVFBQS8vOUJoWjltQUFBQUFRQUFBQUlMaFJzVldXZGZEenoxQUFFRDZBQUFBQURZWGFDRUFBQUFBTjFtTHpiK04vN0VDRzBEOFFBQkFBTUFBZ0FBQUFBQUFBQUJBQUFEMlA3dkFBQUltUDQzL2pjSWJRQUJBQUFBQUFBQUFBQUFBQUFBQUFBQUtuaWNOTXFoeXNKUUdNZmgzL3NmZkh6aUFSV216TElnQTBIbnFvSmJPRVV3SExBWURFYXZ3dUFkMkhjUFdxemVnQmRrMFRKQk1EenQwWTBORDFEVnZMVW5hRVdoSTBFWlFZNWdNNEpxZ2k0VVh3ZUNjb2FxV1N0dlh1b3dVWVZYeFZoL1pMWWwwWUNSbG5pTG1WdUtqM1o0bFhoTnlYN1h6bmk3MDdjVFBTMG8xY1pGL3lScTRkUWx0WnpDbmppTDhkQmNQd0FBQVAvL0FRQUEvLzkvUVJuYUFBQUFBQUFBTEFBc0FGQUFoQUN3QU5RQTZnRCtBUW9CTEFGWUFaUUJ1Z0hNQWVvQ0JnSStBbkFDb2dMV0F2d0RaQU9HQTVJRHJnUGdCQUlFTGdSZUJKSUVzZ1R1QlJRRk5nVlNCWW9GdWdYbUJnWUdFZ1llQmpRQUFBQUJBQUFBS2dDUUFBd0FZd0FIQUFFQUFBQUFBQUFBQUFBQUFBQUFCQUFEZUp5Y2xNOXVHMVVVeG45T2JOTUt3UUpGVmJxSjdvSkZrZWpZVkVuVk5pdUgxSXBGRkFlUEMwSkNTQlBQK0k4eW5obDVKZzdoQ1ZqekZyeEZWendFejRGWW8vbDg3TmdGMFNhS2tueDM3dm56blhPK2M0RWQvbWFiU3ZVaDhFYzlNVnhocjM1dWVJc0g5UlBEMjdUclc0YXJQS245YWJoR1dKc2Jydk41cldmNEk5NVdmelA4Z1AzcVQ0WWZzbHR0Ry82WVo5VWR3NTlzTy80eS9Dbjd2RjNnQ3J6Z1Y4TVZkc2tNYjdIRGo0YTNlWVRGckZSNVJOTndqYy9ZTTF4bkQrZ3pvU0JtUXNJSXg1QUpJNjZZRVpIakV6Rmp3cENJRUVlSEZqR0Z2aVlFUW83UmYzNE44Q21ZRVNqaW1BSkhqRTlNUU03WUl2NGlyNVJ6WlJ6cU5MTzdGZ1ZqQWk3a2NVbEFnaU5sUkVwQ3hLWGlGQlJrdktKQmc1eUIrR1lVNUhqa1RJanhTSmt4b2tHWE5xZjBHVE1oeDlGV3BKS1pUOHFRZ21zQzVYZG1VWFptUUVSQ2JxeXVTQWpGMDRsZkpPOE9wemk2WkxKZGozeTZFZUZMSE4vSnUrU1d5dllyUFAyNk5XYWJlWmRzQXVicVo2eXV4THE1MWdUSHVpM3p0dmhXdU9BVjdsNzkyV1R5L2g2RitsOG84Z1ZYbW4rb1NTVmlrdURjTGkxOEtjaDNqM0VjNmR6QlYwZStwME9mRTdxOG9hOXppeDQ5V3B6UnA4TnIrWGJwNGZpYUxtY2N5Nk1qdkxoclN6Rm4vSURqR3pxeUtXTkgxcC9GeENKK0pqTjE1K0k0VXgxVE12VzhaTzZwMWtnVjNuM0M1UTZsRytySTVUUFFIcFdXVHZOTHRHY0JJMU5GSm9aVDlYS3BqZHo2RjVvaXBxcWxuTzN0ZmJrTmM5dTk1UmJma0dxSFM3VXVPSldUV3pCNjMxUzlkelJ6clIrUGdKQ1VDMWtNU0puU29PQkd2TThKdUNMR2NhenVuV2hMQ2xvcm56TFBqVlFTTVJXRERvbml6TWowTnpEZCtNWjlzS0Y3WjI5SktQK1M2ZVdxcXZ0a2NlclY3WXplcUh2TE85KzZISzFOb0dGVFRkZlVOQkRYeExRZmFhZlcrZnZ5emZXNnBUemxpSlNZOEY4dndETThtdXh6d0NGalpSam9abTZ2UTFNdlJKT1hIS3I2U3lKWkRhWG55Q0ljNFBHY0F3NTR5Zk4zK3JoazRveUxXM0ZaejkzaW1DTzZISDVRRlF2N0xrZThYbjM3LzZ5L2kybFR0VGllcms0djdqM0ZKM2RRNnhmYXM5djNzcWVKbFpPWVc3VGJyVGdqWUZweWNidnJOYm5IZVA4QUFBRC8vd0VBQVAvLzlMZFBVWGljWW1CbUFJUC81eGlNR0xBQUFBQUFBUC8vQVFBQS8vOHZBUUlEQUFBQSIpOwp9Ci5kMi0zNjA4NDgyODQxIC50ZXh0LWl0YWxpYyB7Cglmb250LWZhbWlseTogImQyLTM2MDg0ODI4NDEtZm9udC1pdGFsaWMiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTM2MDg0ODI4NDEtZm9udC1pdGFsaWM7CglzcmM6IHVybCgiZGF0YTphcHBsaWNhdGlvbi9mb250LXdvZmY7YmFzZTY0LGQwOUdSZ0FCQUFBQUFBL3dBQW9BQUFBQUdRQUFBUmhSQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCUFV5OHlBQUFBOUFBQUFHQUFBQUJnVzFTVmVHTnRZWEFBQUFGVUFBQUFxd0FBQU53RU1nVWFaMng1WmdBQUFnQUFBQWtwQUFBTlNMbTFJeUJvWldGa0FBQUxMQUFBQURZQUFBQTJHN1VyMm1ob1pXRUFBQXRrQUFBQUpBQUFBQ1FMZUFqT2FHMTBlQUFBQzRnQUFBQ25BQUFBcUUxdkJTaHNiMk5oQUFBTU1BQUFBRllBQUFCV1NLWkZQRzFoZUhBQUFBeUlBQUFBSUFBQUFDQUFRZ0QyYm1GdFpRQUFES2dBQUFNbUFBQUlNZ250VnpOd2IzTjBBQUFQMEFBQUFDQUFBQUFnLzhZQU1nQURBZUVCa0FBRkFBQUNpZ0pZLy9FQVN3S0tBbGdBUkFGZUFESUJJd0FBQWdzRkF3TUVBd2tDQkNBQUFIY0FBQUFEQUFBQUFBQUFBQUJCUkVKUEFBRUFJUC8vQXU3L0JnQUFBOWdCRVNBQUFaTUFBQUFBQWVZQ2xBQUFBQ0FBQTNpY2RNMjdMZ1FCR0VEaGI4eTREOGI5TmhqM1J1VU5OSkpwQ0JIdGhHZ2tldkZNaEJxRjZKUmVZWjlodTIzK3pXNjIzZE4reFVFaWxTQ1grVWVwa01wVlRwdzZWN3QwN1ZiajNxTm5MeEVNOUV6dHdwVWJqVHNQbm5vYXJlaEVPMzdqSjc3akt6N2pMejdpUGQ3aXRmOFpYdUxJb1JHcHpLZ3g0eVpNbWpJdE4yUFduR09GZVFzV0xWbTJZdFdhZFJzMmxiWnMyMUhadFdmZkFWMEFBQUQvL3dFQUFQLy85bm9uTndCNG5IeFdiVXhiMS8zK25YTXY5NEl4QnZ2NkpUWmdZNS9yYS9BcitHSmYzbXd3eG1Dd1RRSUVRZ2s0NzJuZXk3OHRhZk5Qb25iSjFLMVZrN3BUMUdsVHBVenFOclhxaDAxdE4ybGZXbW1ydEd4ZHBFMXExMDNyUHJUcGFKVk1hb3RRdGxYamVycjNHakNadEMrWEkzUjhmci9uZVg3UGN3N1VBQStBeitFYlFFRWROSUlKTEFBaTU2WW9VWktJalJKOVBzS3lrby9qV1A0S3VuWGwrM1I2NFcvdFAvaFgwRVdQZmVPMTNOOFB2bzV2Ykp4QlR5ODk5WlM4Lzl2SGp1MjdkMC8yb3ovZUF3REE1ZmNBMEFlNEJIVmdCT0JZMFNjSVBzSXdDSWtjOFJIMlR0K3ZkTFNPcGgyaS9EdDBkQ0UvWmZyOEpMcXd2Tng5cXFmM1lYa0tsemFXYjk4R29JQUE0RFpjQWlNNGxMWElpVkdyeGN3d0xHdFYveEpLak1aajNRTFpYcENyUHpsd0pwRG1rVGc2ZG1teXIxaGN5RXpzUC8xbzhWeGgvSEZjbWhnTGpnUnJhWDJxWjN3cGlNNlBTYUhveHQxTVBwcFEra2JRVzE3SElmd3l1QUJxUElJUTYwNWlNV3Exc1lKQVBBWnNNVnV0WWpRdTJSZ0dlWEluNHAwTGwvTTlVN3ZpWEZ6b096RE1leWI2MjlOdGhGL1NwNStjTE54NFlrenlkN1Q1RWtlZkhPaGZpclUxUjEwaGhSc1ZVMXpsaHF0Q1JIeGlOTDZKNFArZnZUWjc4NUc1dWRsTDZZZVB4SEhwV3hlZWVPdlkwTjZYRGkyZDFQcFV6bWpDSmFoWE5XUGRyTWdTMXMyU3EraFVnM3pILzVYaEN4RUpCbHhLZlRCOGY3aHFmMTNWZnFxeU8vUlZ3NWNEdUpUNmRGaitzSEkyck9NU1VHcDNGTGs2ZVZVUlpLdnVjVnlxZE03WnhIaGNVdlpRaXJxc3N2Y2xQODBZZEpuYzFjS05BTTAwNmtaeFNWNTh0dXVzaUJZM2x0RXIxOFJUVWZtbXlzTkFlUjBYOGN2UUJHMHEyeFd5clJhekFmdWlTYXh3b1pHT1hPZFd3bk1yb3hQSHVzTnpqNmRqKzVLZWlVbmxPNjcvN3FWY2FTVXpjbkVtOStKS0pqMXdlS1gzMEVyLzRaVytnK2NyTllwcWpVWUlBbmgzSEdyekNENWhSMUYyVTExRXFrcjhZK2FDZldaZnBYeGc4dXl3Y2JhN3NibWh4aDNyUDNLK1Q2dDIrUHlIK1QzY0M2Y3J2V1NmZjNTY0NRUm9LbEZmMGR1SFM5QUExbTI5V1k1UWhPSzJoL2F0eGY4N04vUFl6SmxIcFpFanhhTzU3RUZjR3AzWmY4NG8zMEZXK1M2YW5SNk5SelR0bHdCd0RKZUFWVTRqa3BzbDFJOVgzbTVBN3pXOHM0SUw2ZlRHbTlxKzNlVjFWU3RyaFYxVktjWmlWa0VxU3dZNWo1NW02SW5KWE4xUXBtZkJNcFdmYnJtaVAzbmNFckdqWmZuWmtHZTBzSGdhZlVjK2ZmMkNjdDQwQUU2cE9FQ2tSTTVxcmFpUHJ2WHZicTZwcFdoN3pQR3p2ZkpydUNUZmlKMk54eDdwUm1mVXNRRU12dkk2K2lkYUE3UENobTFMYTVzb2lSU1JDTVA0b25GSjJuTFptMFA1NEVSUjlDV01OSmM4TkZoTGszbVRzSnNQV3FJdGZEcm02dEx2bngyOXNDaTJ1eE95SSt1TkRJVWpmeFk4L3ZHbDZHQkNxK2NxcjZNdjhTMndLQ21uS0UxWXdva3NLOGJqS3Y5VkU2Wm15VjFmd2tpWkI2OFhmRmJNN3cycDVXTjhPdWJzN1BCTWtiQloxTGU3RS9qVzJ3ZGJBd3R6U3VraC8vaVNtRXo0dlo4SkhnMGY5bFhWMjhiM3Z3SDJtYWdtb1ZDcUlKejBQb2pRMTNiZzdZMmVCeUZpOEpiWDBUdG9EUnpncmE2blRwYWIyVW9wU2xRalJVSDU2ZHpKVUc2eFUwbzU5VFh5dTNWdGFYOXJyODNaT3ZXOU1xWk1IU1JXMUo4NmxGbWVEb2IzUkZ0RXcrQWVyOTBvV2x6SVc3K3JvYVhMTlFzSUFnRG9HbjRmYk9yY0RXS1ZTaTBhR1ZZTmxNRHNZSDJxcVhFeTRmQ2JtblhOUm5kSHJmR3cvc2dzZXJXM1ptcGlwcUZlWW5YUndFeFNubGMwUW1VZXJhRTFjRUZZMDBqUytwWVlodXljRUlhaGRyRDNldGNjNFZzeTdja0pnMTNZRzBuc0NZd3ZkZ2xKSThVTkh1Y2U2eVZUbm9DMXE0V2tSR2ZrSTZFMVp2UGtoMDRJd2JuWjlPTVBSWldab1E0Y1IrNkEvL2VDcDJOMHZyTy9YL09MQ3dEOUNkOEN1K3JTN1ZsaEtjSXBOQ293S2RmMVFtY1QzVEVkVE1acWsva0JtczYyWk1NWmZPdGVna1JTUFM1ZS9pMEttbmMxNVB4aCtkVnlXVGtUdnNadllBSGFBWUNCanF4V0sxaGVoNi94TFRBcHlHUGRtaDB0NW9wc1oxUE14Y0psaEl3VXd5S2RWVDlvdE9QVEd5K3lkWlFKNFg2YTN1b1gzMFZyNE5mNjFkcTFWWnBtZG5SZERlRFFJRXNMTTBKZlYwMWszcHVJMDNTeWtLRHBNVXMybUZId2pGcXpnUXhhSGVlN3BQYWdtT294T3MzVm1MWlgyNXloTmRoVjNjT0RsQ2tWTzZiRE94aFRLenhJMkhaVy9BV3RRU08wVnMrMlpscnRpdlFvWkZuZjMxME1UaFNqdXc4RWMwVi9hRXFNUjVXUC9zVCt6R096WWUwN05MdzhNanlXWGg0WkhsWGZKZmZMSXZvU3JXaytaYXM2Tm1DaXBnVEw3Y2dGM1hPRERPV2REYXQyalFvREhEYTVmbFNkQzdmeG0wT3VVTVdzcmhNM0Vhb0VnL0M1MTcySlIxU3pUNjFaSXlsaDhNQjg3NXh1NUhZN3NYYytYSjJCejkyc0RvZmJONThRSWxzUnVGRkFhR2NBYXJwY1FtdlFWS1dMalJVMjlhaW5XL01odTZXNXljSG5YUW0wdWhSTTFJM1VEdmJMdHdHVi8xMWVSNWZSR3ZpcVhSbnIxbTdMYXRNcmw2ajJESHVsYThuZWFSc1MvSW1Pbm5CdmNEd1lubWdKYzZKYjZJcTNKYnM3cC9YZDdZS3JQVXdjUHBjajJSRkllWGxudTlrUmNqa0ZrMmNnR0JyeEtqMFBsTmZSUEQ0RExSWFY0NUtTTXFLYUxKdlhsbzFoZmpIVVRhUGVzZm84bjJxK3FML2NTN1Y0REk1NlkxTkVQeGhxZERRZ1UyL05NODhrNWJzbWs5T3BxNUhZUnVYc252STYrZ0t0S3Q2MmJkK0ZGY2R4bFloK2Zjc04yZGF4WUNhdlhEenRlL1hEa3RIRm9iajhQbWRYeGhUTnk0NEpJbW9lN0FkQUg2UFYvNzRUcjR6bGVacWhhU1BQdlZDUU45Q3EvQm5KRVg2Y1IzYlpvZjEyRkFEL0dxMkMrNEhmYnE4b1FtbnZacFk2U2ZKTkNDRzZzYm5wNlp3UlkwUWJIRTFQWmY5NndLRCt0N1h4UEZxVlAvR01lRHdqSHVTc1dqbVFqbVI1UGt2ays0REt2eXhIMEIyMENnNEFWdFZXRGR3ZG5Sc3dvMnN6MkUwbWI4cHVtc2tMeXMxdTlKcWV6OHVmMlB1emYyRFozcnBFbEtEUDVDL2NCVUx5SG1UYytDcFNDS3FZeXZjQjBMdjRPZVY4SWlXcGlwRjhXeVpqM2F5dTl1RDFZa1NNdGFVOHZ1Qyt6dWw1Ly9TbEdXVFdoNmN1SG40b0hCeHd1enFGam9kR1lzV0R5OWxoNWN5UHk0dFFnalBLTENzblNhcDVLaWxucm8vMHN0anFKSzJPbG9VZmhrMER2TU5xOS9ITzhXV3RuNC9LMzBRL0xmOWNlY3V5a3B2bDY5RnZkSmVpMFUyUHdHMjB1dm5PZFIwcUhFYXJxamdJeG5BTzNzQnZLTzlycnFyY2s1eVQyTXl0Qk9kc1ZydDdsOVhlOWg4QUFBRC8vd0VBQVAvL3BwUEN2UUFBQUFBQkFBQUFBUmhSNUxEdW0xOFBQUFVBQVFQb0FBQUFBTmhkb013QUFBQUEzV1l2Ti82OS90MElIUVBKQUFJQUF3QUNBQUFBQUFBQUFBRUFBQVBZL3U4QUFBaEEvcjM5dkFnZEErZ0F3di9SQUFBQUFBQUFBQUFBQUFBcWVKd2N6TEZxd2xBWVIvSHovVE9XUXFGRDJpNTN1RzB6eEFkUXpLb1pGUWMzZDhIVnhkZndpWUl1Z2s4Z09CaWNCWEdJRGlGWHpIREc4OU9TWDNaZ1RkZ3J4K3VmbnNaNHUrUHRnS2ZHYTRIWGlxd3R4VnZEVEhOR2RtV2lieEo5NFJTVFdNbWYvWkRxRTlNYmpndU9CNTNJNGZTT1UwU2lPRlN2eDZZNFc0ZmFCbVQ2b0dzRmZXMFpXaEUyZGdvVnQxRGFPUnhiQS9JbkFBQUEvLzhCQUFELy8wVnJKOE1BQUFBQUxnQXVBRklBaWdDOEFONEE5Z0VNQVJvQlFBRnlBYlFCM0FId0FoZ0NOZ0p1QXFZQzNnTVlBMEFEaUFPeUE3NEQ0QVFpQkV3RWVnUzBCTzRGREFWSUJYWUZvZ1hBQmZvR0tnWlVCbklHZ0FhT0JxUUFBQUFCQUFBQUtnQ01BQXdBWmdBSEFBRUFBQUFBQUFBQUFBQUFBQUFBQkFBRGVKeWNsTnRPRzFjVWhqOEgyMjE2dXFoUVJHN1F2a3lsWkV5akVDWGh5cFNnaklwdzZuRjZrS3BLZ3owK2lQSE15RE9Za2lmb2RkK2liNUdyUGthZm91cDF0WDh2Z3gxRlFTQUUvSHYyT3Z4cnJYOXRZSlAvMktCV3Z3djgzWndicnJIZC9ObndIYjVvSGhuZVlMLzVtZUU2RHh2L0dHNHdhTHcxM09SQm8ydjRFOTdWL3pUOEtVL3F2eG0reTFiOTBQRG5QSzV2R3Y1eXcvR3Y0YTk0d3JzRnJzRXovakJjWTR2QzhCMDIrZFh3QnZld21MVTY5OWd4M09CcnRnMDMyUVo2VEtoSW1aQXh3akZrd29nelppU1VSQ1RNbURBa1lZQWpwRTFLcGE4WnNaQmo5TUd2TVJFVk0ySkZIRlBoU0lsSWlTa1pXOFMzOHNwNXJZeERuV1oyMTZaaVRNeUpQRTZKeVhEa2pNakpTRGhWbklxS2doZTBhRkhTRjkrQ2lwS0FrZ2twQVRrelJyVG9jTWdSUGNaTUtIRWNLcEpuRnBFenBPS2NXUG1kV2ZqTzlFbklLSTNWR1JrRDhYVGlsOGc3NUFoSGgwSzJxNUdQMWlJOHhQR2p2RDIzWExiZkV1alhyVEJiejd0a0V6TlhQMU4xSmRYTnVTWTQxcTNQMitZSDRZb1h1RnYxWjUzSjlUMGE2SCtseUNlY2FmNERUU29Ua3d6bnRtZ1RTVUdSdTQ5algrZVFTQjM1aVpBZXIrandocDdPYmJwMGFYTk1qNUNYOHUzUXhmRWRIWTQ1a0Vjb3ZMZzdsR0tPK1FYSDk0U3k4YkVUNjg5aVlnbS9VNWk2UzNHY3FZNHBoWHJ1bVFlcU5WR0ZONSt3MzZGOFRSMmxmUHJhSTIvcE5MOU1leFl6TWxVVVlqaFZMNWZhS0sxL0ExUEVWTFg0MlY3ZCsyMlkyKzR0dC9pQ1hEdnMxYnJnNUNlM1lIVGRWSVAzTkhPdW40Q1lBVGtuc3VpVE02VkZ4WVY0dnlibWpCVEhnYnIzU2x0UzBiNzA4WGt1cEpLRXFSaUVaSW96bzlEZjJIUVRHZmYrbXU2ZHZTVUQrWHVtcDVkVjNTYUxVNit1WnZSRzNWdmVSZGJsWkdVQ0xadHF2cUttdnJobXB2MUVPN1hLUDVKdnFkY3Q1eEdoNGk1MiswT3Z3QTdQMldXUHNiTDBkVE8vdlBPdmhMZllVd2RPU1dRMWxLWjlEWThKMkNYZ0tidnM4cHluNy9WeXljWVpIN2ZHWnpWL213UDI2YkIzYlRVTDJ3Nzd2RnlMOXZITWY0bnRqdXB4UExvOFBidjFOQi9jUUxYZmFOK3UzczJ1SnVlbk1iZG9WOXR4VE16VWMzRmJxelc1K3dUL0F3QUEvLzhCQUFELy8zS2hVVUFBQUFBREFBRC85UUFBLzg0QU1nQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEiKTsKfV1dPjwvc3R5bGU+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsuc2hhcGUgewogIHNoYXBlLXJlbmRlcmluZzogZ2VvbWV0cmljUHJlY2lzaW9uOwogIHN0cm9rZS1saW5lam9pbjogcm91bmQ7Cn0KLmNvbm5lY3Rpb24gewogIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICBzdHJva2UtbGluZWpvaW46IHJvdW5kOwp9Ci5ibGVuZCB7CiAgbWl4LWJsZW5kLW1vZGU6IG11bHRpcGx5OwogIG9wYWNpdHk6IDAuNTsKfQoKCQkuZDItMzYwODQ4Mjg0MSAuZmlsbC1OMXtmaWxsOiMwQTBGMjU7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLU4ye2ZpbGw6IzY3NkM3RTt9CgkJLmQyLTM2MDg0ODI4NDEgLmZpbGwtTjN7ZmlsbDojOTQ5OUFCO30KCQkuZDItMzYwODQ4Mjg0MSAuZmlsbC1ONHtmaWxsOiNDRkQyREQ7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLU41e2ZpbGw6I0RFRTFFQjt9CgkJLmQyLTM2MDg0ODI4NDEgLmZpbGwtTjZ7ZmlsbDojRUVGMUY4O30KCQkuZDItMzYwODQ4Mjg0MSAuZmlsbC1ON3tmaWxsOiNGRkZGRkY7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUIxe2ZpbGw6IzBEMzJCMjt9CgkJLmQyLTM2MDg0ODI4NDEgLmZpbGwtQjJ7ZmlsbDojMEQzMkIyO30KCQkuZDItMzYwODQ4Mjg0MSAuZmlsbC1CM3tmaWxsOiNFM0U5RkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUI0e2ZpbGw6I0UzRTlGRDt9CgkJLmQyLTM2MDg0ODI4NDEgLmZpbGwtQjV7ZmlsbDojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuZmlsbC1CNntmaWxsOiNGN0Y4RkU7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUFBMntmaWxsOiM0QTZGRjM7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUFBNHtmaWxsOiNFREYwRkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUFBNXtmaWxsOiNGN0Y4RkU7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUFCNHtmaWxsOiNFREYwRkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5maWxsLUFCNXtmaWxsOiNGN0Y4RkU7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjF7c3Ryb2tlOiMwQTBGMjU7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjJ7c3Ryb2tlOiM2NzZDN0U7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjN7c3Ryb2tlOiM5NDk5QUI7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjR7c3Ryb2tlOiNDRkQyREQ7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjV7c3Ryb2tlOiNERUUxRUI7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjZ7c3Ryb2tlOiNFRUYxRjg7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtTjd7c3Ryb2tlOiNGRkZGRkY7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjF7c3Ryb2tlOiMwRDMyQjI7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjJ7c3Ryb2tlOiMwRDMyQjI7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjN7c3Ryb2tlOiNFM0U5RkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjR7c3Ryb2tlOiNFM0U5RkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjV7c3Ryb2tlOiNFREYwRkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQjZ7c3Ryb2tlOiNGN0Y4RkU7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQUEye3N0cm9rZTojNEE2RkYzO30KCQkuZDItMzYwODQ4Mjg0MSAuc3Ryb2tlLUFBNHtzdHJva2U6I0VERjBGRDt9CgkJLmQyLTM2MDg0ODI4NDEgLnN0cm9rZS1BQTV7c3Ryb2tlOiNGN0Y4RkU7fQoJCS5kMi0zNjA4NDgyODQxIC5zdHJva2UtQUI0e3N0cm9rZTojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuc3Ryb2tlLUFCNXtzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTM2MDg0ODI4NDEgLmJhY2tncm91bmQtY29sb3ItTjF7YmFja2dyb3VuZC1jb2xvcjojMEEwRjI1O30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1OMntiYWNrZ3JvdW5kLWNvbG9yOiM2NzZDN0U7fQoJCS5kMi0zNjA4NDgyODQxIC5iYWNrZ3JvdW5kLWNvbG9yLU4ze2JhY2tncm91bmQtY29sb3I6Izk0OTlBQjt9CgkJLmQyLTM2MDg0ODI4NDEgLmJhY2tncm91bmQtY29sb3ItTjR7YmFja2dyb3VuZC1jb2xvcjojQ0ZEMkREO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1ONXtiYWNrZ3JvdW5kLWNvbG9yOiNERUUxRUI7fQoJCS5kMi0zNjA4NDgyODQxIC5iYWNrZ3JvdW5kLWNvbG9yLU42e2JhY2tncm91bmQtY29sb3I6I0VFRjFGODt9CgkJLmQyLTM2MDg0ODI4NDEgLmJhY2tncm91bmQtY29sb3ItTjd7YmFja2dyb3VuZC1jb2xvcjojRkZGRkZGO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1CMXtiYWNrZ3JvdW5kLWNvbG9yOiMwRDMyQjI7fQoJCS5kMi0zNjA4NDgyODQxIC5iYWNrZ3JvdW5kLWNvbG9yLUIye2JhY2tncm91bmQtY29sb3I6IzBEMzJCMjt9CgkJLmQyLTM2MDg0ODI4NDEgLmJhY2tncm91bmQtY29sb3ItQjN7YmFja2dyb3VuZC1jb2xvcjojRTNFOUZEO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1CNHtiYWNrZ3JvdW5kLWNvbG9yOiNFM0U5RkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5iYWNrZ3JvdW5kLWNvbG9yLUI1e2JhY2tncm91bmQtY29sb3I6I0VERjBGRDt9CgkJLmQyLTM2MDg0ODI4NDEgLmJhY2tncm91bmQtY29sb3ItQjZ7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1BQTJ7YmFja2dyb3VuZC1jb2xvcjojNEE2RkYzO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1BQTR7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1BQTV7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1BQjR7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuYmFja2dyb3VuZC1jb2xvci1BQjV7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItTjF7Y29sb3I6IzBBMEYyNTt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLU4ye2NvbG9yOiM2NzZDN0U7fQoJCS5kMi0zNjA4NDgyODQxIC5jb2xvci1OM3tjb2xvcjojOTQ5OUFCO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItTjR7Y29sb3I6I0NGRDJERDt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLU41e2NvbG9yOiNERUUxRUI7fQoJCS5kMi0zNjA4NDgyODQxIC5jb2xvci1ONntjb2xvcjojRUVGMUY4O30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItTjd7Y29sb3I6I0ZGRkZGRjt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLUIxe2NvbG9yOiMwRDMyQjI7fQoJCS5kMi0zNjA4NDgyODQxIC5jb2xvci1CMntjb2xvcjojMEQzMkIyO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItQjN7Y29sb3I6I0UzRTlGRDt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLUI0e2NvbG9yOiNFM0U5RkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5jb2xvci1CNXtjb2xvcjojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItQjZ7Y29sb3I6I0Y3RjhGRTt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLUFBMntjb2xvcjojNEE2RkYzO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItQUE0e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0zNjA4NDgyODQxIC5jb2xvci1BQTV7Y29sb3I6I0Y3RjhGRTt9CgkJLmQyLTM2MDg0ODI4NDEgLmNvbG9yLUFCNHtjb2xvcjojRURGMEZEO30KCQkuZDItMzYwODQ4Mjg0MSAuY29sb3ItQUI1e2NvbG9yOiNGN0Y4RkU7fS5hcHBlbmRpeCB0ZXh0LnRleHR7ZmlsbDojMEEwRjI1fS5tZHstLWNvbG9yLWZnLWRlZmF1bHQ6IzBBMEYyNTstLWNvbG9yLWZnLW11dGVkOiM2NzZDN0U7LS1jb2xvci1mZy1zdWJ0bGU6Izk0OTlBQjstLWNvbG9yLWNhbnZhcy1kZWZhdWx0OiNGRkZGRkY7LS1jb2xvci1jYW52YXMtc3VidGxlOiNFRUYxRjg7LS1jb2xvci1ib3JkZXItZGVmYXVsdDojMEQzMkIyOy0tY29sb3ItYm9yZGVyLW11dGVkOiMwRDMyQjI7LS1jb2xvci1uZXV0cmFsLW11dGVkOiNFRUYxRjg7LS1jb2xvci1hY2NlbnQtZmc6IzBEMzJCMjstLWNvbG9yLWFjY2VudC1lbXBoYXNpczojMEQzMkIyOy0tY29sb3ItYXR0ZW50aW9uLXN1YnRsZTojNjc2QzdFOy0tY29sb3ItZGFuZ2VyLWZnOnJlZDt9LnNrZXRjaC1vdmVybGF5LUIxe2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0zNjA4NDgyODQxKTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1CMntmaWxsOnVybCgjc3RyZWFrcy1kYXJrZXItZDItMzYwODQ4Mjg0MSk7bWl4LWJsZW5kLW1vZGU6bGlnaHRlbn0uc2tldGNoLW92ZXJsYXktQjN7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjZ7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUEye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmstZDItMzYwODQ4Mjg0MSk7bWl4LWJsZW5kLW1vZGU6b3ZlcmxheX0uc2tldGNoLW92ZXJsYXktQUE0e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0zNjA4NDgyODQxKTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFBNXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMzYwODQ4Mjg0MSk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQjR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUI1e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0zNjA4NDgyODQxKTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LU4xe2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0zNjA4NDgyODQxKTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1OMntmaWxsOnVybCgjc3RyZWFrcy1kYXJrLWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOm92ZXJsYXl9LnNrZXRjaC1vdmVybGF5LU4ze2ZpbGw6dXJsKCNzdHJlYWtzLW5vcm1hbC1kMi0zNjA4NDgyODQxKTttaXgtYmxlbmQtbW9kZTpjb2xvci1idXJufS5za2V0Y2gtb3ZlcmxheS1ONHtmaWxsOnVybCgjc3RyZWFrcy1ub3JtYWwtZDItMzYwODQ4Mjg0MSk7bWl4LWJsZW5kLW1vZGU6Y29sb3ItYnVybn0uc2tldGNoLW92ZXJsYXktTjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjZ7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjd7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTM2MDg0ODI4NDEpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0ubGlnaHQtY29kZXtkaXNwbGF5OiBibG9ja30uZGFyay1jb2Rle2Rpc3BsYXk6IG5vbmV9XV0+PC9zdHlsZT48ZyBjbGFzcz0iWkdWeCB1c2VyIj48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIyMTQuMDAwMDAwIiB5PSI1MTguMDAwMDAwIiB3aWR0aD0iMjE3LjAwMDAwMCIgaGVpZ2h0PSI4Mi4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0U4RjFGRiIgY2xhc3M9IiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjMyMi41MDAwMDAiIHk9IjU1Ni41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjMyMi41MDAwMDAiIGR5PSIwLjAwMDAwMCI+REVRVUVVRUQ8L3RzcGFuPjx0c3BhbiB4PSIzMjIuNTAwMDAwIiBkeT0iMTguNTAwMDAwIj50aGUgcHJvZ3JhbSBtYXkgcmVhZCBpdDwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iY1hWbCI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iMTQ2LjAwMDAwMCIgeT0iNzcxLjAwMDAwMCIgd2lkdGg9IjE3Mi4wMDAwMDAiIGhlaWdodD0iODIuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjIzMi4wMDAwMDAiIHk9IjgwOS41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjIzMi4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+UVVFVUVEPC90c3Bhbj48dHNwYW4geD0iMjMyLjAwMDAwMCIgZHk9IjE4LjUwMDAwMCI+dmlkZW9idWYyIGhvbGRzIGl0PC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJZV04wIj48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI0NS4wMDAwMDAiIHk9IjEyLjAwMDAwMCIgd2lkdGg9IjI5Mi4wMDAwMDAiIGhlaWdodD0iODIuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjE5MS4wMDAwMDAiIHk9IjUwLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iMTkxLjAwMDAwMCIgZHk9IjAuMDAwMDAwIj5BQ1RJVkU8L3RzcGFuPjx0c3BhbiB4PSIxOTEuMDAwMDAwIiBkeT0iMTguNTAwMDAwIj50aGUgZHJpdmVyIGFuZCB0aGUgaGFyZHdhcmUgb3duIGl0PC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJaRzl1WlE9PSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iODguMDAwMDAwIiB5PSIyNjUuMDAwMDAwIiB3aWR0aD0iMjA2LjAwMDAwMCIgaGVpZ2h0PSI4Mi4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0Y3RjhGRSIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNiIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iMTkxLjAwMDAwMCIgeT0iMzAzLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iMTkxLjAwMDAwMCIgZHk9IjAuMDAwMDAwIj5ET05FPC90c3Bhbj48dHNwYW4geD0iMTkxLjAwMDAwMCIgZHk9IjE4LjUwMDAwMCI+ZnVsbCwgaXQgd2FpdHMgZm9yIERRQlVGPC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJaWEp5Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIzMTQuMDAwMDAwIiB5PSIyNjUuMDAwMDAwIiB3aWR0aD0iMjQ4LjAwMDAwMCIgaGVpZ2h0PSI4Mi4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0Y3RjhGRSIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNiIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNDM4LjAwMDAwMCIgeT0iMzAzLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDM4LjAwMDAwMCIgZHk9IjAuMDAwMDAwIj5FUlJPUjwvdHNwYW4+PHRzcGFuIHg9IjQzOC4wMDAwMDAiIGR5PSIxOC41MDAwMDAiPmRhbWFnZWQsIGl0IHdhaXRzIGZvciBEUUJVRjwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iS0dSbGNTQXRKbWQwT3lCeGRXVXBXekJkIj48bWFya2VyIGlkPSJtay1kMi0zNjA4NDgyODQxLTM0ODgzNzgxMzQiIG1hcmtlcldpZHRoPSIxMC4wMDAwMDAiIG1hcmtlckhlaWdodD0iMTIuMDAwMDAwIiByZWZYPSI3LjAwMDAwMCIgcmVmWT0iNi4wMDAwMDAiIHZpZXdCb3g9IjAuMDAwMDAwIDAuMDAwMDAwIDEwLjAwMDAwMCAxMi4wMDAwMDAiIG9yaWVudD0iYXV0byIgbWFya2VyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4gPHBvbHlnb24gcG9pbnRzPSIwLjAwMDAwMCwwLjAwMDAwMCAxMC4wMDAwMDAsNi4wMDAwMDAgMC4wMDAwMDAsMTIuMDAwMDAwIiBmaWxsPSIjMEQzMkIyIiBjbGFzcz0iY29ubmVjdGlvbiBmaWxsLUIxIiBzdHJva2Utd2lkdGg9IjIiIC8+IDwvbWFya2VyPjxwYXRoIGQ9Ik0gMjYxLjQxNTk4NSA2MDIuMDAwMDAwIEwgMjYxLjQxNTk4NSA3NjcuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0zNjA4NDgyODQxLTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTM2MDg0ODI4NDEpIiAvPjx0ZXh0IHg9IjI2MS41MDAwMDAiIHk9IjY5MS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5RQlVGPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0hGMVpTQXRKbWQwT3lCaFkzUXBXekJkIj48cGF0aCBkPSJNIDIwNC4wODI5OTMgNzY5LjAwMDAwMCBMIDIwNC4wODI5OTMgNzQxLjAwMDAwMCBTIDIwNC4wODI5OTMgNzMxLjAwMDAwMCAxOTQuMDgyOTkzIDczMS4wMDAwMDAgTCA1Ny41MDAwMDAgNzMxLjAwMDAwMCBTIDQ3LjUwMDAwMCA3MzEuMDAwMDAwIDQ3LjUwMDAwMCA3MjEuMDAwMDAwIEwgNDcuNTAwMDAwIDE0NC4wMDAwMDAgUyA0Ny41MDAwMDAgMTM0LjAwMDAwMCA1Ny41MDAwMDAgMTM0LjAwMDAwMCBMIDEwOC41MDAwMDAgMTM0LjAwMDAwMCBTIDExOC41MDAwMDAgMTM0LjAwMDAwMCAxMTguNTAwMDAwIDEyNC4wMDAwMDAgTCAxMTguNTAwMDAwIDk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMzYwODQ4Mjg0MS0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0zNjA4NDgyODQxKSIgLz48dGV4dCB4PSI0Ny41MDAwMDAiIHk9IjQ4MS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5idWZfcXVldWU8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0ZqZENBdEptZDBPeUJrYjI1bEtWc3dYUT09Ij48cGF0aCBkPSJNIDE5MS41MDAwMDAgOTYuMDAwMDAwIEwgMTkxLjUwMDAwMCAyNjEuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0zNjA4NDgyODQxLTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTM2MDg0ODI4NDEpIiAvPjx0ZXh0IHg9IjE5Mi4wMDAwMDAiIHk9IjE4NS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij52YjJfYnVmZmVyX2RvbmU8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0ZqZENBdEptZDBPeUJsY25JcFd6QmQiPjxwYXRoIGQ9Ik0gMjY0LjUwMDAwMCA5Ni4wMDAwMDAgTCAyNjQuNTAwMDAwIDEyNC4wMDAwMDAgUyAyNjQuNTAwMDAwIDEzNC4wMDAwMDAgMjc0LjUwMDAwMCAxMzQuMDAwMDAwIEwgNDI4LjUwMDAwMCAxMzQuMDAwMDAwIFMgNDM4LjUwMDAwMCAxMzQuMDAwMDAwIDQzOC41MDAwMDAgMTQ0LjAwMDAwMCBMIDQzOC41MDAwMDAgMjYxLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMzYwODQ4Mjg0MS0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0zNjA4NDgyODQxKSIgLz48dGV4dCB4PSIzOTcuMDAwMDAwIiB5PSIxNDAuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+dmIyX2J1ZmZlcl9kb25lPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0dSdmJtVWdMU1puZERzZ1pHVnhLVnN3WFE9PSI+PHBhdGggZD0iTSAxOTEuNTAwMDAwIDM0OS4wMDAwMDAgTCAxOTEuNTAwMDAwIDQ2OC4wMDAwMDAgUyAxOTEuNTAwMDAwIDQ3OC4wMDAwMDAgMjAxLjUwMDAwMCA0NzguMDAwMDAwIEwgMjc2LjY2NTk4NSA0NzguMDAwMDAwIFMgMjg2LjY2NTk4NSA0NzguMDAwMDAwIDI4Ni42NjU5ODUgNDg4LjAwMDAwMCBMIDI4Ni42NjU5ODUgNTE0LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMzYwODQ4Mjg0MS0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0zNjA4NDgyODQxKSIgLz48dGV4dCB4PSIxOTQuMDAwMDAwIiB5PSI0ODQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+RFFCVUY8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR1Z5Y2lBdEptZDBPeUJrWlhFcFd6QmQiPjxwYXRoIGQ9Ik0gMzU5LjAwMDAwMCAzNDkuMDAwMDAwIEwgMzU5LjAwMDAwMCA1MTQuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0zNjA4NDgyODQxLTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTM2MDg0ODI4NDEpIiAvPjx0ZXh0IHg9IjM1OS41MDAwMDAiIHk9IjQzOC4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5EUUJVRiwgd2l0aCB0aGUgZXJyb3IgZmxhZzwvdGV4dD48L2c+PG1hc2sgaWQ9ImQyLTM2MDg0ODI4NDEiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9Ii0xMiIgeT0iLTEzIiB3aWR0aD0iNTk5IiBoZWlnaHQ9Ijg5MSI+CjxyZWN0IHg9Ii0xMiIgeT0iLTEzIiB3aWR0aD0iNTk5IiBoZWlnaHQ9Ijg5MSIgZmlsbD0id2hpdGUiPjwvcmVjdD4KPHJlY3QgeD0iMjQwLjAwMDAwMCIgeT0iNjc1LjAwMDAwMCIgd2lkdGg9IjQzIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIxMC4wMDAwMDAiIHk9IjQ2NS4wMDAwMDAiIHdpZHRoPSI3NSIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMTM0LjAwMDAwMCIgeT0iMTY5LjAwMDAwMCIgd2lkdGg9IjExNiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMzM5LjAwMDAwMCIgeT0iMTI0LjAwMDAwMCIgd2lkdGg9IjExNiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMTY4LjAwMDAwMCIgeT0iNDY4LjAwMDAwMCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIyNzIuMDAwMDAwIiB5PSI0MjIuMDAwMDAwIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8L21hc2s+PC9zdmc+PC9zdmc+Cgo8IS0tIGQyLXNvdXJjZS1zaGEyNTY6IGVkNDNjN2M5NTliMzgyNmE0ZGE4ODExZmNhMDNhOTEyN2ExZDAzMDZlNjlkZjNiMjhjODVmMjg1MTYzMTE3N2YgLS0+Cg==" alt="The states of one buffer during a capture. QBUF moves it from the program to videobuf2, and buf_queue gives it to the driver. vb2_buffer_done returns it as DONE or ERROR, and DQBUF gives it back to the program."><div class="cap">The states of one buffer during a capture. QBUF moves it from the program to videobuf2, and buf_queue gives it to the driver. vb2_buffer_done returns it as DONE or ERROR, and DQBUF gives it back to the program.</div></div>
+<ul>
+<li><strong>DEQUEUED.</strong> The program owns the buffer. It may read the pixels and save them.</li>
+<li><strong>QUEUED.</strong> The program has given the buffer to the kernel. The driver does not have it yet.</li>
+<li><strong>ACTIVE.</strong> The driver has the buffer, and the hardware may write to it at any moment.</li>
+<li><strong>DONE.</strong> The buffer holds a frame and waits for the program.</li>
+<li><strong>ERROR.</strong> The buffer returns to the program with a flag, <code>V4L2_BUF_FLAG_ERROR</code>. Its content is not trusted.</li>
+</ul>
+<h3 id="who-moves-a-buffer">Who moves a buffer</h3>
+<p>The program moves a buffer with two calls. <code>VIDIOC_QBUF</code> gives it to the kernel, and <code>VIDIOC_DQBUF</code> takes it back. Inside the kernel, vb2 makes a buffer ACTIVE in the same function that hands it to the driver:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/media/common/videobuf2/videobuf2-core.c</span><span>lines 1462–1472</span></div><pre><code>static void __enqueue_in_driver(struct vb2_buffer *vb)
+{
+    struct vb2_queue *q = vb-&gt;vb2_queue;
+
+    vb-&gt;state = VB2_BUF_STATE_ACTIVE;
+    atomic_inc(&amp;q-&gt;owned_by_drv_count);
+
+    trace_vb2_buf_queue(q, vb);
+
+    call_void_vb_qop(vb, buf_queue, vb);
+}</code></pre></div>
+<p>The driver ends the ACTIVE state. It calls <code>vb2_buffer_done</code> with DONE or ERROR. The Jetson driver chooses between the two from the status of the frame:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> sed -n &#x27;608,611p&#x27; $TREE/nvidia-oot/drivers/media/platform/tegra/camera/vi/vi5_fops.c</span>
+<span class="out">    if (frame_err)</span>
+<span class="out">        buf-&gt;vb2_state = VB2_BUF_STATE_ERROR;</span>
+<span class="out">    else</span>
+<span class="out">        buf-&gt;vb2_state = VB2_BUF_STATE_DONE;</span></code></pre></div>
+<p>The function that returns the buffer also numbers it:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/vi5_fops.c</span><span>lines 466–481</span></div><pre><code>static void vi5_release_buffer(struct tegra_channel *chan,
+    struct tegra_channel_buffer *buf)
+{
+    struct vb2_v4l2_buffer *vbuf = &amp;buf-&gt;buf;
+
+    if (check_add_overflow(chan-&gt;sequence, 1U, &amp;chan-&gt;sequence)) {
+        dev_err(chan-&gt;vi-&gt;dev, &quot;%s:chan sequence overflow\n&quot;, __func__);
+        return;
+    }
+
+    vbuf-&gt;sequence = chan-&gt;sequence;
+    vbuf-&gt;field = V4L2_FIELD_NONE;
+    vb2_set_plane_payload(&amp;vbuf-&gt;vb2_buf, 0, chan-&gt;format.sizeimage);
+
+    vb2_buffer_done(&amp;vbuf-&gt;vb2_buf, buf-&gt;vb2_state);
+}</code></pre></div>
+<p>The counter grows by one for each buffer that the driver returns. So the first frame of a Jetson capture has the sequence number 1, and the numbers have no gaps.</p>
+<h3 id="two-rules-of-the-loop">Two rules of the loop</h3>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A buffer that is read between QBUF and DQBUF holds parts of two frames.</strong></p>
+<ul>
+<li>Symptom: a picture with a horizontal break, and no error from any call.</li>
+<li>Cause: after QBUF the memory belongs to the hardware, which writes into it while the program reads.</li>
+<li>Fix: read a buffer only between its DQBUF and its next QBUF.</li>
+</ul>
+</div>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A queue that runs empty loses frames.</strong></p>
+<ul>
+<li>Symptom: the frame rate of the capture is lower than the rate of the sensor.</li>
+<li>Cause: the sensor sends a frame every 16.7 ms in the 60-frame mode. A frame that finds no ACTIVE buffer is not stored.</li>
+<li>Fix: return each buffer with QBUF before the next frame, or request more buffers.</li>
+</ul>
+</div>
+<h3 id="the-same-states-on-a-raspberry-pi-5">The same states on a Raspberry Pi 5</h3>
+<p>The states are the same, because the header is the same file of the kernel. The driver of the receiver returns a buffer in its interrupt handler, at the end of a frame:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 723–736</span></div><pre><code>static void cfe_eof_isr_handler(struct cfe_node *node)
+{
+    struct cfe_device *cfe = node-&gt;cfe;
+
+    cfe_dbg_verbose(&quot;%s: [%s] seq %u\n&quot;, __func__, node_desc[node-&gt;id].name,
+            node-&gt;fs_count - 1);
+
+    if (node-&gt;cur_frm)
+        cfe_process_buffer_complete(node, VB2_BUF_STATE_DONE);
+
+    node-&gt;cur_frm = NULL;
+    set_state(cfe, FE_INT, node-&gt;id);
+    clear_state(cfe, FS_INT, node-&gt;id);
+}</code></pre></div>
+<p>The function that it calls sets the number and ends the ACTIVE state:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 654–655</span></div><pre><code>    node-&gt;cur_frm-&gt;vb.sequence = node-&gt;fs_count - 1;
+    vb2_buffer_done(&amp;node-&gt;cur_frm-&gt;vb.vb2_buf, state);</code></pre></div>
+<p>Here the number comes from <code>fs_count</code>, the count of frame starts on the link. So the two boards number their buffers in different ways. On a Raspberry Pi 5, a lost frame leaves a gap in the sequence numbers. On the Jetson it does not, and only the timestamps show it.</p>
+<h3 id="side-by-side-1" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>States</td>
+<td><code>enum vb2_buffer_state</code></td>
+<td>The same enum</td>
+</tr>
+<tr>
+<td>The driver returns a buffer from</td>
+<td>A kernel thread, after the camera firmware reports the frame</td>
+<td>The interrupt handler of the receiver</td>
+</tr>
+<tr>
+<td>Sequence number</td>
+<td>A count of returned buffers, from 1</td>
+<td>The count of frame starts minus one, from 0</td>
+</tr>
+<tr>
+<td>A lost frame shows as</td>
+<td>A longer step between two timestamps</td>
+<td>A gap in the sequence numbers</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3-the-loop-of-a-capture-program">3. The loop of a capture program</h2>
+<p>The calls of the program are the verbs of the state machine. One capture makes them in this order:</p>
+<div class="fig"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIGRhdGEtZDItdmVyc2lvbj0iMC43LjEiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiIHZpZXdCb3g9IjAgMCAxMDU5IDE0MzYiPjxzdmcgY2xhc3M9ImQyLTE1Mjc1MTExNTYgZDItc3ZnIiB3aWR0aD0iMTA1OSIgaGVpZ2h0PSIxNDM2IiB2aWV3Qm94PSItMTMgMjcgMTA1OSAxNDM2Ij48cmVjdCB4PSItMTMuMDAwMDAwIiB5PSIyNy4wMDAwMDAiIHdpZHRoPSIxMDU5LjAwMDAwMCIgaGVpZ2h0PSIxNDM2LjAwMDAwMCIgcng9IjAuMDAwMDAwIiBmaWxsPSIjRkZGRkZGIiBjbGFzcz0iIGZpbGwtTjciIHN0cm9rZS13aWR0aD0iMCIgLz48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwouZDItMTUyNzUxMTE1NiAudGV4dCB7Cglmb250LWZhbWlseTogImQyLTE1Mjc1MTExNTYtZm9udC1yZWd1bGFyIiwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsKfQpAZm9udC1mYWNlIHsKCWZvbnQtZmFtaWx5OiBkMi0xNTI3NTExMTU2LWZvbnQtcmVndWxhcjsKCXNyYzogdXJsKCJkYXRhOmFwcGxpY2F0aW9uL2ZvbnQtd29mZjtiYXNlNjQsZDA5R1JnQUJBQUFBQUJId0FBb0FBQUFBR3hnQUFndUZBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJQVXk4eUFBQUE5QUFBQUdBQUFBQmdYZC9WbzJOdFlYQUFBQUZVQUFBQXFnQUFBT0lFb3dWZFoyeDVaZ0FBQWdBQUFBc1BBQUFQU0V5cG55NW9aV0ZrQUFBTkVBQUFBRFlBQUFBMkc0VWUzMmhvWldFQUFBMUlBQUFBSkFBQUFDUUtoQVgwYUcxMGVBQUFEV3dBQUFDM0FBQUF5RjlCQ2tSc2IyTmhBQUFPSkFBQUFHWUFBQUJtWm5oalVtMWhlSEFBQUE2TUFBQUFJQUFBQUNBQVNnRDJibUZ0WlFBQURxd0FBQU1qQUFBSUZBYkRWVTF3YjNOMEFBQVIwQUFBQUIwQUFBQWcvOUVBTWdBREFna0JrQUFGQUFBQ2lnSllBQUFBU3dLS0FsZ0FBQUZlQURJQkl3QUFBZ3NGQXdNRUF3SUNCR0FBQXZjQUFBQURBQUFBQUFBQUFBQkJSRUpQQUVBQUlQLy9BdTcvQmdBQUE5Z0JFU0FBQVo4QUFBQUFBZVlDbEFBQUFDQUFBM2ljZE0wcFRzUUFHRURocjdSc3BVRFpvV3hsM3dvaEJJWEQ0SkFJRkVHU2NBRk9SWEFrS0U2QXczTUd4TXlvZjVLNkVmUHNKeDRTcVFTRnpDOHFwVlN1MXJoMDVkcU5PdzhlUFhueEZzR0EzYnB2N2RsclJQd1J2ZWhHSi83ak83N2lNMzdpSTk3Ync3QVNqUk9uenB3YmtjcU1Hak51d3FUY2xNSzBHYk5LY3k3TVc3Qm95YklWcTlaVTFtM1l0R1ZiYmNldVBmc09IRHB5VEI4QUFQLy9BUUFBLy84RXJpUHRBQUI0bkd4WGEzQWI1M1c5MzRjbFFBb0F5UlVlUzRBQUFleVNXT0pGZ0ZnQVN4SWdRT0pGaUMrUTRKc1VxUmNsa3FLa1NsUWpqU1JhbWtTSnBFblZGRTNzc1NhVkhhWDFUS05PM0RpVEdUVWEvM01pbDIxcWR6TGoxclhyYWx6L29EVmoxNjVadGxNL3VNanNBb1JBajMvdER1ZmovYzQ1OTV4N3NWQUZNd0E0aUo4RkdkUkFIZXdISFFCSDJzZ1dHOHN5Q3A3amVZYVM4U3dpRlRQb1BTR1AwSUVBRVFvUjdmR1A0cGV1WFVQVFYvR3pPNmU2dnJ1MDlHamg0a1hoVHplZkNINzA1aFBBSUFQQVpweUhHaUFCTkFxT3RkdFpSaTZYYVRnTnd6S0szMWtlV2ZaYjY0azY2N3VQRng3UFJEK05vVDlhWE9SUGQzYWVGbVp4ZnVmc3hnWUFnQXhtQVhBenpnTUpSbUJFYkp4ZnI5ZHA1UXFkOUpBek1zNGZDZ2JzREVQdXZzeitKbkc4czkwYkhvaWQ3Yjk2Wkx4L2FPajQyc1RDL09RYXpsdlRYZTNaT2tJNW5PeVpkS0pMWGY1TzM4NTJMTjdkQ1FBSUFvVnQzSWp2Z2htZ2lyYmJnNEZRaVBQcktZWGR6dEJ5dVU2cjEzUCtFRS9KNVNpWCsvYkE0SGZISWdkTkhtUGNHWjNuL0hOUmI3K2xqVDJxR3IyemV2Sk9ydDBhTXRHOUYzSzVTL0ZXT3VEeEF3Q1d1QVJ3SHFwRlRTUW1PcTJjWWN1NFg3cno0Z3ZQVFF5Y1AzLysvQURPMzcvN3d0OG0vMlI5L1hzU3Rsa0E5QmpuUVNuMVIyZlRjVHBHWjlQTm9zdkNPNTkvanRweFB2MW0zeWQ5NWJOdlNkby9QVXRLSjcvNEF1ZlRqOVBDdTd2bjhETTRML0xsU0U2ajExTmNLTVJyT0pJaEF5R2VVY2dZR2N2bzlUcHlkdkdxaWxJUktwMXEvZmh3dFl3SXJQUHJBVUttd0huaEwra1VUYWRvdExCekZxMjRWMTNQQ1Q5SDQ4KzVWdDNDOCtVN1BEZ1BtdUlkRkdlM0IwbU9MRmVlL0s4K1FxYklUbjdTUnhCaXZjVmIvdFVBR3RzNWkxNjQyYjRjRU80RGx2cHlITitGdXE5MVJqSUE2dzlKOHRGU2c5Qmc3bHBmMzdYYzJOVk01dXBZZU1wM2NucjZwRzlhTmY3amxaWG5SMGVmWDFuNThmaUJ4S1hjNVIvODRITHVVZ0xLZlZGSzJtb3JITVl3NUZOTHZkcC9KbnJqMUttamsyTlRrd3M0M3p5UldWb1V2a0taM25RZkw5VUlGT2J3ZVh3WDFPQUVhTm1EcVlxMnMyMjRFclBpcVpNR3l4aVJiTzZ5dWU5VXBJaSthemxOVFFUMXRMcSt6dCtadURJdUFoNi9rbmc4azlnMy9jUERSUzRMK1JtVnkxMUY5TWhyeWp5c09BKzFRRlVtUmNQSUtxbThrVmdPanlUL2V1SEZpMmVHY3JtaE16alBqQ1lINTBuaEE2UVRQa0l6c1o3ZUFFaTljeGEyMGFmNExuZ2sxVmxlUWgwTTJPM3NVejZsZElnOEthb0ppK3hRZmVxQ3k4OGM0bm96NW5iTGdxWGJFVndJaHhjWlQ5T0JOajVoOHh2bjdkM05vVVZWME4zVjRnbjc2RlpUclVQdGpQdjhXWStuT1dTMkJkd1doMUhaV3UvcGJROU0rQUdCQ1FCOWhmT2dFRmt4UVp1T0lUOTRIYjMvT3U1UHAzY2VGTEZPRmJaeEc4Nkw4MHR5Q01tUnhieUdwRmU1SENVU3E5RXhSOHJsVGp0R29pZFZvZlVWOUczaG1leWMzVDZYUmRlRmF5dnJJVUNGQWdENkQ1eUhPZ0F1S09Pb1VpaDRUcWI3N2FPWmlYcExQVUhTZGVOVGp3VDB3NGZONlphV2RQTkQ0WXhROHNBMitpWGFBaU0wQTFDMGFGTStJTW1qWUNXeGRDUWpEa0hXSCtLRDBrQjVyWHYwei82Q2RMVTYrODFXK2xqWHpFaFNJYU5IOVV5VXVYVEVyenJRT3pKQldqb1lxN1pUN3pnOUoveHJsOGtacHkwMzZ5SmVSd3RneUJXMjBaZDRBelJnTFhhSVVUQWtwMU1VN3lwbW8yaERjVm9pQjMzQUtsUEVjOWlXYlQxME5Id29IY21HVTVZZXhocFQyY3grdlBIYXRKbTljVzdzUWpTMU5EdHlqTFlXVEZSUjI3YkNOdm9GMmhMNzhNMXpjZGZNKzN1V0k3MnJVVi9LNE5SNXplNFVPNWFndS9UTnRoRlZaRzBrdHhhaHFaQ213VHZSTWJaazF2Sm1tNmladDdDTjN0bmxVTlJNS3M0R3VWMngrR0Q1b3YrZk94TSt3anVqVm1Jc3FaQ1pCZzA5RVV0bkV4dXpwMVhmdTVROUgyMHlqcjI2MDlGcGNxUVNnb255am5WTUhRTXM0ZjlIdEFVTllObkRRQXlIclJ4Rm1VMlNDbEc5SjZPeFJYNytPTUxDcjZ1bTBreTQwV3pKL2c0UnNVNXVWTlc5bGgxWmk2NHZxdzAxUXdkMVpFamJoT3o5UTFsSnB5WUFGTU52Rlhjb0UrU0RnWkpPREsyVFp2RGhlRHgxZ0hMVzcyODBKWmVXMEY5RnE0YjZwMm9VTWRYQ1VFS1lsL2FkcDJCRkg2TXRhSWR1R0NxN0tHaXZlRWhGT1IxVFdvQTBXK3hCcWVjeS85UFJveWxsbnJZWHovemZ6Rm03YmIrQjFqU3cvdkYyYmJQNi9pSkorVWI4TEszZTM5SytNREVST1RQbzdJNjRYSkh1VUhxYzg0N1gydXFORFFQdkoyT1dUajJoYkRWWjJ0U0VOdWtLRGpzVlZiSDZvQ1V3NkNDVmpWcXFpZS8yREhyUkwyUEJZQ1FTRE1hRVc5MTIya2dRR3FlT2JaTzB5UUdndC9GR2FjTHVlbFRjTkpJL3lWeE94Z3o1aC9weWJsOUx1QVZ2dkxabzh4NlpGLzRKT1pKUmU0dHdEd29GU0FIQXIvQURiQWN2QU1qQnQxNzBaNjZ3RGYrR044VE1pbnBKMFM4MTlYNmJJMWRiUXlnVXltcTlxak9JVCt3OHF5RVJpaEpFRVJQK0RHMkJUY0lrNWx4VWRnOHlSZm1aU3lwazFrRlhSNnpPUHV3ZU9KQnp0NFdTT2JjM2xFU2JhY2JiN25ZRWR1RU9DUGRLajEzZWFLdkV1M1JISmUra1FzWU1sNGxMeGZid0x2bjN2OUVXMUVIak4rNi9jcjlSWFhncEZsc0tSMDdFWWljaXNhR2hXSFI0dUpTOXlGcHVaQzJTWEJvYlgxNGVIMXNDYVg1dzZFdTBWY3JlVTNTU3Erd3NwZE5Vemc4UnFTM3JXamdhUHRSQkoyaDhVUm9mc1daYjlBMzhxdzVUNjgxenVRdlJKdVBFUzBpK1ozNklHZWZRTzd2M1ZBVjVxWHpaeUR4SHlpb3pqbTRRNWdGbk1lZzlObHdkLytkeXlOOTRlZHJVS2dYZGJHN2JHVUx5cHluZjlkZ0MyaXI5dWlxeUtVMnBvdENHak1OTTFhdTBkWmFFQVcxT3Q0WDJaUWpDSHhVMmlqNHlGYmJSZGJRbGJuQnE3NzZUMXQzWHRsMXgyZjArc01BNHJFbVh6MmZqR3VtNGN5YnJHVGExR2tMV05sZVRyNUZKZWh4WkZXdmlEVGFQeFVCVCs5UzJvQ09jdFZJQlRZUFRSSmwxU3JXTmIyUGpyZEw5RFlWdGxNSm54TzB0K1pnSjhqd25EWTZ5bno4YTdzNE03a3RkdjI1enFwdFU5VnF2YWphRDFOR3FXN2NTd3BhbnZZYUlLcFJTcllIQ05ub1RiWXErMjVNSnNqUlczeC9LakxsODlqQXQ2a0lQcW83TW80RHdkakxLdXRDTVlCeHM5UUVDRlFENmU3UUphZ0JPVnZIN1VQYnFMeVlPS2lrbG9hVDJIUno5T2RvVVBtN09NRXltR1drRm84Z0RBRDlBbTFLdUt2K3ZvZ0lqSzM0UEtHUS91VG1lcWE1VkVOWDFOUU1qZ3pWa05WRmRwK2diL3M1aXVxYXVocWl1MzVkRW04S0hkSUttRXpReVZMd1pVUldUYkdsSk1jSlhnS0FXQUwyQ05zRUF3UEZzeGQ1V1VFenAyME9ocVAzSmoyWjZsUTFxUXFsWGhpZC85T0pNbjlwWVM2Z2JWSEhoeWFyR3FkVTZOYXVmL2U4NXZWdW5jMUhuSkIxVkJhK2tRV09sSjNoK2p4eTFlTGJlcktxdjF0WTRRblhLMzB3Y1V4cVVoRks3YjJyazcwaHY2dmR5b2hkWGhUM042RVBoZnl3WjJwYXhJdlhPbG0vUUkyYkRYZGhHai9EM1FibmI5VUFwZ3BXNS92enc2ZE9IRDUwK2ZhZ2ptZXpvU0tWVUw5Lzc2YzkrOXRON0w4ZXYzYjU5NWNydDI5Y2tyTTBBNkxmNCt5SldMaGpGcGVpeTVWQ0xRNWZUdFI2K2tZNTB0eVpOM3RhNTZNeUp4TGNHalIyR2grMkgvL3hiSEovMldMM3U0TkpFNU1yTkxDYjZBSXRaUXYrQ3IwS042Q1NlRTdlUUtLVW1hQXNpY1pBenV1VU5BaEVxWXkwbi9DY2lEMDVOYlQwMFpneVVteElDcjRUUUhlR1A0NitJMkx5RlNYZ2QxbUEvQU1XR1FxeWNaaXJJSnJRdUg4SnkzTUEwRzZ3dDZiL3hhV0t0eUd4cXRBUThQVWRBblAyOWhXMzROZnAzekVJN0FGb0J1ZmlVK3ZNZDlLVHdVUHplcElJMm5RcTlkNVhuaTdNQVhrS2I0dDg1a2lOek9iUXBlclB3RDdnZmVQeEEvSTRpS3dBMFdDd05EUllMN2pjYkdwcWFHZ3htc2JaMEo2eUpaeXM3ODR5QllRd05ES05pR3MwTVkyNWs0QThBQUFELy93RUFBUC8vSU9KRGRBQUFBUUFBQUFJTGhXSDlRYzFmRHp6MUFBTUQ2QUFBQUFEWVhhQ2hBQUFBQU4xbUx6YitPdjdiQ0c4RHlBQUFBQU1BQWdBQUFBQUFBQUFCQUFBRDJQN3ZBQUFJbVA0Ni9qb0lid0FCQUFBQUFBQUFBQUFBQUFBQUFBQUFNbmljTE1vL1NzUlFGSVh4NzU2MFFiR1JGQ0VFVE9PL3BBbUNpSVdGbFZhM0VaOExjQ1ZpWlcvdlBxeGpZMk5oTTJzWUpqQ0VwSHBEd2xUbmZQRFRCODkwb0pKRWp3VGQwT3FWb0VPQ3JRbjZKK2lkb0U5YVhlMzNtcUJqenBTUjY0MG5XOFZvSTYxT2NldW9kVTVqRzJxcktHemtVaVhPd0QwUlQyNXhuZUFxRnVlTGZjSHRpOXljVENVUDlrZXFYekw3NW1EKzFuTmhQWlgxSERIUk1IRm5XMUlHSE9MUDNEc0FBQUQvL3dFQUFQLy9KcllweGdBQUFBQXNBQ3dBVUFDR0FMWUExQURxQVA0Qk1BRlNBWUlCcEFIbUFnNENVZ0prQW9nQ3BnTGVBeElEUUFOeUE2WUR5QVEwQkZZRVlnUitCTEFFMGdUK0JUSUZaZ1dHQmNZRjdBWU9CaW9HWkFhUUJzQUc1Z2NRQnpRSFZBZGdCMndIZUFlT0I2UUFBQUFCQUFBQU1nQ01BQXdBWmdBSEFBRUFBQUFBQUFBQUFBQUFBQUFBQkFBRGVKeWNsTjFPRzFjVWhUOEgyMjFVTlJjVmlzZ05PcGR0bFl6ZENLSUVya3dKaWxXRVU0L1RINm1xTkhqR1AySThNL0lNVUtvK1FLLzdGbjJMWFBVNStoQlZyNnV6dkEwMnFoU0JFTERPbkwzM1dXZXZ0USt3eWI5c1VLcy9CUDVxL21DNHhuWnp6L0FESGpXZkd0N2d1UEczNGZwS1RJTzQ4WnZoSmw4MitvWS80bjM5RDhNZnMxUC8yZkJEdHVwSGhqL2hlWDNUOEtjYmpuOE1QMktIOXd0Y2c1ZjhicmpHRm9YaEIyenlrK0VOSG1NMWEzVWUwemJjNERPMkRUZlpCZ1pNcVVpWmtqSEdNV0xLbUhQbUpKU0VKTXlaTWlJaHh0R2xRMHFscnhtUmtHUDh2MThqUWlybVJLbzRvY0tSRXBJU1VUS3hpcjhxSytldFRoeHBOYmU5RGhVVElrNlZjVVpFaGlOblRFNUd3cG5xVkZRVTdOR2lSY2xRZkFzcVNnSktwcVFFNU13WjA2TEhFY2NNbURDbHhIR2tTcDVaU002SWlrc2luZThzd25kbVNFSkdhYXpPeVlqRjA0bGZvdXd1eHpoNkZJcGRyWHk4VnVFcGp1K1U3Ym5saXYyS1FMOXVoZG42dVVzMkVSZnFaNnF1cE5xNWxJSVQ3ZnB6TzN3clhMR0h1MWQvMXBsOHVFZXgvbGVxZk1xNTlJK2xWQ1ltR2M1dDBTR1VnMEwzQk1lQjFsMUNkZVI3dWd4NFE0OTNETFR1MEtkUGh4TUdkSG10M0I1OUhGL1Q0NFJEWlhTRkYzdEhjc3dKUCtMNGhxNWlmTzNFK3JOUUxPRVhDbk4zS1k1ejNXTkdvWjU3NW9IdW11aUdkMWZZejFDKzVvNVNPVVBOa1k5MDBpL1RuRVdNelJXRkdNN1V5NlUzU3V0ZmJJNlk2UzVlMjV0OVB3MFhObnZMS2I0aTF3eDd0eTQ0ZWVVV2pENmthbkRMTTVmNkNZaUl5VGxWeEpDY0dTMHFyc1Q3TFJIbnBEZ08xYjAzbXBLS3puV09QK2RLTGttWWlVR1hUSFhtRlBvYm1XOUM0ejVjODcyenR5Uld2bWQ2ZG4ycis1emkxS3NiamQ2cGU4dTkwTHFjckNqUU1sWHpGVGNOeFRVejd5ZWFxVlgrb1hKTHZXNDV6K2lUU1BWVU43ajlEandub00wT3Urd3owVGxEN1Z6WUc5SFdPOUhtRmZ2cXdSbUpva1p5ZFdJVmRnbDR3UzY3dk9MRldzME9oeHpRWS84T0hCZFpQUTU0Zld0blhhZGxGV2QxL2hTYnR2ZzZubDJ2WHQ1YnI4L3Y0TXN2TkZFM0wyTmYydmh1WDFpMUcvK2ZFREh6WE56VzZwM2NFNEwvQUFBQS8vOEJBQUQvL3dkYlREQUFlSnhpWUdZQWcvL25HSXdZc0FBQUFBQUEvLzhCQUFELy95OEJBZ01BQUFBPSIpOwp9Ci5kMi0xNTI3NTExMTU2IC50ZXh0LWl0YWxpYyB7Cglmb250LWZhbWlseTogImQyLTE1Mjc1MTExNTYtZm9udC1pdGFsaWMiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTE1Mjc1MTExNTYtZm9udC1pdGFsaWM7CglzcmM6IHVybCgiZGF0YTphcHBsaWNhdGlvbi9mb250LXdvZmY7YmFzZTY0LGQwOUdSZ0FCQUFBQUFCSVFBQW9BQUFBQUcvQUFBUmhSQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCUFV5OHlBQUFBOUFBQUFHQUFBQUJnVzFTVmVHTnRZWEFBQUFGVUFBQUFxZ0FBQU9JRW93VmRaMng1WmdBQUFnQUFBQXNsQUFBUUFBbEN5d2xvWldGa0FBQU5LQUFBQURZQUFBQTJHN1VyMm1ob1pXRUFBQTFnQUFBQUpBQUFBQ1FMZUFqV2FHMTBlQUFBRFlRQUFBQzhBQUFBeUZ3MkJiaHNiMk5oQUFBT1FBQUFBR1lBQUFCbWFxcG5MRzFoZUhBQUFBNm9BQUFBSUFBQUFDQUFTZ0QyYm1GdFpRQUFEc2dBQUFNbUFBQUlNZ250VnpOd2IzTjBBQUFSOEFBQUFDQUFBQUFnLzhZQU1nQURBZUVCa0FBRkFBQUNpZ0pZLy9FQVN3S0tBbGdBUkFGZUFESUJJd0FBQWdzRkF3TUVBd2tDQkNBQUFIY0FBQUFEQUFBQUFBQUFBQUJCUkVKUEFBRUFJUC8vQXU3L0JnQUFBOWdCRVNBQUFaTUFBQUFBQWVZQ2xBQUFBQ0FBQTNpY2RNMHBUc1FBR0VEaHI3UnNwVURab1d4bDN3b2hCSVhENEpBSUZFR1NjQUZPUlhBa0tFNkF3M01HeE15b2Y1SzZFZlBzSng0U3FRU0Z6QzhxcFZTdTFyaDA1ZHFOT3c4ZVBYbnhGc0dBM2JwdjdkbHJSUHdSdmVoR0ovN2pPNzdpTTM3aUk5N2J3N0FTalJPbnpwd2JrY3FNR2pOdXdxVGNsTUswR2JOS2N5N01XN0JveWJJVnE5WlUxbTNZdEdWYmJjZXVQZnNPSERweVRCOEFBUC8vQVFBQS8vOEVyaVB0QUFCNG5IeFhhM0FiMWRrKzUreDYxeGY1SXEyOHNtUkxzclRTeXBaV2txMlZ0Slp0eVJmSmtteEp2aWwySE1lM1hNbkY1SE1TSE1nWDV3T1NiL2hDUGdpQ3lkQXB3elIwb0IwNi9DZ1RtTTR3dzJWYTZOUXRUYWZ0aEVKYitBR2hEazA2aFhqY2xETDFibWRYaWkzN0IzODJaK0xWT2MvenZNLzd2R2RCQ2JBQmdJNmh5d0FEWmFBYWFFQXRBRHhsd1RCZUVCZ2R4anNjREVrS0Rvb2liZWZnOHJubjhPamtYNXBlK0JkbnhoT1AvaWoxdDdsWDBPWDFlZmpJOU1NUGk3c3ZIRGl3OC9adDBRbi9jQnNBQUpEMFBnRHdBNVFEWlVBTkFFWHlEcFoxTUFRQklVOHhEb2E4MGY1dU9WNk80d1plL0RYY1A1a2UwWHh4R0o1ZVdQQWZhUXZkSjQ2ZzNQckN0V3NBWUlBQkFEV2lIRkFEZzd6bUtkNUgxMm9KZ2lScDVWOEc0MzNCZ0o5bE5oZk0rUi9QenJ1aU5zakhFMHVEN1RNemszMER1NCtlbURtVzZYOEE1UVlTWEl3cnhWVTliZjNUSER5VkVOeSs5VnQ5YVY5WXhnMUJTRnBEYnZROE1BTlFZbVhaZ0QrQ2VCK3RJMW1Xc1ZhaFdpMU44NzZnb0NNSWFFMGRDclpNbmsyM2pkUUZxU0RiUHR0cnN3NTBORVViR2R1MEt2clFZT2J5Z3duQjJkem9DTzkvcUxOak90Qlk3ek83WlcwVVRrRkZHNnFJRWVQZ2ZjRjdEUDc3OFNmSHJ2elgrUGpZVXZTK2ZVR1UrNy9URDc1K29IdkhzM3VtRCtkeHludlVvQnlvVUdwR1draWVaRWdMeVp5SFJ5ckZHODQ3VlYveWtLMUN1WjRQZXUvMkZyMWZWdlErVm5qYmZhZnlxMDZVNi9tOFYvenczdDV2b2h6UUsrZ29IUzlRUE1aUXdhREFrQmlEeVhVa01lYjhkSWpHNCs5T24wK2x5d3dxZk9pblhKakdpYXJTQVpRVHYzZmhBdHk3dmdCUGNFZGN6NGd2d2FsbnVNT2NlS213OTBHVUt6Q25kSHd3cU95K3NldmdzMDZjcUNydlM1M1BYSGJoUkhWNUhPWEVxY2RiNytmaDFQb0NmUEZKL29oUHZLTG8yQ210b1JuMFBLZ0JqVXExQ3NXaWE3VlZ5T0dMSUZuTGZOR2crZGlpWjN3eFBuREE3eGwvSUJyWUdiRU9ETXJQZnRWM2xsSzV4YjdZbVd6cTZjVythT2ZleGRDZXhZNjlpKzF6cHpacTVWWjAxaGJYaXNHb1RidTlNWFZpNE5FZGgvMDlzd2VPcEpNSFVHNWdmUGkrVnZGcm1CZ2VDdkdnZ0hWR3dWb05PQURzVzhEcHJLeUQzUUtldk9jeXlCUkIvV2YydEQ2N3MwREROWGgvcjNyTVgxMWZXV0lKZE93NzFaNUh2ZmZVaCtsaDZxbWpCVTdKSjA3MEV5NFhqb1VyQ2x3Y0tBY3FBYjNKaGFRWWJBdWIxNmVPSDh1ZXpNNmZFR0w3WnZhbmtuTW9GOC91UHFZV2IwQmF2QVhIUnVOQmI5NkRLbWtOaXVoNTRBUkE1aUFvcUFOKzFxSFFDUVkzR29jZ1pKcTZmTWZlakM0MGhZeGpRdWVJMjU1MmRnU21PanJtekx3KzdyRUhqSzIydE5mZmNWRFYzdTV5K1dKdE5oL3RNZlFMdmxHZnY4bGphamEzMUxOZTJ0MlFFTnAzK3dFRTB3Q2dBTW9CVW1iRENCYVN3WDY0K0hZbGZML3luVVdVaVViWFg4dmpISkxXRk0vUkJaY29qcE1oeVNMTFN3S2E5aDhsOElIQlZGbDNYOXRrN1VoNnRPR2M2dkRCV3E4ZUxvaVB1NjN4ek5SUitJeDQ5TkpwZWI4c0FNaUVjcUJhUGhmamRUU3QyRmpnSWZiLy9ORmhkMWwxR2FiajZwYXk0dC85RU1EY1c3WSsxcDZ3dlNrdVNJb1hITklhL0JxdUFxMWNFZDJHYjNXOHdHT013QkNFd3hjVWhJM0VlYTA3elEzTThJNndHcWNpZTdwS2NXWkN3dzdadUZwZmd5MGFNTGVxZG8vRlQwL3hUWmF3YUVqYXZkMGU3eDlacTdOLzJ0Y1Z6bnZQTEszQnI5QXlxSlVUWDY0VVF6SVVUNUs4VXFJdDNhTGs2aTFIV0kxcHV5NWxIRFN5N1hBcnh3ZHMwWUNwcGRrNnduaTB2S3JKRWtiTGI4OFpYWlBqOHRIZHp2NXBQaEoyMm0reVZnQ0JYVnFEVitFcWFOakNidE1KaFFUOWFHZy9sOWtUNERwcE44VWFXOGFEb2ZiR0lHMDFaRlFIcDJNbng3eFdmWXV1TnJZUTdZMGIxRDZ0SGR6VERqbUt1R3hxOSszaXRXdXdHamFUSzZnM2FOK3VucU54OXUzMXR1M3lJWVhMTzNBVkdJQzkrRHlsY3l6RXhqVEFlQ1c2WllhZmp4OTJwNlphaEI2VHFrUjhyNnd4NmpTR2RDYmp5SGNsaEdtYW1jQ002c2lldm9WUnpqUHNhK0NydW9idGVqVmZhNGIyaXJyS2hsYnpHSURBQlFCOEVsMEhPc1hYWGFpNGswZ2x1RjFqWFJVOU5kV0RZWU5UVTE5ZXI3WTBsNnIzcXZhTndaZERKU01EMmNvS2dTejN1YklSY1VMV0RFbzJ1QXBYZ1JsNGlqdFZFQWlDMmVvK2dzQzJxUGRLNnpoamEraHJpZ3hVNmRrZDN2Q3dxMytxbFkyb01hcnJJSFV5eEl4WVhYUnJBOVBEbTd3ZnM4YUF6cHJ1UHNSeTQyUFJCM2I1WkQ5aXN3ZWh4ZVg4TFd0dGprKzBkSFRrKzlFTUFQd0lMUmZteTZZUFNXWElCUHd5VGN4OEtkTlNnemVQY3BGQWFTVGRpZVBKaHFTbkR5M2ZEalBlbmphelRmd1Y1TFIxbFNtblIzeFprdVE5d1Rmb0ttS0JIRTRFYUVubXorS2tOZkFOV2dZYW1YbkFuMi8zV20yaGJQZjNFR2N5WnlGVVl3UUp5MmxWbDFxUGpxNC9UWlpoR29nNmNId0RMN29GVitXY2svSG00ZW9Lb0lrdHFJc0o3T2tpY1RiTHRyZVdlQ2ZzNFNDT1J6SmhIRS9VSnJrK21VK2NUcnI2NEVxL3JWVm80dmllTnJWSlc4eHBjN1dwR1Z3RmRjVVl0a3NtbjlnODZ0bWltSExDZHNFMmVnbitHYTZDYW1BczluWStFUEpYa1h6RFhoK2E0UVptZkVPelhHckc2UjdoZ3o3NW9UcTB1Ky9rbUNmLzdPNWRpUFVtb2d1eDNyaHkvN3NyOGZBcnVKcnZVN0lJY1JWaWxBUWlxUzJaVTM2eGk4RHNZeDZsWFgxc0o0VTA1aDhVWjg0MTlGcTMyVjFvVnZPaEt4QVdRb2Y5d202NXg0ZFhjbFU1czBTUXcyQ2J2N2U2RzFvc0ptU2Y4QlRuNjhVcnhlRnc3Y3FEckhjalh0Y3pFRzROMTN4ZGx1QXFxQ21xaTQ1azc5V2pBamVtM2ZyYStocURMVzBPdzVWcExsd1dLKzNxRUs4QktQMWJXb05uNFNwd2JKK2YyOGVuUEQzencvUEYxbWw5aTY2YmRZYWIyendocnAvekREUjRLTjdDdGdZYkkvNldVWlcvaVRVM2VSaUR3MnlJTkx0NjdEWlRrOWJnTnB0WWpiV1RjOGZzTXVaT2FRMU9vUG1OZkE0S2NzcndTcklVNWZNYjNYNGNoaElWYVZ0UC9SblYyUkRXWUsweVZLaHJ2S291ZDdXaEVtcENKWTg5RmhGdmFUUW1VM21KUUZiTGU3ZEphL0JMdUNMM3RtNXoxaFk2amlwRTlDc2IzWkEwSnJpK3REelVtbmFvZWdXMW1ZSkI4VHFsbDIwS0owVERBTVBuZTdBREFQZ3BYQUdWQVBBWVR4VkdMc1hEYzRtMERTZHdYRzJqbnNxSTYzQkZ2TW1rR0Z1L0RlcEZRLzYzY1FEUUwrQUtzR3o3N2VZS1k3RDg5d21KSFdiU05SQkN2THErNXBHVUdpR0lWeGxxSGs1K01sdWwvSyt4K2hSY0VUK3p4cXpXbUJXYWlsWUdXTTRrYmJZa0k5NEZVTG9PQVB4OVhnZUdjaFRkRVVnZFUvZ1dJa251VDdzSG5hVlZKRjdkV0QyV1hkNDN4SldxeS9FYUt6VUQwZWZ6dEtOVzIxdzcvNDg3SjJnUFRYTzZrd0JBNldlU0Y5NkFLOEFBQUtsNFJnbnlMWXBVSWFLOHNVcXYwZGg3OUpwc21pMHB4WEMxWGZORVd2eE0zNUg4SFVtR3lzSStCdDRVdjdSa0dDWnRoZXIxTzk0TWwrOGhwN1FHZjRNdUFyV3NsczdLZnN1bGV0bVhzRHY3NXdLK3VLMjVmN2JWRWZVYk9ZL3lWTFh0aSt6Ni9sS2lmVjlrOG9VejhYRHMrSVZZZEdmZjhRdXgzcDBBU25jQmdPK2hpeklIUm9oZ2hSQndiQVFFYVNITFMrY3V6WGo1UUdPUDFjSHRiQm1kY0k0dVphRlc1Ums1czNlWGgrdTBtRnZZNWwyeHdNemNRckpYeGkyYjd4cjZIMUF1MzlNdGpHQVJJSS94SkdQbkJmbTdoU0JJbUVveTRsL0w0TXlPNGF3cUswby9ad2tOaVd1YnRLLzY0WFBpUWlUeWxySEgwdUN2VXp3amZTcE5nUnlZbC90YVJpWW9RVkpJZkcyRk4wUWkyc1FZRFEyVEwzazBuVFlEclhmWVRQMExBQUJKQWpwcERTekRUNUFEdElKdWVCd1FvRlhaODJQcGYrR3IwazhBQmdBcFdFaGJCZnhsK1pMUGR5OUh3RFc0SXYrTnAzak12Q2V6RjY0b0JvWWdnVkxnS3JvcWYrdFJSVEFlb2t5TVRtdGtVRXBINnkxMXRMNFJRT1hzQzJCZWZsZFg5RzZjMWpzYTZEcTdxb0UyY0VaYXo0SC9BQUFBLy84QkFBRC8veGdBVmNZQUFBQUFBUUFBQUFFWVVlTU5RazFmRHp6MUFBRUQ2QUFBQUFEWVhhRE1BQUFBQU4xbUx6Zit2ZjdkQ0IwRHlRQUNBQU1BQWdBQUFBQUFBQUFCQUFBRDJQN3ZBQUFJUVA2OS9id0lIUVBvQU1MLzBRQUFBQUFBQUFBQUFBQUFNbmljTEl5eExnUmhIQWZuOTdzU0lWRXNtcS80M0czaVBBQnhMVmVTU0hSNmlWYmpOYnlIeWdzc0dvbm9OQkxGYnRTYUxaYUk3RjlXcnBwTU1lTXJ0bmtDOWZIc09ka1Q5bjFDMWhkWmIyVGZrMzFKOWpVelR4YWNrdlhEc25yT2ZjR3hYamoxSnFVM1NMcGo3SUpTRFdOdE1mVTY4aEtKVHhMZjdJNFN5U3NranloZFJEZDBPaVBwSm41MXlNeHI3S25pd0k4YzZUWmVWY1dEYW5aVVI2ZWFWZHBvYUNuMEVlLy9UNWdQL2djQUFQLy9BUUFBLy84V25qQWhBQUFBTGdBdUFGSUFpZ0M4QU40QTlnRU1BVG9CWUFHU0FiWUIrQUlnQW1BQ2RBS2NBcndDOUFNc0Exb0RrZ1BNQS9RRVBBUm1CSElFbEFUV0JRQUZMZ1ZvQmFJRndBWDhCaW9HVmdaMEJxNEcyZ2NLQnp3SFpnZU9CNndIdUFmR0I5UUg2Z2dBQUFBQUFRQUFBRElBakFBTUFHWUFCd0FCQUFBQUFBQUFBQUFBQUFBQUFBUUFBM2ljbkpUYlRodFhGSVkvQjl0dGVycW9VRVJ1MEw1TXBXUk1veEFsNGNxVW9JeUtjT3B4ZXBDcVNvTTlQb2p4ek1nem1KSW42SFhmb20rUnF6NUduNkxxZGJWL0w0TWRSVUVnQlB4NzlqcjhhNjEvYldDVC85aWdWcjhML04yY0c2NngzZnpaOEIyK2FCNFozbUMvK1puaE9nOGIveGh1TUdpOE5kemtRYU5yK0JQZTFmODAvQ2xQNnI4WnZzdFcvZER3NXp5dWJ4citjc1B4citHdmVNSzdCYTdCTS80d1hHT0x3dkFkTnZuVjhBYjNzSmkxT3ZmWU1kemdhN1lOTjlrR2VreW9TSm1RTWNJeFpNS0lNMllrbEVRa3pKZ3dKR0dBSTZSTlNxV3ZHYkdRWS9UQnJ6RVJGVE5pUlJ4VDRVaUpTSWtwR1Z2RXQvTEtlYTJNUTUxbWR0ZW1Za3pNaVR4T2ljbHc1SXpJeVVnNFZaeUtpb0lYdEdoUjBoZmZnb3FTZ0pJSktRRTVNMGEwNkhESUVUM0dUQ2h4SENxU1p4YVJNNlRpbkZqNW5WbjR6dlJKeUNpTjFSa1pBL0YwNHBmSU8rUUlSNGRDdHF1Umo5WWlQTVR4bzd3OXQxeTIzeExvMTYwd1c4KzdaQk16Vno5VGRTWFZ6YmttT05hdHo5dm1CK0dLRjdoYjlXZWR5ZlU5R3VoL3BjZ25uR24rQTAwcUU1TU01N1pvRTBsQmtidVBZMS9ua0VnZCtZbVFIcS9vOElhZXptMjZkR2x6VEkrUWwvTHQwTVh4SFIyT09aQkhLTHk0TzVSaWp2a0Z4L2VFc3ZHeEUrdlBZbUlKdjFPWXVrdHhuS21PS1lWNjdwa0hxalZSaFRlZnNOK2hmRTBkcFh6NjJpTnY2VFMvVEhzV016SlZGR0k0VlMrWDJpaXRmd05UeEZTMStObGUzZnR0bU52dUxiZjRnbHc3N05XNjRPUW50MkIwM1ZTRDl6UnpycCtBbUFFNUo3TG9rek9sUmNXRmVMOG01b3dVeDRHNjkwcGJVdEcrOVBGNUxxU1NoS2tZaEdTS002UFEzOWgwRXhuMy9wcnVuYjBsQS9sN3BxZVhWZDBtaTFPdnJtYjBSdDFiM2tYVzVXUmxBaTJiYXI2aXByNjRacWI5UkR1MXlqK1NiNm5YTGVjUm9lSXVkdnREcjhBT3o5bGxqN0d5OUhVenY3enpyNFMzMkZNSFRrbGtOWlNtZlEyUENkZ2w0Q203N1BLY3ArLzFjc25HR1IrM3htYzFmNXNEOXVtd2QyMDFDOXNPKzd4Y2kvYnh6SCtKN1k3cWNUeTZQRDI3OVRRZjNFQzEzMmpmcnQ3TnJpYm5wekczYUZmYmNVek0xSE54VzZzMXVmc0Uvd01BQVAvL0FRQUEvLzl5b1ZGQUFBQUFBd0FBLy9VQUFQL09BRElBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE9PSIpOwp9XV0+PC9zdHlsZT48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWy5zaGFwZSB7CiAgc2hhcGUtcmVuZGVyaW5nOiBnZW9tZXRyaWNQcmVjaXNpb247CiAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKfQouY29ubmVjdGlvbiB7CiAgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOwogIHN0cm9rZS1saW5lam9pbjogcm91bmQ7Cn0KLmJsZW5kIHsKICBtaXgtYmxlbmQtbW9kZTogbXVsdGlwbHk7CiAgb3BhY2l0eTogMC41Owp9CgoJCS5kMi0xNTI3NTExMTU2IC5maWxsLU4xe2ZpbGw6IzBBMEYyNTt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtTjJ7ZmlsbDojNjc2QzdFO30KCQkuZDItMTUyNzUxMTE1NiAuZmlsbC1OM3tmaWxsOiM5NDk5QUI7fQoJCS5kMi0xNTI3NTExMTU2IC5maWxsLU40e2ZpbGw6I0NGRDJERDt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtTjV7ZmlsbDojREVFMUVCO30KCQkuZDItMTUyNzUxMTE1NiAuZmlsbC1ONntmaWxsOiNFRUYxRjg7fQoJCS5kMi0xNTI3NTExMTU2IC5maWxsLU43e2ZpbGw6I0ZGRkZGRjt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQjF7ZmlsbDojMEQzMkIyO30KCQkuZDItMTUyNzUxMTE1NiAuZmlsbC1CMntmaWxsOiMwRDMyQjI7fQoJCS5kMi0xNTI3NTExMTU2IC5maWxsLUIze2ZpbGw6I0UzRTlGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQjR7ZmlsbDojRTNFOUZEO30KCQkuZDItMTUyNzUxMTE1NiAuZmlsbC1CNXtmaWxsOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5maWxsLUI2e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQUEye2ZpbGw6IzRBNkZGMzt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQUE0e2ZpbGw6I0VERjBGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQUE1e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQUI0e2ZpbGw6I0VERjBGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmZpbGwtQUI1e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1OMXtzdHJva2U6IzBBMEYyNTt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1OMntzdHJva2U6IzY3NkM3RTt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1OM3tzdHJva2U6Izk0OTlBQjt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1ONHtzdHJva2U6I0NGRDJERDt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1ONXtzdHJva2U6I0RFRTFFQjt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1ONntzdHJva2U6I0VFRjFGODt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1ON3tzdHJva2U6I0ZGRkZGRjt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CMXtzdHJva2U6IzBEMzJCMjt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CMntzdHJva2U6IzBEMzJCMjt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CM3tzdHJva2U6I0UzRTlGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CNHtzdHJva2U6I0UzRTlGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CNXtzdHJva2U6I0VERjBGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1CNntzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1BQTJ7c3Ryb2tlOiM0QTZGRjM7fQoJCS5kMi0xNTI3NTExMTU2IC5zdHJva2UtQUE0e3N0cm9rZTojRURGMEZEO30KCQkuZDItMTUyNzUxMTE1NiAuc3Ryb2tlLUFBNXtzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTE1Mjc1MTExNTYgLnN0cm9rZS1BQjR7c3Ryb2tlOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5zdHJva2UtQUI1e3N0cm9rZTojRjdGOEZFO30KCQkuZDItMTUyNzUxMTE1NiAuYmFja2dyb3VuZC1jb2xvci1OMXtiYWNrZ3JvdW5kLWNvbG9yOiMwQTBGMjU7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLU4ye2JhY2tncm91bmQtY29sb3I6IzY3NkM3RTt9CgkJLmQyLTE1Mjc1MTExNTYgLmJhY2tncm91bmQtY29sb3ItTjN7YmFja2dyb3VuZC1jb2xvcjojOTQ5OUFCO30KCQkuZDItMTUyNzUxMTE1NiAuYmFja2dyb3VuZC1jb2xvci1ONHtiYWNrZ3JvdW5kLWNvbG9yOiNDRkQyREQ7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLU41e2JhY2tncm91bmQtY29sb3I6I0RFRTFFQjt9CgkJLmQyLTE1Mjc1MTExNTYgLmJhY2tncm91bmQtY29sb3ItTjZ7YmFja2dyb3VuZC1jb2xvcjojRUVGMUY4O30KCQkuZDItMTUyNzUxMTE1NiAuYmFja2dyb3VuZC1jb2xvci1ON3tiYWNrZ3JvdW5kLWNvbG9yOiNGRkZGRkY7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUIxe2JhY2tncm91bmQtY29sb3I6IzBEMzJCMjt9CgkJLmQyLTE1Mjc1MTExNTYgLmJhY2tncm91bmQtY29sb3ItQjJ7YmFja2dyb3VuZC1jb2xvcjojMEQzMkIyO30KCQkuZDItMTUyNzUxMTE1NiAuYmFja2dyb3VuZC1jb2xvci1CM3tiYWNrZ3JvdW5kLWNvbG9yOiNFM0U5RkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUI0e2JhY2tncm91bmQtY29sb3I6I0UzRTlGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmJhY2tncm91bmQtY29sb3ItQjV7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMTUyNzUxMTE1NiAuYmFja2dyb3VuZC1jb2xvci1CNntiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUFBMntiYWNrZ3JvdW5kLWNvbG9yOiM0QTZGRjM7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUFBNHtiYWNrZ3JvdW5kLWNvbG9yOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUFBNXtiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUFCNHtiYWNrZ3JvdW5kLWNvbG9yOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5iYWNrZ3JvdW5kLWNvbG9yLUFCNXtiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1OMXtjb2xvcjojMEEwRjI1O30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItTjJ7Y29sb3I6IzY3NkM3RTt9CgkJLmQyLTE1Mjc1MTExNTYgLmNvbG9yLU4ze2NvbG9yOiM5NDk5QUI7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1ONHtjb2xvcjojQ0ZEMkREO30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItTjV7Y29sb3I6I0RFRTFFQjt9CgkJLmQyLTE1Mjc1MTExNTYgLmNvbG9yLU42e2NvbG9yOiNFRUYxRjg7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1ON3tjb2xvcjojRkZGRkZGO30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItQjF7Y29sb3I6IzBEMzJCMjt9CgkJLmQyLTE1Mjc1MTExNTYgLmNvbG9yLUIye2NvbG9yOiMwRDMyQjI7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1CM3tjb2xvcjojRTNFOUZEO30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItQjR7Y29sb3I6I0UzRTlGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmNvbG9yLUI1e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1CNntjb2xvcjojRjdGOEZFO30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItQUEye2NvbG9yOiM0QTZGRjM7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1BQTR7Y29sb3I6I0VERjBGRDt9CgkJLmQyLTE1Mjc1MTExNTYgLmNvbG9yLUFBNXtjb2xvcjojRjdGOEZFO30KCQkuZDItMTUyNzUxMTE1NiAuY29sb3ItQUI0e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0xNTI3NTExMTU2IC5jb2xvci1BQjV7Y29sb3I6I0Y3RjhGRTt9LmFwcGVuZGl4IHRleHQudGV4dHtmaWxsOiMwQTBGMjV9Lm1key0tY29sb3ItZmctZGVmYXVsdDojMEEwRjI1Oy0tY29sb3ItZmctbXV0ZWQ6IzY3NkM3RTstLWNvbG9yLWZnLXN1YnRsZTojOTQ5OUFCOy0tY29sb3ItY2FudmFzLWRlZmF1bHQ6I0ZGRkZGRjstLWNvbG9yLWNhbnZhcy1zdWJ0bGU6I0VFRjFGODstLWNvbG9yLWJvcmRlci1kZWZhdWx0OiMwRDMyQjI7LS1jb2xvci1ib3JkZXItbXV0ZWQ6IzBEMzJCMjstLWNvbG9yLW5ldXRyYWwtbXV0ZWQ6I0VFRjFGODstLWNvbG9yLWFjY2VudC1mZzojMEQzMkIyOy0tY29sb3ItYWNjZW50LWVtcGhhc2lzOiMwRDMyQjI7LS1jb2xvci1hdHRlbnRpb24tc3VidGxlOiM2NzZDN0U7LS1jb2xvci1kYW5nZXItZmc6cmVkO30uc2tldGNoLW92ZXJsYXktQjF7ZmlsbDp1cmwoI3N0cmVha3MtZGFya2VyLWQyLTE1Mjc1MTExNTYpO21peC1ibGVuZC1tb2RlOmxpZ2h0ZW59LnNrZXRjaC1vdmVybGF5LUIye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0xNTI3NTExMTU2KTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1CM3tmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNHtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNntmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQTJ7ZmlsbDp1cmwoI3N0cmVha3MtZGFyay1kMi0xNTI3NTExMTU2KTttaXgtYmxlbmQtbW9kZTpvdmVybGF5fS5za2V0Y2gtb3ZlcmxheS1BQTR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTE1Mjc1MTExNTYpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUE1e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0xNTI3NTExMTU2KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFCNHtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTE1Mjc1MTExNTYpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjF7ZmlsbDp1cmwoI3N0cmVha3MtZGFya2VyLWQyLTE1Mjc1MTExNTYpO21peC1ibGVuZC1tb2RlOmxpZ2h0ZW59LnNrZXRjaC1vdmVybGF5LU4ye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmstZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6b3ZlcmxheX0uc2tldGNoLW92ZXJsYXktTjN7ZmlsbDp1cmwoI3N0cmVha3Mtbm9ybWFsLWQyLTE1Mjc1MTExNTYpO21peC1ibGVuZC1tb2RlOmNvbG9yLWJ1cm59LnNrZXRjaC1vdmVybGF5LU40e2ZpbGw6dXJsKCNzdHJlYWtzLW5vcm1hbC1kMi0xNTI3NTExMTU2KTttaXgtYmxlbmQtbW9kZTpjb2xvci1idXJufS5za2V0Y2gtb3ZlcmxheS1ONXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1ONntmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1ON3tmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMTUyNzUxMTE1Nik7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5saWdodC1jb2Rle2Rpc3BsYXk6IGJsb2NrfS5kYXJrLWNvZGV7ZGlzcGxheTogbm9uZX1dXT48L3N0eWxlPjxnIGNsYXNzPSJZWEJ3Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIxMi4wMDAwMDAiIHk9IjUyLjAwMDAwMCIgd2lkdGg9IjEwMi4wMDAwMDAiIGhlaWdodD0iNjYuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNFREYwRkQiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjUiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjYzLjAwMDAwMCIgeT0iOTAuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5Qcm9ncmFtPC90ZXh0PjwvZz48ZyBjbGFzcz0iZG1JeSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iMjkwLjAwMDAwMCIgeT0iNTIuMDAwMDAwIiB3aWR0aD0iMTEzLjAwMDAwMCIgaGVpZ2h0PSI2Ni4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0VERjBGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iMzQ2LjUwMDAwMCIgeT0iOTAuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij52aWRlb2J1ZjI8L3RleHQ+PC9nPjxnIGNsYXNzPSJaSEoyIj48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI1ODQuMDAwMDAwIiB5PSI1Mi4wMDAwMDAiIHdpZHRoPSIxODQuMDAwMDAwIiBoZWlnaHQ9IjY2LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI2NzYuMDAwMDAwIiB5PSI5MC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0IGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPkRyaXZlciBvZiB0aGUgcmVjZWl2ZXI8L3RleHQ+PC9nPjxnIGNsYXNzPSJhSGM9Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI4NTQuMDAwMDAwIiB5PSI1Mi4wMDAwMDAiIHdpZHRoPSIxNjcuMDAwMDAwIiBoZWlnaHQ9IjY2LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI5MzcuNTAwMDAwIiB5PSI5MC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0IGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPkNhcHR1cmUgaGFyZHdhcmU8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdExTQXBXekJkIj48cGF0aCBkPSJNIDYzLjAwMDAwMCAxMjAuMDAwMDAwIEwgNjMuMDAwMDAwIDE0MzcuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMiIgc3R5bGU9InN0cm9rZS13aWR0aDoyO3N0cm9rZS1kYXNoYXJyYXk6MTIuMDAwMDAwLDExLjgzODc2NzsiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PC9nPjxnIGNsYXNzPSJLSFppTWlBdExTQXBXekJkIj48cGF0aCBkPSJNIDM0Ni41MDAwMDAgMTIwLjAwMDAwMCBMIDM0Ni41MDAwMDAgMTQzNy4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIyIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7c3Ryb2tlLWRhc2hhcnJheToxMi4wMDAwMDAsMTEuODM4NzY3OyIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48L2c+PGcgY2xhc3M9IktHUnlkaUF0TFNBcFd6QmQiPjxwYXRoIGQ9Ik0gNjc2LjAwMDAwMCAxMjAuMDAwMDAwIEwgNjc2LjAwMDAwMCAxNDM3LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjIiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjtzdHJva2UtZGFzaGFycmF5OjEyLjAwMDAwMCwxMS44Mzg3Njc7IiBtYXNrPSJ1cmwoI2QyLTE1Mjc1MTExNTYpIiAvPjwvZz48ZyBjbGFzcz0iS0doM0lDMHRJQ2xiTUYwPSI+PHBhdGggZD0iTSA5MzcuNTAwMDAwIDEyMC4wMDAwMDAgTCA5MzcuNTAwMDAwIDE0MzcuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMiIgc3R5bGU9InN0cm9rZS13aWR0aDoyO3N0cm9rZS1kYXNoYXJyYXk6MTIuMDAwMDAwLDExLjgzODc2NzsiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdEptZDBPeUIyWWpJcFd6QmQiPjxtYXJrZXIgaWQ9Im1rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCIgbWFya2VyV2lkdGg9IjEwLjAwMDAwMCIgbWFya2VySGVpZ2h0PSIxMi4wMDAwMDAiIHJlZlg9IjcuMDAwMDAwIiByZWZZPSI2LjAwMDAwMCIgdmlld0JveD0iMC4wMDAwMDAgMC4wMDAwMDAgMTAuMDAwMDAwIDEyLjAwMDAwMCIgb3JpZW50PSJhdXRvIiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiPiA8cG9seWdvbiBwb2ludHM9IjAuMDAwMDAwLDAuMDAwMDAwIDEwLjAwMDAwMCw2LjAwMDAwMCAwLjAwMDAwMCwxMi4wMDAwMDAiIGZpbGw9IiMwRDMyQjIiIGNsYXNzPSJjb25uZWN0aW9uIGZpbGwtQjEiIHN0cm9rZS13aWR0aD0iMiIgLz4gPC9tYXJrZXI+PHBhdGggZD0iTSA2NS4wMDAwMDAgMTk4LjAwMDAwMCBMIDM0Mi41MDAwMDAgMTk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSIyMDQuNTAwMDAwIiB5PSIyMDQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+UkVRQlVGUzogNCBidWZmZXJzLCBNTUFQPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0haaU1pQXRKbWQwT3lCa2NuWXBXekJkIj48cGF0aCBkPSJNIDM0OC41MDAwMDAgMjg4LjAwMDAwMCBMIDY3Mi4wMDAwMDAgMjg4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSI1MTEuNTAwMDAwIiB5PSIyOTQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+cXVldWVfc2V0dXA8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdEptZDBPeUIyWWpJcFd6RmQiPjxwYXRoIGQ9Ik0gNjUuMDAwMDAwIDM3OC4wMDAwMDAgTCAzNDIuNTAwMDAwIDM3OC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PHRleHQgeD0iMjA0LjUwMDAwMCIgeT0iMzg0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPlFVRVJZQlVGIGFuZCBtbWFwLCA0IHRpbWVzPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0dGd2NDQXRKbWQwT3lCMllqSXBXekpkIj48cGF0aCBkPSJNIDY1LjAwMDAwMCA0NjguMDAwMDAwIEwgMzQyLjUwMDAwMCA0NjguMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0xNTI3NTExMTU2LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTE1Mjc1MTExNTYpIiAvPjx0ZXh0IHg9IjIwNS4wMDAwMDAiIHk9IjQ3NC4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5RQlVGLCA0IHRpbWVzPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0haaU1pQXRKbWQwT3lCa2NuWXBXekZkIj48cGF0aCBkPSJNIDM0OC41MDAwMDAgNTU4LjAwMDAwMCBMIDY3Mi4wMDAwMDAgNTU4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSI1MTEuMDAwMDAwIiB5PSI1NjQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+YnVmX3ByZXBhcmUsIDQgdGltZXM8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdEptZDBPeUIyWWpJcFd6TmQiPjxwYXRoIGQ9Ik0gNjUuMDAwMDAwIDY0OC4wMDAwMDAgTCAzNDIuNTAwMDAwIDY0OC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PHRleHQgeD0iMjA0LjUwMDAwMCIgeT0iNjU0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPlNUUkVBTU9OPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0haaU1pQXRKbWQwT3lCa2NuWXBXekpkIj48cGF0aCBkPSJNIDM0OC41MDAwMDAgNzM4LjAwMDAwMCBMIDY3Mi4wMDAwMDAgNzM4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSI1MTEuMDAwMDAwIiB5PSI3NDQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+YnVmX3F1ZXVlLCA0IHRpbWVzLCB0aGVuIHN0YXJ0X3N0cmVhbWluZzwvdGV4dD48L2c+PGcgY2xhc3M9IktHUnlkaUF0Sm1kME95Qm9keWxiTUYwPSI+PHBhdGggZD0iTSA2NzguMDAwMDAwIDgyOC4wMDAwMDAgTCA5MzMuNTAwMDAwIDgyOC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PHRleHQgeD0iODA2LjUwMDAwMCIgeT0iODM0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnRoZSBhZGRyZXNzIG9mIGFuIGVtcHR5IGJ1ZmZlcjwvdGV4dD48L2c+PGcgY2xhc3M9IktHaDNJQzBtWjNRN0lHUnlkaWxiTUYwPSI+PHBhdGggZD0iTSA5MzUuNTAwMDAwIDkxOC4wMDAwMDAgTCA2ODAuMDAwMDAwIDkxOC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PHRleHQgeD0iODA3LjAwMDAwMCIgeT0iOTI0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnRoZSBmcmFtZSBpcyBjb21wbGV0ZTwvdGV4dD48L2c+PGcgY2xhc3M9IktHUnlkaUF0Sm1kME95QjJZaklwV3pCZCI+PHBhdGggZD0iTSA2NzQuMDAwMDAwIDEwMDguMDAwMDAwIEwgMzUwLjUwMDAwMCAxMDA4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSI1MTEuMDAwMDAwIiB5PSIxMDE0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnZiMl9idWZmZXJfZG9uZTwvdGV4dD48L2c+PGcgY2xhc3M9IktHRndjQ0F0Sm1kME95QjJZaklwV3pSZCI+PHBhdGggZD0iTSA2NS4wMDAwMDAgMTA5OC4wMDAwMDAgTCAzNDIuNTAwMDAwIDEwOTguMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0xNTI3NTExMTU2LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTE1Mjc1MTExNTYpIiAvPjx0ZXh0IHg9IjIwNS4wMDAwMDAiIHk9IjExMDQuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+RFFCVUY8L3RleHQ+PC9nPjxnIGNsYXNzPSJLSFppTWlBdEptZDBPeUJoY0hBcFd6QmQiPjxwYXRoIGQ9Ik0gMzQ0LjUwMDAwMCAxMTg4LjAwMDAwMCBMIDY3LjAwMDAwMCAxMTg4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSIyMDUuMDAwMDAwIiB5PSIxMTk0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPmluZGV4LCBzZXF1ZW5jZSwgdGltZXN0YW1wPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0dGd2NDQXRKbWQwT3lCMllqSXBXelZkIj48cGF0aCBkPSJNIDY1LjAwMDAwMCAxMjc4LjAwMDAwMCBMIDM0Mi41MDAwMDAgMTI3OC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTE1Mjc1MTExNTYtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMTUyNzUxMTE1NikiIC8+PHRleHQgeD0iMjA1LjAwMDAwMCIgeT0iMTI4NC4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5RQlVGIHdpdGggdGhlIHNhbWUgaW5kZXg8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdEptZDBPeUIyWWpJcFd6WmQiPjxwYXRoIGQ9Ik0gNjUuMDAwMDAwIDEzNjguMDAwMDAwIEwgMzQyLjUwMDAwMCAxMzY4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMTUyNzUxMTE1Ni0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0xNTI3NTExMTU2KSIgLz48dGV4dCB4PSIyMDQuNTAwMDAwIiB5PSIxMzc0LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPlNUUkVBTU9GRiwgdGhlbiBSRVFCVUZTIHdpdGggMDwvdGV4dD48L2c+PG1hc2sgaWQ9ImQyLTE1Mjc1MTExNTYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9Ii0xMyIgeT0iMjciIHdpZHRoPSIxMDU5IiBoZWlnaHQ9IjE0MzYiPgo8cmVjdCB4PSItMTMiIHk9IjI3IiB3aWR0aD0iMTA1OSIgaGVpZ2h0PSIxNDM2IiBmaWxsPSJ3aGl0ZSI+PC9yZWN0Pgo8cmVjdCB4PSIxMTYuMDAwMDAwIiB5PSIxODguMDAwMDAwIiB3aWR0aD0iMTc3IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI0NjcuMDAwMDAwIiB5PSIyNzguMDAwMDAwIiB3aWR0aD0iODkiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjEwMi4wMDAwMDAiIHk9IjM2OC4wMDAwMDAiIHdpZHRoPSIyMDUiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjE1Ny4wMDAwMDAiIHk9IjQ1OC4wMDAwMDAiIHdpZHRoPSI5NiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iNDQxLjAwMDAwMCIgeT0iNTQ4LjAwMDAwMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMTY2LjAwMDAwMCIgeT0iNjM4LjAwMDAwMCIgd2lkdGg9Ijc3IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIzNzQuMDAwMDAwIiB5PSI3MjguMDAwMDAwIiB3aWR0aD0iMjc0IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI3MDQuMDAwMDAwIiB5PSI4MTguMDAwMDAwIiB3aWR0aD0iMjA1IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI3MzQuMDAwMDAwIiB5PSI5MDguMDAwMDAwIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI0NTMuMDAwMDAwIiB5PSI5OTguMDAwMDAwIiB3aWR0aD0iMTE2IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIxNzkuMDAwMDAwIiB5PSIxMDg4LjAwMDAwMCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIxMTIuMDAwMDAwIiB5PSIxMTc4LjAwMDAwMCIgd2lkdGg9IjE4NiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMTE3LjAwMDAwMCIgeT0iMTI2OC4wMDAwMDAiIHdpZHRoPSIxNzYiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjkxLjAwMDAwMCIgeT0iMTM1OC4wMDAwMDAiIHdpZHRoPSIyMjciIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjwvbWFzaz48L3N2Zz48L3N2Zz4KCjwhLS0gZDItc291cmNlLXNoYTI1NjogNDUxYjBhYzYyYTgwZDBjZmI3NmE1YzE0NDM3N2U0MGE0YmEwN2JkNjhmN2QzZjA1Zjk3ODQ5ZmI4M2QyOTgzMyAtLT4K" alt="The calls of one capture, from REQBUFS to the release of the buffers. The four parties are the program, videobuf2, the driver of the receiver and the capture hardware."><div class="cap">The calls of one capture, from REQBUFS to the release of the buffers. The four parties are the program, videobuf2, the driver of the receiver and the capture hardware.</div></div>
+<p><code>examples/grab.c</code> makes exactly these calls and nothing else. It sets no format, so the format of the node is set with <code>v4l2-ctl</code> first. The program starts with the request for buffers:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/examples/grab.c</span><span>lines 48–54</span></div><pre><code>    /* REQBUFS: the kernel allocates the buffers and answers with a count. */
+    memset(&amp;req, 0, sizeof(req));
+    req.count = NBUF;
+    req.type = type;
+    req.memory = V4L2_MEMORY_MMAP;
+    check(ioctl(fd, VIDIOC_REQBUFS, &amp;req), &quot;VIDIOC_REQBUFS&quot;);
+    printf(&quot;asked for %d buffers, got %u\n&quot;, NBUF, req.count);</code></pre></div>
+<p><code>VIDIOC_REQBUFS</code> is a negotiation. The program asks for a count, and the kernel writes the granted count back into the same structure. Then the program maps each buffer and queues it:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/examples/grab.c</span><span>lines 59–76</span></div><pre><code>    for (i = 0; i &lt; req.count; i++) {
+        memset(&amp;buf, 0, sizeof(buf));
+        buf.type = type;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = i;
+
+        /* QUERYBUF and mmap: the program maps the pages of buffer i. */
+        check(ioctl(fd, VIDIOC_QUERYBUF, &amp;buf), &quot;VIDIOC_QUERYBUF&quot;);
+        map[i].length = buf.length;
+        map[i].start = mmap(NULL, buf.length, PROT_READ, MAP_SHARED,
+                    fd, buf.m.offset);
+        check(map[i].start == MAP_FAILED ? -1 : 0, &quot;mmap&quot;);
+        printf(&quot;buffer %u: %u bytes at offset 0x%x\n&quot;,
+               i, buf.length, buf.m.offset);
+
+        /* QBUF: the buffer now belongs to the driver. */
+        check(ioctl(fd, VIDIOC_QBUF, &amp;buf), &quot;VIDIOC_QBUF&quot;);
+    }</code></pre></div>
+<p><code>VIDIOC_QUERYBUF</code> returns the length of a buffer and an offset. <code>mmap</code> with that offset gives the program a view of the pages of the buffer. Nothing is copied: the hardware and the program then use the same memory under two addresses. The rest is the stream itself:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">06-buffers/examples/grab.c</span><span>lines 78–95</span></div><pre><code>    /* STREAMON: the driver starts the hardware. */
+    check(ioctl(fd, VIDIOC_STREAMON, &amp;type), &quot;VIDIOC_STREAMON&quot;);
+
+    for (i = 0; i &lt; NFRAMES; i++) {
+        memset(&amp;buf, 0, sizeof(buf));
+        buf.type = type;
+        buf.memory = V4L2_MEMORY_MMAP;
+
+        /* DQBUF: wait for a full buffer. It belongs to the program. */
+        check(ioctl(fd, VIDIOC_DQBUF, &amp;buf), &quot;VIDIOC_DQBUF&quot;);
+        printf(&quot;buffer %u: sequence %u, %u bytes, time %ld.%06ld, first bytes %02x %02x\n&quot;,
+               buf.index, buf.sequence, buf.bytesused,
+               (long)buf.timestamp.tv_sec, (long)buf.timestamp.tv_usec,
+               map[buf.index].start[0], map[buf.index].start[1]);
+
+        /* QBUF: give the buffer back for a later frame. */
+        check(ioctl(fd, VIDIOC_QBUF, &amp;buf), &quot;VIDIOC_QBUF&quot;);
+    }</code></pre></div>
+<p><code>VIDIOC_DQBUF</code> blocks until a buffer is DONE. The kernel fills in the index of the buffer, the sequence number, the count of bytes and the timestamp. The program reads two bytes of the frame through its mapping, and it gives the buffer back.</p>
+<h3 id="the-program-builds-and-the-board-runs-it">The program builds, and the board runs it</h3>
+<p>The container builds the program without a warning, in a copy of this lesson's folder. No video node exists there, so the run on <code>/dev/null</code> stops at the first call:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> gcc -Wall -Wextra -Werror -O2 -o /tmp/grab examples/grab.c &amp;&amp; /tmp/grab /dev/null</span>
+<span class="out">VIDIOC_REQBUFS: Inappropriate ioctl for device</span></code></pre></div>
+<p>On the Jetson, the two commands of Lesson 04 select the 60-frame mode and its format. Then the program runs:</p>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=1</span>
+<span class="cmd"><span class="prompt">orin$</span> v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10</span>
+<span class="cmd"><span class="prompt">orin$</span> ./grab</span>
+<span class="out">asked for 4 buffers, got 4</span>
+<span class="out">buffer 0: 4147200 bytes at offset 0x0</span>
+<span class="out">buffer 1: 4147200 bytes at offset 0x8000</span>
+<span class="out">buffer 2: 4147200 bytes at offset 0x10000</span>
+<span class="out">buffer 3: 4147200 bytes at offset 0x18000</span>
+<span class="out">buffer 0: sequence 1, 4147200 bytes, time 1532.412345, first bytes 5c 01</span>
+<span class="out">buffer 1: sequence 2, 4147200 bytes, time 1532.429012, first bytes 5d 01</span>
+<span class="out">buffer 2: sequence 3, 4147200 bytes, time 1532.445678, first bytes 5c 01</span>
+<span class="out">buffer 3: sequence 4, 4147200 bytes, time 1532.462345, first bytes 5b 01</span>
+<span class="out">buffer 0: sequence 5, 4147200 bytes, time 1532.479012, first bytes 5c 01</span>
+<span class="out">buffer 1: sequence 6, 4147200 bytes, time 1532.495678, first bytes 5c 01</span>
+<span class="out">buffer 2: sequence 7, 4147200 bytes, time 1532.512345, first bytes 5d 01</span>
+<span class="out">buffer 3: sequence 8, 4147200 bytes, time 1532.529012, first bytes 5c 01</span></code></pre></div>
+<p>This transcript is not captured on a board with JetPack 7.2.1 yet <em>(verified-on-target: pending)</em>. Four facts can be read from it:</p>
+<ul>
+<li><strong>The size.</strong> Each buffer has 4,147,200 bytes, which is 1920 × 1080 × 2. It is the frame size of Lesson 04.</li>
+<li><strong>The offsets.</strong> They are 32,768 apart, and the buffers are four megabytes each. So an offset is not an address. It is a ticket that names the buffer to <code>mmap</code>.</li>
+<li><strong>The rotation.</strong> Four buffers carry eight frames. Each buffer is filled, read, returned and filled again.</li>
+<li><strong>The time.</strong> Two timestamps are 16.667 ms apart, which is one frame at 60 frames in a second.</li>
+</ul>
+<details class="more">
+<summary><b>Source</b>: how videobuf2 computes the offset</summary>
+
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/media/common/videobuf2/videobuf2-core.c</span><span>lines 375–389</span></div><pre><code>    /*
+     * The offset &quot;cookie&quot; value has the following constraints:
+     * - a buffer can have up to 8 planes.
+     * - v4l2 mem2mem uses bit 30 to distinguish between
+     *   OUTPUT (aka &quot;source&quot;, bit 30 is 0) and
+     *   CAPTURE (aka &quot;destination&quot;, bit 30 is 1) buffers.
+     * - must be page aligned
+     * That led to this bit mapping when PAGE_SHIFT = 12:
+     * |30                |29        15|14       12|11 0|
+     * |DST_QUEUE_OFF_BASE|buffer index|plane index| 0  |
+     * where there are 15 bits to store the buffer index.
+     * Depending on PAGE_SHIFT value we can have fewer bits
+     * to store the buffer index.
+     */
+    offset = vb-&gt;index &lt;&lt; PLANE_INDEX_SHIFT;</code></pre></div>
+<ul>
+<li>With pages of 4 KB, <code>PAGE_SHIFT</code> is 12, and the shift is 15. So buffer 1 has the offset 0x8000.</li>
+<li>The offset holds the index of the buffer and the index of the plane. It holds no address.</li>
+</ul>
+</details>
+
+<details class="more">
+<summary><b>More detail</b>: waiting with a limit</summary>
+
+<ul>
+<li>A blocking <code>VIDIOC_DQBUF</code> waits without a limit. A program with a dead sensor then hangs.</li>
+<li><code>poll()</code> on the video node returns when a buffer is DONE, and it takes a timeout.</li>
+<li><code>v4l2-ctl</code> waits this way. Its <code>select timeout</code> message of Lesson 04 is that timeout.</li>
+<li>A real program uses <code>poll()</code>. <code>grab.c</code> blocks, so that the loop stays short.</li>
+</ul>
+</details>
+
+<h3 id="the-same-program-on-a-raspberry-pi-5">The same program on a Raspberry Pi 5</h3>
+<p>The same file builds and runs on a Raspberry Pi 5, because the calls belong to V4L2 and not to a board. Three things differ, and none of them is captured on a board yet <em>(verified-on-target: pending)</em>.</p>
+<ul>
+<li><strong>The graph comes first.</strong> The link to the video node and the formats of the pads are set with <code>media-ctl</code>, as in Lesson 03.</li>
+<li><strong>The bytes are packed.</strong> The count of bytes follows the packed layout of Lesson 04, and the first bytes are not one sample.</li>
+<li><strong>The offsets are wider.</strong> The kernel of the Raspberry Pi 5 uses pages of 16 KB, so the shift is 17 and buffer 1 has the offset 0x20000.</li>
+</ul>
+<h3 id="side-by-side-2" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Calls of the program</td>
+<td>The V4L2 calls of <code>grab.c</code></td>
+<td>The same calls</td>
+</tr>
+<tr>
+<td>Before the program</td>
+<td>Two controls and the format</td>
+<td>The links and formats of the graph, then the format of the node</td>
+</tr>
+<tr>
+<td>Offset of buffer 1</td>
+<td>0x8000, with pages of 4 KB</td>
+<td>0x20000, with pages of 16 KB</td>
+</tr>
+<tr>
+<td>Bytes of a frame</td>
+<td>16 bits for each pixel</td>
+<td>Packed, 10 or 12 bits for each pixel</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="4-what-the-driver-adds-three-hooks">4. What the driver adds: three hooks</h2>
+<p>The program of section 3 used six ioctls and <code>mmap</code>. The Jetson driver implements none of them. Its table of ioctls points straight into vb2:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 2434–2442</span></div><pre><code>    .vidioc_reqbufs         = vb2_ioctl_reqbufs,
+    .vidioc_prepare_buf     = vb2_ioctl_prepare_buf,
+    .vidioc_querybuf        = vb2_ioctl_querybuf,
+    .vidioc_qbuf            = vb2_ioctl_qbuf,
+    .vidioc_dqbuf           = vb2_ioctl_dqbuf,
+    .vidioc_create_bufs     = vb2_ioctl_create_bufs,
+    .vidioc_expbuf          = vb2_ioctl_expbuf,
+    .vidioc_streamon        = vb2_ioctl_streamon,
+    .vidioc_streamoff       = vb2_ioctl_streamoff,</code></pre></div>
+<p>The file operations for <code>mmap</code> and <code>poll</code> are vb2 functions too. One grep counts both groups in each driver:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -c &#x27;= vb2_ioctl_\|= vb2_fop_&#x27; $CH $CFE</span>
+<span class="out">/build/work-l4t-r39.2.1/Linux_for_Tegra/source/nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c:12</span>
+<span class="out">/build/work-rpi-6.18/linux/drivers/media/platform/raspberrypi/rp1_cfe/cfe.c:10</span></code></pre></div>
+<p>What the driver writes itself is one small table:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 1103–1114</span></div><pre><code>static const struct vb2_ops tegra_channel_queue_qops = {
+    .queue_setup = tegra_channel_queue_setup,
+    .buf_prepare = tegra_channel_buffer_prepare,
+    .buf_queue = tegra_channel_buffer_queue,
+#if defined(NV_VB2_BUFFER_STRUCT_HAS_WAIT_PREPARE_AND_FINISH)
+    /* Removed in Linux v7.0 */
+    .wait_prepare = vb2_ops_wait_prepare,
+    .wait_finish = vb2_ops_wait_finish,
+#endif
+    .start_streaming = tegra_channel_start_streaming,
+    .stop_streaming = tegra_channel_stop_streaming,
+};</code></pre></div>
+<p>Three of its entries handle buffers: <code>queue_setup</code>, <code>buf_prepare</code> and <code>buf_queue</code>.</p>
+<h3 id="queue_setup-answers-reqbufs">queue_setup answers REQBUFS</h3>
+<p>vb2 calls <code>queue_setup</code> when the program requests buffers. The hook answers two questions: how many buffers, and how large.</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 776–791</span></div><pre><code>    if (*nplanes) {
+        if (sizes[0] &lt; chan-&gt;format.sizeimage) {
+            dev_info(chan-&gt;vi-&gt;dev, &quot;sizes[0] = %d chan-&gt;format.sizeimage = %d, for num_planes = %d ...\n&quot;
+                    , sizes[0], chan-&gt;format.sizeimage, *nplanes);
+            return -EINVAL;
+        }
+    } else {
+        sizes[0] = chan-&gt;format.sizeimage;
+    }
+
+    *nplanes = 1;
+    alloc_devs[0] = tegra_channel_get_vi_unit(chan);
+
+    if (vi-&gt;fops &amp;&amp; vi-&gt;fops-&gt;vi_setup_queue)
+        return vi-&gt;fops-&gt;vi_setup_queue(chan, nbuffers);
+    return ret;</code></pre></div>
+<p>The size is <code>sizeimage</code>, a field of the current format. So the format decides the size of a buffer at the moment of the request.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>Buffers that were requested before the format have the size of the old format.</strong></p>
+<ul>
+<li>Symptom: the capture of a new mode fails at QBUF, or the frames have the size of the earlier mode.</li>
+<li>Cause: <code>queue_setup</code> reads <code>sizeimage</code> once, when the buffers are requested.</li>
+<li>Fix: set the format first, then request the buffers. After a format change, free the buffers and request them again.</li>
+</ul>
+</div>
+<p>The count has two limits. vb2 applies its own before the hook runs:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> sed -n &#x27;872,873p&#x27; $VB2/videobuf2-core.c</span>
+<span class="out">    num_buffers = max_t(unsigned int, *count, q-&gt;min_queued_buffers);</span>
+<span class="out">    num_buffers = min_t(unsigned int, num_buffers, q-&gt;max_num_buffers);</span>
+<span class="cmd"><span class="prompt">container$</span> grep -n &#x27;define VB2_MAX_FRAME&#x27; $TREE/kernel/kernel-noble/include/media/videobuf2-core.h</span>
+<span class="out">23:#define VB2_MAX_FRAME    (32)</span></code></pre></div>
+<p>A queue that sets no limit of its own gets <code>VB2_MAX_FRAME</code>, so a request for 300 buffers is granted as 32. The last lines of the hook then pass the count to a second function of the driver. It allows 1 to 240, by two constants in <code>mc_common.h</code>, and on this kernel that range changes nothing. This is why <code>grab.c</code> prints the granted count and uses it.</p>
+<h3 id="buf_prepare-and-buf_queue">buf_prepare and buf_queue</h3>
+<p>vb2 calls <code>buf_prepare</code> at each QBUF, while the buffer is still QUEUED:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 834–847</span></div><pre><code>static int tegra_channel_buffer_prepare(struct vb2_buffer *vb)
+{
+    struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
+    struct tegra_channel *chan = vb2_get_drv_priv(vb-&gt;vb2_queue);
+    struct tegra_channel_buffer *buf = to_tegra_channel_buffer(vbuf);
+
+    buf-&gt;chan = chan;
+    vb2_set_plane_payload(&amp;vbuf-&gt;vb2_buf, 0, chan-&gt;format.sizeimage);
+#if IS_ENABLED(CONFIG_VIDEOBUF2_DMA_CONTIG)
+    buf-&gt;addr = vb2_dma_contig_plane_dma_addr(vb, 0);
+#endif
+
+    return 0;
+}</code></pre></div>
+<p>The hook stores the address that the hardware writes to. vb2 calls <code>buf_queue</code> when the buffer becomes ACTIVE:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/channel.c</span><span>lines 849–875</span></div><pre><code>static void tegra_channel_buffer_queue(struct vb2_buffer *vb)
+{
+    struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
+    struct tegra_channel *chan = vb2_get_drv_priv(vb-&gt;vb2_queue);
+    struct tegra_channel_buffer *buf = to_tegra_channel_buffer(vbuf);
+
+    /* for bypass mode - do nothing */
+    if (chan-&gt;bypass)
+        return;
+
+    if (!queue_init_ts) {
+        /*
+         * Record videobuf2 queue initial timestamp.
+         * Note: latency is accurate when streaming is already turned ON
+         */
+        queue_init_ts = ktime_to_ms(ktime_get());
+    }
+
+    /* Put buffer into the capture queue */
+    spin_lock(&amp;chan-&gt;start_lock);
+    list_add_tail(&amp;buf-&gt;queue, &amp;chan-&gt;capture);
+    spin_unlock(&amp;chan-&gt;start_lock);
+
+    /* Wake up kthread for capture */
+    wake_up_interruptible(&amp;chan-&gt;start_wait);
+}
+</code></pre></div>
+<p>The hook adds the buffer to a list and wakes a kernel thread. That thread gives the buffer to the capture hardware, and a second thread returns it. Lesson 11 follows a buffer through both.</p>
+<p>The early return for <code>chan-&gt;bypass</code> is the <code>bypass_mode</code> control of Lesson 04. When the camera service of NVIDIA owns the camera, the driver accepts a buffer and never fills it.</p>
+<details class="more">
+<summary><b>More detail</b>: why <code>cat /dev/video0</code> works on the Jetson</summary>
+
+<ul>
+<li>The file operations of the channel driver set <code>.read = vb2_fop_read</code>.</li>
+<li>vb2 then emulates <code>read()</code> with the same queue. It requests buffers, streams, and copies each frame to the caller.</li>
+<li>The emulation returns no sequence number, no timestamp and no error flag. It serves as a first test and nothing more.</li>
+</ul>
+</details>
+
+<h3 id="the-three-hooks-on-a-raspberry-pi-5">The three hooks on a Raspberry Pi 5</h3>
+<p>The driver of the Raspberry Pi receiver has the same table with the same three hooks. Its <code>queue_setup</code> has a lower limit in place of an upper one:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 978–990</span></div><pre><code>    if (vb2_get_num_buffers(vq) + *nbuffers &lt; 3)
+        *nbuffers = 3 - vb2_get_num_buffers(vq);
+
+    if (*nplanes) {
+        if (sizes[0] &lt; size) {
+            cfe_err(&quot;sizes[0] %i &lt; size %u\n&quot;, sizes[0], size);
+            return -EINVAL;
+        }
+        size = sizes[0];
+    }
+
+    *nplanes = 1;
+    sizes[0] = size;</code></pre></div>
+<p>A request for two buffers is granted as three. Its <code>buf_queue</code> also adds the buffer to a list:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/platform/raspberrypi/rp1_cfe/cfe.c</span><span>lines 1040–1050</span></div><pre><code>    list_add_tail(&amp;buf-&gt;list, &amp;node-&gt;dma_queue);
+
+    if (!cfe-&gt;job_ready)
+        cfe-&gt;job_ready = cfe_check_job_ready(cfe);
+
+    if (!cfe-&gt;job_queued &amp;&amp; cfe-&gt;job_ready &amp;&amp;
+        test_all_nodes(cfe, NODE_ENABLED, NODE_STREAMING)) {
+        cfe_dbg(&quot;Preparing job immediately for channel %u\n&quot;,
+            node-&gt;id);
+        cfe_prepare_next_job(cfe);
+    }</code></pre></div>
+<p>No thread is involved here. If the hardware waits for a buffer, the hook programs the next frame at once. Otherwise the interrupt handler of section 2 takes the buffer from the list.</p>
+<h3 id="side-by-side-3" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Calls implemented by vb2</td>
+<td>12 entries of two tables</td>
+<td>10 entries</td>
+</tr>
+<tr>
+<td>Largest count of buffers</td>
+<td>32, the limit of vb2</td>
+<td>32, the limit of vb2</td>
+</tr>
+<tr>
+<td>Smallest count of buffers</td>
+<td>1</td>
+<td>3, from <code>queue_setup</code></td>
+</tr>
+<tr>
+<td><code>buf_queue</code></td>
+<td>Adds to a list, wakes a kernel thread</td>
+<td>Adds to a list, programs the hardware if it waits</td>
+</tr>
+<tr>
+<td>The path to the hardware</td>
+<td>Through the camera firmware, Lesson 11</td>
+<td>Registers of the receiver, in the same driver</td>
+</tr>
+<tr>
+<td><code>read()</code> on the video node</td>
+<td>Emulated by vb2</td>
+<td>Not offered</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-three-ways-to-put-memory-under-a-buffer">5. Three ways to put memory under a buffer</h2>
+<p>The <code>memory</code> field of <code>VIDIOC_REQBUFS</code> selects where the memory of the buffers comes from. The kernel header has four values, and three are in use:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/include/uapi/linux/videodev2.h</span><span>lines 187–192</span></div><pre><code>enum v4l2_memory {
+    V4L2_MEMORY_MMAP             = 1,
+    V4L2_MEMORY_USERPTR          = 2,
+    V4L2_MEMORY_OVERLAY          = 3,
+    V4L2_MEMORY_DMABUF           = 4,
+};</code></pre></div>
+<p>The three models differ in one question: who allocates the memory. The answer decides how long the memory lives.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th><code>V4L2_MEMORY_MMAP</code></th>
+<th><code>V4L2_MEMORY_USERPTR</code></th>
+<th><code>V4L2_MEMORY_DMABUF</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Who allocates</td>
+<td>The kernel, through the allocator of the queue</td>
+<td>The program, with <code>malloc</code></td>
+<td>Another device or allocator</td>
+</tr>
+<tr>
+<td>The program names a buffer by</td>
+<td>Its index</td>
+<td>A pointer</td>
+<td>A file descriptor</td>
+</tr>
+<tr>
+<td>Kernel work at each QBUF</td>
+<td>None</td>
+<td>Pins the pages and maps them for the device</td>
+<td>Attaches and maps the buffer, when a new descriptor arrives</td>
+</tr>
+<tr>
+<td>The memory lives until</td>
+<td>The queue is freed</td>
+<td>The program frees it</td>
+<td>The last descriptor is closed</td>
+</tr>
+<tr>
+<td>Use</td>
+<td>A program that reads the frames itself</td>
+<td>Old programs</td>
+<td>Frames that go to another device or process</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="mmap">MMAP</h3>
+<p>MMAP is the model of <code>grab.c</code> and of <code>v4l2-ctl --stream-mmap</code>. The kernel allocates each buffer in memory that the hardware can reach. The program maps the same pages. So the only copies are the ones that the program makes itself, such as a write to a file.</p>
+<h3 id="userptr">USERPTR</h3>
+<p>USERPTR turns the allocation around: the program brings the memory. The pages behind a pointer of a program can move and are not adjacent. So the kernel pins and maps them at every QBUF, and it releases them afterwards. The model exists for programs that owned their frame memory before V4L2. New code does not use it.</p>
+<h3 id="dmabuf">DMABUF</h3>
+<p>With DMABUF the program queues a file descriptor. The descriptor names memory that another device or allocator provides, such as a buffer of an encoder. The receiver then writes its frame straight into that memory. Section 6 covers the descriptor itself.</p>
+<h3 id="what-each-board-accepts">What each board accepts</h3>
+<p>The driver states its models in <code>io_modes</code>:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -n &#x27;io_modes&#x27; $CH $CFE | sed &#x27;s|.*/||&#x27;</span>
+<span class="out">channel.c:2822: chan-&gt;queue.io_modes = VB2_MMAP | VB2_DMABUF | VB2_READ | VB2_USERPTR;</span>
+<span class="out">cfe.c:1964: q-&gt;io_modes = VB2_MMAP | VB2_DMABUF;</span></code></pre></div>
+<p>The Jetson driver accepts all three models and the <code>read()</code> emulation of section 4. The driver of the Raspberry Pi 5 accepts two. A request with <code>V4L2_MEMORY_USERPTR</code> fails there, and so does <code>cat</code> on the video node.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A program that works on one board fails on the other at REQBUFS.</strong></p>
+<ul>
+<li>Symptom: <code>VIDIOC_REQBUFS</code> returns <code>EINVAL</code> on a Raspberry Pi 5 for a program that runs on the Jetson.</li>
+<li>Cause: the program requests <code>V4L2_MEMORY_USERPTR</code>, and the queue of that driver does not list it.</li>
+<li>Fix: use MMAP or DMABUF. Both boards accept them.</li>
+</ul>
+</div>
+<h3 id="side-by-side-4" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MMAP</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>DMABUF</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>USERPTR</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>read()</code></td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="6-dmabuf-memory-with-a-file-descriptor-as-its-name">6. dmabuf: memory with a file descriptor as its name</h2>
+<p><a href="../glossary.html#dmabuf">dmabuf</a> is not a part of V4L2. It is the kernel's general way to share a buffer between drivers, and V4L2 is one of its users. A dmabuf is a block of memory that a device can reach, with a file descriptor as its name.</p>
+<p>The descriptor behaves like any other one. The kernel counts its users. A process can send it to another process over a Unix socket. A driver can take it and map the memory for its own device.</p>
+<h3 id="a-queue-exports-a-buffer">A queue exports a buffer</h3>
+<p><code>VIDIOC_EXPBUF</code> takes the index of an MMAP buffer and returns a descriptor for it. The table of section 4 routes the call to vb2, and vb2 asks the allocator:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/media/common/videobuf2/videobuf2-dma-contig.c</span><span>lines 517–524</span></div><pre><code>    dbuf = dma_buf_export(&amp;exp_info);
+    if (IS_ERR(dbuf))
+        return NULL;
+
+    /* dmabuf keeps reference to vb2 buffer */
+    refcount_inc(&amp;buf-&gt;refcount);
+
+    return dbuf;</code></pre></div>
+<p>The comment states the consequence. The new dmabuf holds a reference to the memory of the buffer. The allocator drops that reference only when the dmabuf is released:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -n &#x27;refcount_inc\|drop reference&#x27; $VB2/videobuf2-dma-contig.c</span>
+<span class="out">422:    /* drop reference obtained in vb2_dc_get_dmabuf */</span>
+<span class="out">522:    refcount_inc(&amp;buf-&gt;refcount);</span></code></pre></div>
+<p>So the same pages now have three names:</p>
+<div class="fig"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIGRhdGEtZDItdmVyc2lvbj0iMC43LjEiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiIHZpZXdCb3g9IjAgMCA4OTIgMzg1Ij48c3ZnIGNsYXNzPSJkMi0yNjM0MzQ3MTgwIGQyLXN2ZyIgd2lkdGg9Ijg5MiIgaGVpZ2h0PSIzODUiIHZpZXdCb3g9Ii0xMyAtMTMgODkyIDM4NSI+PHJlY3QgeD0iLTEzLjAwMDAwMCIgeT0iLTEzLjAwMDAwMCIgd2lkdGg9Ijg5Mi4wMDAwMDAiIGhlaWdodD0iMzg1LjAwMDAwMCIgcng9IjAuMDAwMDAwIiBmaWxsPSIjRkZGRkZGIiBjbGFzcz0iIGZpbGwtTjciIHN0cm9rZS13aWR0aD0iMCIgLz48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwouZDItMjYzNDM0NzE4MCAudGV4dC1ib2xkIHsKCWZvbnQtZmFtaWx5OiAiZDItMjYzNDM0NzE4MC1mb250LWJvbGQiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTI2MzQzNDcxODAtZm9udC1ib2xkOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQTFrQUFvQUFBQUFGSVFBQWd1RkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1h4SFhybU50WVhBQUFBRlVBQUFBZmdBQUFKd0Nxd0owWjJ4NVpnQUFBZFFBQUFjU0FBQUpYRzBiZXlkb1pXRmtBQUFJNkFBQUFEWUFBQUEyRzM4ZTFHaG9aV0VBQUFrZ0FBQUFKQUFBQUNRS2Z3WGRhRzEwZUFBQUNVUUFBQUI0QUFBQWVEc0FCS0pzYjJOaEFBQUp2QUFBQUQ0QUFBQStKZkFqaEcxaGVIQUFBQW44QUFBQUlBQUFBQ0FBTmdEM2JtRnRaUUFBQ2h3QUFBTW9BQUFJS2dqd1ZrRndiM04wQUFBTlJBQUFBQjBBQUFBZy85RUFNZ0FEQWlvQ3ZBQUZBQUFDaWdKWUFBQUFTd0tLQWxnQUFBRmVBRElCS1FBQUFnc0hBd01FQXdJQ0JHQUFBdmNBQUFBREFBQUFBQUFBQUFCQlJFSlBBQ0FBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWjhBQUFBQUFmQUNsQUFBQUNBQUEzaWNYTXk3MFFFQkdFRFJzNC8vYWJIV20wUXJobFNtQWFFWmdSRXBRdytNQWtSQ1NsSEpaMlpETnp6QlJTS1RvSkE3b1ZMS3BHYm1sbGJXdHZhT0VkUzJxRzFqNXhBUnIzakdJKzV4aTJ0YzRseWZQa3VrTXJrdjMzNzgrdk92b2REVTBsYnFxSFQxOUEwTWpZeE5USGtEQUFELy93RUFBUC8vNmFzWkVBQUFlSnhjVmx0czI5WVovczhSSlVZTUhadWlTT3BHM1k1RlNyN0l0aWlLZG14SHZzaVhPTEl0MjRpVHRMNmtRYkMyYzI1TG5NVXRNdlJoV2JHMURySkZHWkF1UTNiQmhtMUEraEFFQTdvQzNtTzdvSGxMc1Q3dEJneDU2TU9xRmNLd0JySlVrSkpqdXcvUzBZUDRmOS8vL2QvM0g0SWRDZ0Q0REw0RE5uQkNNN2hBQU5DNENCZlRWSlhRaG1ZWVJMSVpLdUxvQW5aVmYvc2JOVUVsRWxSYitHN296ZFZWTkwyQzcyeWZlM242ekpuL3JmYjNWKy8vNmNQcVRYVGxRd0JjZXc2QVIvRW1PSUVENEdsTlZSU1ZPQncyWHVPSlN1aG5MZTgyTi9tYktOYjcvTW5ESnorUGZ4eEhVd01EUFJlMDlQbnFEL0RtOXZxOWV3QUFDSksxTXU3R2Q4RVBZSThxaXA3T1pMU1VLTkdLUXFJT2grQVd0VlRHa0J4b2VmNmRoZU0zNTdObkl6TmVnM1FjYlYrY2pHYzlNL05zL3Fmbno3MDNwMFZYSkRtMU1uTDJVcXQzNlRSZ21BYkFlYndKVEwxakxTV0tndHZoSUtxV3ltVDB0S0lRTXYzQjJkdHpoVnVuT3dPOUM4bmtRbThBYitadVhicDBlK0phZkdsbTVsVE00bWZXZVI5dlFzaXF3b3VpcEdVeUJxOXh4S1JxRUpvbXFrcUNXQkNtZi9VNjQySW9obU5lL2VYYnROTkc2Y3R6eTJtS09rRGp6ZXJmQTBlQ3dTTUJGTjFlL3lJOFd3amQrK3FyZTZIQ2JQZ0xFOE1MZ0htOENiU0pRZlNJUUxnbmo5RHpSN2psK3ZYdGtxa1RoclphR1gyS0t1QUZBaUJGVGFFTVN5TmF0UlFUT0dMcWI2UXlobTdwOXVkYzRVWVJrMFJvcUZYdldqdTgrcTBOaGdwTkhQREcrSm1CRUhzaU8zT3lPYUo2aEZmazFndVhxLy9XQXVTeXhKOWcybVdQWk9FTjE4cFl4RnZnTmp1M1J4V1YwSVRUQk5vQ3M2UlVVeGs5VGFLMElJcG9MRElxVSt5VklpWG5vZ01udXdaV1R5cVp4WTZFTzg1R3dqcmVlcEQzeVVlK2t6LytSblpqUFA5MjV5ZXVRNWEycmJVeTJrSVY4SDF6OWlTNk8za0g4bzVkSEo3OGJpNDVFUmdqWVQyYjdmWWsrY094UlhidzZ2ekMrbUJRV3BYencwUFRRdlBwc0wrdWxWb3Jvd3JlQWg3Q08xcFpoVlZkMjZPUzBvRDVjdWxpLzJvNjBldDFGRGNZeWplT1BhcUxiM2VUVEJmNzdodHpWNDhFUFBrL2JJLzIrTWlHMi91SjY5RG94TkV4d0JiM2Y2RUtlQnI2N0lDWTB0QVJVZFJTSm5lYmxqWlJVR2ppOHNqb3VmNko1UzRLVno5anhudjBUSSt5OHJOSGFrYzB3eDVabjU5YnoyYlhjbnpNbWRFaXAzeEJkRGloZDlYejRRRkE2L2l4ZVpyZU1QWUhSQkEwZ1hBdmpZeTBGa1pENlJaL2s0LzFCMCtkUXQ4N2IvZnJpMm5XY2M1dWp5akJLOVh2QTlnZ1d1dkVOS3BBRi9URGxLV01vcWROSVV3ejZUc3RTSnBBR21HSnF0WWNUSHU1SFE2Yk9mQ0dhSHo5TjRrcTFsKytQTHpTTzhIN3d4NWY0dkNLM2hINTR5enRUSjgwNUpBcm1pZ3N2Wks3UGlXcnFpeXJhaUkxcE1ZMGI0VDFEejcxOVhZTXhLbW1lTWlmYXFGY3VmYUIyVGk3ZGpEcTdwdHFaWnBGM3RVL3FzMGwwZU8yaEpxSXh4TnQxV0tyVjJxeDJUemVnRnpYWnRnY3R1VlJNNXNOYndvYzRTeVdORGRjcEFQSFVuTkhpM0k0RVBmZ3JRZW52TzFyeTlVbktKS0plNlhxUTZqVndBQ0F2K0duV0lFQUFOQWd3enYxMnJVeWN1RXRhSzQ3aU5PNEY0YjhTNzYveURudHRNUEZ4dGlYajJHeS9abmtRdWk4bmE1enNzbW9BaEdMazdrc3pHbnRZMGEvT0lmTlRJNzM2TU44WktxbmNLd29oMlBkNWxjWEtnMkZPdHZqMFo0ZHV0M1ZoNDFqcDI5VWFmVGR3TmpiOXdaRGhhZGZOSTVLMldEbnZyN3Ivclc4MFB5Tnpic2I3Y2Fra1ppOW1NdGR6R1l2NUhJWHNwM0paR2V5czdPUnZjSDFoZm1yZzllbWg0YnpaZ1RyZTJNU2k2Z0NQQVFCcEYxMmxwMFVWUkw0M2JWaDhwU1BxaSs5TnJDYUNRLzQ3TE5LWnJHOXpSMy9BUCsreDBkK2RPWDRSdGJ2bmYwSmFuMnhOS3plMFMxVUFkYytmZXRwcUhmdXp5dENnUEUwZVZzQ2cyNVVPcEhxc2R2Zm9xaEVxdnBQUUNEVXl1Z1hxQUtxTlZmVk1KTnEzUWRxRXV2cDNXS0NXNVNDV0hBN252YThxb3hFczZGSVVFNzZndjN4MTQvM25RaU4rTksrdmo0bFBKaDRqVlZDUzE2L3hITWl6N0N0ZllteFJkVnowaTJxSHUraGc2UXZPYnBjOXlwWEs2TUxlQjBrUzIxZEo3cGhhR1o2OXl3NldKck41YmszcjEwak11dGxKTjVndjczNCtMemp4bzBySDdmRkhOU2FnNjNYR3FpVjBmOVJ5WnovUG05eWpmWDIxN21qeFdBNG9JakZqWU8yMEJTN3RvelMxWC9vQ1orTUpxc3RZN0VPUU1BQ29Cb3FRUk9BWnRPa3hyMW1hTFpIdjdzenhQQU01ZVNaNFp1L1JxWFBZOU9xT2gzN3ZOcXlzNDl3Q1pVc2YrOTliazhGMG5nWG9PazcxMjkzT3hnSFJUYzVqYmQ2bmMwMFJUdnByaDllZTlCSk45RVVmWkR1UUtWbnNVbEZtU0xQckhNeTlxemE4aEVaajhmSHlVY1duam4wTWlxWmQ2VEdxM3RnYUdrWDU5RGRXL2M3R0pHaERyZ09STy8rK0wzNzNhekVVazYzVTBYNFB3V2hYUkRhaFVMdHYvTkNoeUMwaS9NTkg4R25xQVEyeTBmY2NCR1ZxaTJBYXUvalBsakFUK0VnQUdmZEhIWHp4cExKV0N5WnhIMXRoTFNaSC9nYUFBRC8vd0VBQVAvL1RiYm15UUFBQUFFQUFBQUNDNFhvSEVpNVh3ODg5UUFCQStnQUFBQUEyRjJnaEFBQUFBRGRaaTgyL2pmK3hBaHRBL0VBQVFBREFBSUFBQUFBQUFBQUFRQUFBOWorN3dBQUNKaitOLzQzQ0cwQUFRQUFBQUFBQUFBQUFBQUFBQUFBQUI0Q3NnQlFBTWdBQUFJOS8vb0NSZ0F1QW5zQVRRTDZBRTBDTEFBWkFnOEFLZ0k5QUVFQjB3QWtBajBBSndJR0FDUUJWUUFZQWhZQUlnSTdBRUVCRkFBM0FSNEFRUU5aQUVFQ1BBQkJBaXNBSkFJOUFFRUJqZ0JCQWJzQUZRRi9BQkVDT0FBOEFnc0FEQU1JQUJnQ0FnQU9BUlFBUVFBQS82MEFBQUFzQUN3QVVBQjhBS0FBMGdEa0FSd0JUZ0Y2QWF3QjRBSUdBbTRDa0FLY0FyZ0M2Z01NQXpnRGFBT0lBOFFENmdRTUJDZ0VZQVNNQkpnRXJnQUFBQUVBQUFBZUFKQUFEQUJqQUFjQUFRQUFBQUFBQUFBQUFBQUFBQUFFQUFONG5KeVV6MjRiVlJUR2YwNXMwd3JCQWtWVnVvbnVna1dSNk5oVVNkVTJLNGZVaWtVVUI0OExRa0pJRTgvNGp6S2VHWGttRHVFSldQTVd2RVZYUEFUUGdWaWorWHpzMkFYUkpvcVNmSGZ1K2ZPZGM3NXpnUjMrWnB0SzlTSHdSejB4WEdHdmZtNTRpd2YxRThQYnRPdGJocXM4cWYxcHVFWllteHV1ODNtdFovZ2ozbFovTS95QS9lcFBoaCt5VzIwYi9waG4xUjNEbjJ3Ny9qTDhLZnU4WGVBS3ZPQlh3eFYyeVF4dnNjT1BocmQ1aE1Xc1ZIbEUwM0NOejlnelhHY1A2RE9oSUdaQ3dnakhrQWtqcnBnUmtlTVRNV1BDa0lnUVI0Y1dNWVcrSmdSQ2p0Ri9mZzN3S1pnUktPS1lBa2VNVDB4QXp0Z2kvaUt2bEhObEhPbzBzN3NXQldNQ0x1UnhTVUNDSTJWRVNrTEVwZUlVRkdTOG9rR0RuSUg0WmhUa2VPUk1pUEZJbVRHaVFaYzJwL1FaTXlISDBWYWtrcGxQeXBDQ2F3TGxkMlpSZG1aQVJFSnVySzVJQ01YVGlWOGs3dzZuT0xwa3NsMlBmTG9SNFVzYzM4bTc1SmJLOWlzOC9ibzFacHQ1bDJ3QzV1cG5ySzdFdXJuV0JNZTZMZk8yK0ZhNDRCWHVYdjNaWlBMK0hvWDZYeWp5QlZlYWY2aEpKV0tTNE53dUxYd3B5SGVQY1J6cDNNRlhSNzZuUTU4VHVyeWhyM09MSGoxYW5OR253MnY1ZHVuaCtKb3VaeHpMb3lPOHVHdExNV2Y4Z09NYk9ySXBZMGZXbjhYRUluNG1NM1huNGpoVEhWTXk5YnhrN3FuV1NCWGVmY0xsRHFVYjZzamxNOUFlbFpaTzgwdTBad0VqVTBVbWhsUDFjcW1OM1BvWG1pS21xcVdjN2UxOXVRMXoyNzNsRnQrUWFvZEx0UzQ0bFpOYk1IcmZWTDEzTkhPdEg0K0FrSlFMV1F4SW1kS2c0RWE4endtNElzWnhyTzZkYUVzS1dpdWZNcytOVkJJeEZZTU9pZUxNeVBRM01OMzR4bjJ3b1h0bmIwa28vNUxwNWFxcSsyUng2dFh0ak42b2U4czczN29jclUyZ1lWTk4xOVEwRU5mRXRCOXBwOWI1Ky9MTjlicWxQT1dJbEpqd1h5L0FNenlhN0hQQUlXTmxHT2htYnE5RFV5OUVrNWNjcXZwTElsa05wZWZJSWh6Zzhad0REbmpKODNmNnVHVGlqSXRiY1ZuUDNlS1lJN29jZmxBVkMvc3VSN3hlZmZ2L3JMK0xhVk8xT0o2dVRpL3VQY1VuZDFEckY5cXoyL2V5cDRtVms1aGJ0TnV0T0NOZ1duSnh1K3MxdWNkNC93QUFBUC8vQVFBQS8vLzB0MDlSZUp4aVlHWUFnLy9uR0l3WXNBQUFBQUFBLy84QkFBRC8veThCQWdNQUFBQT0iKTsKfQouZDItMjYzNDM0NzE4MCAudGV4dC1pdGFsaWMgewoJZm9udC1mYW1pbHk6ICJkMi0yNjM0MzQ3MTgwLWZvbnQtaXRhbGljIiwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsKfQpAZm9udC1mYWNlIHsKCWZvbnQtZmFtaWx5OiBkMi0yNjM0MzQ3MTgwLWZvbnQtaXRhbGljOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQTFrQUFvQUFBQUFGUkFBQVJoUkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1cxU1ZlR050WVhBQUFBRlVBQUFBZmdBQUFKd0Nxd0owWjJ4NVpnQUFBZFFBQUFjVUFBQUo0RHFFQnRwb1pXRmtBQUFJNkFBQUFEWUFBQUEyRzdVcjJtaG9aV0VBQUFrZ0FBQUFKQUFBQUNRTGVBakNhRzEwZUFBQUNVUUFBQUI0QUFBQWVEWU1BNzFzYjJOaEFBQUp2QUFBQUQ0QUFBQStKM1lsQm0xaGVIQUFBQW44QUFBQUlBQUFBQ0FBTmdEMmJtRnRaUUFBQ2h3QUFBTW1BQUFJTWdudFZ6TndiM04wQUFBTlJBQUFBQ0FBQUFBZy84WUFNZ0FEQWVFQmtBQUZBQUFDaWdKWS8vRUFTd0tLQWxnQVJBRmVBRElCSXdBQUFnc0ZBd01FQXdrQ0JDQUFBSGNBQUFBREFBQUFBQUFBQUFCQlJFSlBBQUVBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWk1BQUFBQUFlWUNsQUFBQUNBQUEzaWNYTXk3MFFFQkdFRFJzNC8vYWJIV20wUXJobFNtQWFFWmdSRXBRdytNQWtSQ1NsSEpaMlpETnp6QlJTS1RvSkE3b1ZMS3BHYm1sbGJXdHZhT0VkUzJxRzFqNXhBUnIzakdJKzV4aTJ0YzRseWZQa3VrTXJrdjMzNzgrdk92b2REVTBsYnFxSFQxOUEwTWpZeE5USGtEQUFELy93RUFBUC8vNmFzWkVBQUFlSng4bGx0c0cxa1p4Nzl6WmpLVGkzT3h4eDdYVHV5SjU0eG5FbWZzSko1NEptNWlPNGx6dDkxczJqcUV0azQzdlcxYkNrUmJsbTNacmJxMDBsS1F0b1JWaFFSQ0xCSVhMZXBieXdzUzZnb3RFaEZMSllRS1dtNFB3SkpkdFVnc1ZsakJpb3pSak4zRXlRTXYxc2pTZk4vMy81My8venNERFNBQjRNL2dPMEJCRTdTREN6d0FHaGVpS00wd2lKZlNGSVd3cktGd0hDdmRRQnMzdmtsbmovMnQ1enYvVVFWNjVvcy96UDM5MmJ2NHp2WWw5RXJwK25YeitLMnpaei94NUlrWlFiOTlBZ0NBSys4QW9OL2dkV2dDSndESGFvb3NLNFJoRU5JNG9oRDJyd2ZmYnFhYmFkcXZtYjlFWjQ3bEYxMGZYRUJYMTlhR0xnNG5uek1YOGZyMjJzT0hBQWlTbFMwY3hkOENBYUJCbE9YRVVCcHJjZDdMeWpJUjI3REh6Zk5hWERlOERJUEUzSGw5NE5pMS9QRGlBWjNUNVlNbkp5UnhmcVFuMjAya2tpTjc1VkRoem9zelJxUzNXMG1kdVRJNlVrcDBkOGFGcURVckVBQ3MyN055RmdFdHpudmNERU1VTGE3cmlTR1pFSEx6QzE5K3JmakdaNWVXaWk5bm56dXQ0L1V2WFgzeFIyZkhqbjU5dFhUQjBvdnNHai9CNitDekszQmV6ZUEwaW5DNmJoQ1dJcFNsbmFYSXpWS1NwNmZmTHQzTTVadjhEbnJocDJxS3A1bTJ4bm04Ym43NzFpMTBhbnNOUGE5ZTdIdmQvQjQ2OGJwNlFUVnZBNElTQUU3Z2RXQ3Qyc1FJc1lUNndRc1BXdEU3clcrOWdBdlo3UFo5bXprb2xTMzBiMVFHdHpXTlY5eUJwUmthUlF6Q01FcGNONHdkY3ZmSDh1cjhpcWFrbkRTWFhzMDAwbVRaSlM5SXFpZmVKV1VUd3FEamVISDY2Z210SjVReS9iUGgvckZZLys5a01USlhpbWRTMVg1Q1pRdDlpRGZBWXpuSks4b0tZUW1uc2F5bTZ6YkROcXpFMDlnaUtESXN5L09QbFpTVGNtZHVGeFFlUzBlamR2dUVsRTBFQjNyRlJSSnphNDZlVUFwdlBIZzIwSGRzeVdvOUZwa3JhZWxVSlB5K0xBS0NjR1VMM1VObDZOcWp6cllDdzNqY1Q1M3c3c0ladGJDYVVFZjVLQ2NIQnBiMDVNRnVuUmY5QmNlNTB1VGxZci9vRy9CNkp0ZXlFOU4rWjl3ZDNtR0hsVG90dSt6K1A3eURMcXBETHF6WDZCMEs3NmVuZEo5OHNEMjhIeCsydGJ5Rnl1Q0hjSDAveTNsc2lObHhOYVhaRnJRVXZyZDBJWm83TVdDTUJ4ME41cythdXJPUlFOSWJEQ3grbzRJcFZ5OUpyRGd1cms2dEhWWmp6OFM3dExiTU0yR2ZVL01JS054eW9MVnJVQ2dDZ2o0QTlCcCtCRjdiUnhsc0gxT05IOHRxTEtINmlwbVc4WTcyUXlsL3hOWFozT2tNOVRZNlR6bE9GOUdieVliRitTT3RMUWJiSE84N2tqYVhMV2FvSXFFeUtvTUFzZXI1RzlXNURZWWhlOTNITU5RZWVuY0hsNGpVTmRXVG5tL3p5VWY3VTgvMHpaMFlsTk5PaXN1YzR5NG55YUxZeHc5MmtYRXQyUDlIT1pEd2l2bXg4N0s2Vk14KzdwTnh5NC9VeVhNbzFCZjVsU3oyVGk4UGpJeFVNeWdBb0hmeFJpMkR1ejVrN1NBbWhpeVpsSEM3TU5CQjl4NVcwNG5HZEg2VXBtZTdabU5UZU9OSml2U1BEd3VTK1F1a3VnKzA1aUl4ODgxS3hhb0pIK043V0xaY0J3d0VacXU5MU1vV2ZJdzN3R1VwVHd4WmFiYzhXRHUyVDQ4ekx4V3VJZVNrR0JZMTg0Nk0wNGMvdGYwMXRvbHlJVHhDMHp2ejRzZW9ESkhxdk5WeHZiV2htVDFUMXd0WXpiQzBmRVErT05qUXZ4eE82VFNkTHFSb2VzWXpxMDVaZXFiNTJiNHB0RGtuRFJvOXFqWSs3QXk2NnpYdFB1MHlRMlU0VUQvRGZtUld4OTdEc1QzRTdBNzdnZTN1b1QrZ01yUkRvTjdiMVlWUVhhblZ3RDVhV0ZIblYrSUxKOVhjU2lTNnFPbHg2OGR4L3ZqVTVXS3MranMyc1RZNU1aTmRtNXlZdHUrVmp5b2EraENWcXpsbDZ5WnV3OFRlUUN5M1orYzBmeVhEVU9GaXpJNXJYQjdsc0V2NGZ2M09lWWp2anduUldsaUY4MjhnVkZzNjhnZmgwSzZ2WGtabDZLaGo1R1hscDJ4YTZFQSs2dk4wZHZpbHZKQkNteVUxMVRUWm1Ca3hId0txL0xleWhhNmhNaWoxQ1VrTXlZcDFsOVVIME9QbXZYYjhtZThPbG53RDNqRTVrdW9kamlYVk9UVTIzeFhqdEpBOHFIZW5od1lPTzRaNlpLRW5SdnlLNEUvMzlvMkhwV0NQMng4VmdySkxIRldqazJGcjV0SEtGbHJHbDNaMnBXNVlpZGZzbE5mdHloK1BEZEVvT2RPU2w4WTdYM0pjUzFKZFlwdS94ZG5SNzhoRTIvMnR5SlZzZVBYVnRQblk1UW9HbXhzTXR0MnFQVnpaUXY5QW0xYk9udGJlZFQ5WFc1ZDNkNXc1RzVoUnAvTFdCZE56MURGaE9BVU82ZVlqem1kWkJpMmIvbm1pVlRtUEFLQS9vMDFvQmRBb2plTjVyNlpiQmRHTm1ieEVNelR0bExpdkZzeHR0R20rVDNKRW1wT1F6L1JYMzUwR3dEOUhteERhOSs3dUUwV282amNJUzEwZytRNkVFTjNlMmZGS3pva3hvdHY4SGRkbi8zU3l6ZjQzMFA1NXRHbitSWndVeFVrUkJldWUvS2laekVyU0xERS9BbFI1QklCK1hlVkFPRVh6MWxvWkd1c2x0ZThkbGxWL2YveFFwTEdOcGR1NzI0dEhOazR2cUkzT1pycEQ1RllRZnU4U3IzamN2WjVMLy9ybjgzeU01MVh2NVpyZjRDSGFCTXIyR3lXc0ZrNmhUVnNvZ2htY2czdjRIclFBY0RiNzZySzR3Z1dKMXgwZ09PZmxmYUVEdksvN2Z3QUFBUC8vQVFBQS8vODRMZ0UzQUFFQUFBQUJHRkZYWDQ2ZFh3ODg5UUFCQStnQUFBQUEyRjJnekFBQUFBRGRaaTgzL3IzKzNRZ2RBOGtBQWdBREFBSUFBQUFBQUFBQUFRQUFBOWorN3dBQUNFRCt2ZjI4Q0IwRDZBREMvOUVBQUFBQUFBQUFBQUFBQUI0Q2RBQWtBTWdBQUFIKy84c0NKZ0E1QWxBQUl3TEJBQ01CL2dCZEFoa0FKd0lZQUI4QnN3QWxBaGNBSndIaEFDVUJHZ0FyQWhNQUFRSUxBQjhBN1FBZkFQZ0FMQU1mQUI4Q0RRQWZBZ01BSndJWC8vWUJWZ0FmQVpMLy9BRkZBRHdDRUFBNEFjQUFPd0xEQUVZQnJmL1VBTzBBSHdBQUFFY0FBQUF1QUM0QVVnQ0VBS1lBMUFEb0FTQUJXQUdHQWI0QitBSWdBbWdDa2dLZUFzQURBZ01zQTFvRGxBT3lBKzRFSEFSSUJHWUVvQVRNQk5vRThBQUFBQUVBQUFBZUFJd0FEQUJtQUFjQUFRQUFBQUFBQUFBQUFBQUFBQUFFQUFONG5KeVUyMDRiVnhTR1B3ZmJiWHE2cUZCRWJ0QytUS1ZrVEtNUUplSEtsS0NNaW5EcWNYcVFxa3FEUFQ2SThjeklNNWlTSitoMTM2SnZrYXMrUnAraTZuVzFmeStESFVWQklBVDhlL1k2L0d1dGYyMWdrLy9Zb0ZhL0MvemRuQnV1c2QzODJmQWR2bWdlR2Q1Z3YvbVo0VG9QRy84WWJqQm92RFhjNUVHamEvZ1QzdFgvTlB3cFQrcS9HYjdMVnYzUThPYzhybThhL25MRDhhL2hyM2pDdXdXdXdUUCtNRnhqaThMd0hUYjUxZkFHOTdDWXRUcjMyREhjNEd1MkRUZlpCbnBNcUVpWmtESENNV1RDaURObUpKUkVKTXlZTUNSaGdDT2tUVXFscnhteGtHUDB3YTh4RVJVellrVWNVK0ZJaVVpSktSbGJ4TGZ5eW5tdGpFT2RabmJYcG1KTXpJazhUb25KY09TTXlNbElPRldjaW9xQ0Y3Um9VZElYMzRLS2tvQ1NDU2tCT1ROR3RPaHd5QkU5eGt3b2NSd3FrbWNXa1RPazRweFkrWjFaK003MFNjZ29qZFVaR1FQeGRPS1h5RHZrQ0VlSFFyYXJrWS9XSWp6RThhTzhQYmRjdHQ4UzZOZXRNRnZQdTJRVE0xYy9VM1VsMWMyNUpqaldyYy9iNWdmaGloZTRXL1ZubmNuMVBScm9mNlhJSjV4cC9nTk5LaE9URE9lMmFCTkpRWkc3ajJOZjU1QklIZm1Ka0I2djZQQ0duczV0dW5ScGMweVBrSmZ5N2RERjhSMGRqam1RUnlpOHVEdVVZbzc1QmNmM2hMTHhzUlByejJKaUNiOVRtTHBMY1p5cGppbUZldTZaQjZvMVVZVTNuN0Rmb1h4TkhhVjgrdG9qYitrMHYweDdGak15VlJSaU9GVXZsOW9vclg4RFU4UlV0ZmpaWHQzN2JaamI3aTIzK0lKY08relZ1dURrSjdkZ2ROMVVnL2MwYzY2ZmdKZ0JPU2V5NkpNenBVWEZoWGkvSnVhTUZNZUJ1dmRLVzFMUnZ2VHhlUzZra29TcEdJUmtpak9qME4vWWRCTVo5LzZhN3AyOUpRUDVlNmFubDFYZEpvdFRyNjVtOUViZFc5NUYxdVZrWlFJdG0ycStvcWErdUdhbS9VUTd0Y28va20rcDF5M25FYUhpTG5iN1E2L0FEcy9aWlkreHN2UjFNNys4ODYrRXQ5aFRCMDVKWkRXVXBuME5qd25ZSmVBcHUrenluS2Z2OVhMSnhoa2Z0OFpuTlgrYkEvYnBzSGR0TlF2YkR2dThYSXYyOGN4L2llMk82bkU4dWp3OXUvVTBIOXhBdGQ5bzM2N2V6YTRtNTZjeHQyaFgyM0ZNek5SemNWdXJOYm43QlA4REFBRC8vd0VBQVAvL2NxRlJRQUFBQUFNQUFQLzFBQUQvemdBeUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQT0iKTsKfV1dPjwvc3R5bGU+PHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsuc2hhcGUgewogIHNoYXBlLXJlbmRlcmluZzogZ2VvbWV0cmljUHJlY2lzaW9uOwogIHN0cm9rZS1saW5lam9pbjogcm91bmQ7Cn0KLmNvbm5lY3Rpb24gewogIHN0cm9rZS1saW5lY2FwOiByb3VuZDsKICBzdHJva2UtbGluZWpvaW46IHJvdW5kOwp9Ci5ibGVuZCB7CiAgbWl4LWJsZW5kLW1vZGU6IG11bHRpcGx5OwogIG9wYWNpdHk6IDAuNTsKfQoKCQkuZDItMjYzNDM0NzE4MCAuZmlsbC1OMXtmaWxsOiMwQTBGMjU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLU4ye2ZpbGw6IzY3NkM3RTt9CgkJLmQyLTI2MzQzNDcxODAgLmZpbGwtTjN7ZmlsbDojOTQ5OUFCO30KCQkuZDItMjYzNDM0NzE4MCAuZmlsbC1ONHtmaWxsOiNDRkQyREQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLU41e2ZpbGw6I0RFRTFFQjt9CgkJLmQyLTI2MzQzNDcxODAgLmZpbGwtTjZ7ZmlsbDojRUVGMUY4O30KCQkuZDItMjYzNDM0NzE4MCAuZmlsbC1ON3tmaWxsOiNGRkZGRkY7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUIxe2ZpbGw6IzBEMzJCMjt9CgkJLmQyLTI2MzQzNDcxODAgLmZpbGwtQjJ7ZmlsbDojMEQzMkIyO30KCQkuZDItMjYzNDM0NzE4MCAuZmlsbC1CM3tmaWxsOiNFM0U5RkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUI0e2ZpbGw6I0UzRTlGRDt9CgkJLmQyLTI2MzQzNDcxODAgLmZpbGwtQjV7ZmlsbDojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuZmlsbC1CNntmaWxsOiNGN0Y4RkU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUFBMntmaWxsOiM0QTZGRjM7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUFBNHtmaWxsOiNFREYwRkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUFBNXtmaWxsOiNGN0Y4RkU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUFCNHtmaWxsOiNFREYwRkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5maWxsLUFCNXtmaWxsOiNGN0Y4RkU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjF7c3Ryb2tlOiMwQTBGMjU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjJ7c3Ryb2tlOiM2NzZDN0U7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjN7c3Ryb2tlOiM5NDk5QUI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjR7c3Ryb2tlOiNDRkQyREQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjV7c3Ryb2tlOiNERUUxRUI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjZ7c3Ryb2tlOiNFRUYxRjg7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtTjd7c3Ryb2tlOiNGRkZGRkY7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjF7c3Ryb2tlOiMwRDMyQjI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjJ7c3Ryb2tlOiMwRDMyQjI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjN7c3Ryb2tlOiNFM0U5RkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjR7c3Ryb2tlOiNFM0U5RkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjV7c3Ryb2tlOiNFREYwRkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQjZ7c3Ryb2tlOiNGN0Y4RkU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQUEye3N0cm9rZTojNEE2RkYzO30KCQkuZDItMjYzNDM0NzE4MCAuc3Ryb2tlLUFBNHtzdHJva2U6I0VERjBGRDt9CgkJLmQyLTI2MzQzNDcxODAgLnN0cm9rZS1BQTV7c3Ryb2tlOiNGN0Y4RkU7fQoJCS5kMi0yNjM0MzQ3MTgwIC5zdHJva2UtQUI0e3N0cm9rZTojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuc3Ryb2tlLUFCNXtzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTI2MzQzNDcxODAgLmJhY2tncm91bmQtY29sb3ItTjF7YmFja2dyb3VuZC1jb2xvcjojMEEwRjI1O30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1OMntiYWNrZ3JvdW5kLWNvbG9yOiM2NzZDN0U7fQoJCS5kMi0yNjM0MzQ3MTgwIC5iYWNrZ3JvdW5kLWNvbG9yLU4ze2JhY2tncm91bmQtY29sb3I6Izk0OTlBQjt9CgkJLmQyLTI2MzQzNDcxODAgLmJhY2tncm91bmQtY29sb3ItTjR7YmFja2dyb3VuZC1jb2xvcjojQ0ZEMkREO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1ONXtiYWNrZ3JvdW5kLWNvbG9yOiNERUUxRUI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5iYWNrZ3JvdW5kLWNvbG9yLU42e2JhY2tncm91bmQtY29sb3I6I0VFRjFGODt9CgkJLmQyLTI2MzQzNDcxODAgLmJhY2tncm91bmQtY29sb3ItTjd7YmFja2dyb3VuZC1jb2xvcjojRkZGRkZGO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1CMXtiYWNrZ3JvdW5kLWNvbG9yOiMwRDMyQjI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5iYWNrZ3JvdW5kLWNvbG9yLUIye2JhY2tncm91bmQtY29sb3I6IzBEMzJCMjt9CgkJLmQyLTI2MzQzNDcxODAgLmJhY2tncm91bmQtY29sb3ItQjN7YmFja2dyb3VuZC1jb2xvcjojRTNFOUZEO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1CNHtiYWNrZ3JvdW5kLWNvbG9yOiNFM0U5RkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5iYWNrZ3JvdW5kLWNvbG9yLUI1e2JhY2tncm91bmQtY29sb3I6I0VERjBGRDt9CgkJLmQyLTI2MzQzNDcxODAgLmJhY2tncm91bmQtY29sb3ItQjZ7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1BQTJ7YmFja2dyb3VuZC1jb2xvcjojNEE2RkYzO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1BQTR7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1BQTV7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1BQjR7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuYmFja2dyb3VuZC1jb2xvci1BQjV7YmFja2dyb3VuZC1jb2xvcjojRjdGOEZFO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItTjF7Y29sb3I6IzBBMEYyNTt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLU4ye2NvbG9yOiM2NzZDN0U7fQoJCS5kMi0yNjM0MzQ3MTgwIC5jb2xvci1OM3tjb2xvcjojOTQ5OUFCO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItTjR7Y29sb3I6I0NGRDJERDt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLU41e2NvbG9yOiNERUUxRUI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5jb2xvci1ONntjb2xvcjojRUVGMUY4O30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItTjd7Y29sb3I6I0ZGRkZGRjt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLUIxe2NvbG9yOiMwRDMyQjI7fQoJCS5kMi0yNjM0MzQ3MTgwIC5jb2xvci1CMntjb2xvcjojMEQzMkIyO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItQjN7Y29sb3I6I0UzRTlGRDt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLUI0e2NvbG9yOiNFM0U5RkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5jb2xvci1CNXtjb2xvcjojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItQjZ7Y29sb3I6I0Y3RjhGRTt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLUFBMntjb2xvcjojNEE2RkYzO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItQUE0e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0yNjM0MzQ3MTgwIC5jb2xvci1BQTV7Y29sb3I6I0Y3RjhGRTt9CgkJLmQyLTI2MzQzNDcxODAgLmNvbG9yLUFCNHtjb2xvcjojRURGMEZEO30KCQkuZDItMjYzNDM0NzE4MCAuY29sb3ItQUI1e2NvbG9yOiNGN0Y4RkU7fS5hcHBlbmRpeCB0ZXh0LnRleHR7ZmlsbDojMEEwRjI1fS5tZHstLWNvbG9yLWZnLWRlZmF1bHQ6IzBBMEYyNTstLWNvbG9yLWZnLW11dGVkOiM2NzZDN0U7LS1jb2xvci1mZy1zdWJ0bGU6Izk0OTlBQjstLWNvbG9yLWNhbnZhcy1kZWZhdWx0OiNGRkZGRkY7LS1jb2xvci1jYW52YXMtc3VidGxlOiNFRUYxRjg7LS1jb2xvci1ib3JkZXItZGVmYXVsdDojMEQzMkIyOy0tY29sb3ItYm9yZGVyLW11dGVkOiMwRDMyQjI7LS1jb2xvci1uZXV0cmFsLW11dGVkOiNFRUYxRjg7LS1jb2xvci1hY2NlbnQtZmc6IzBEMzJCMjstLWNvbG9yLWFjY2VudC1lbXBoYXNpczojMEQzMkIyOy0tY29sb3ItYXR0ZW50aW9uLXN1YnRsZTojNjc2QzdFOy0tY29sb3ItZGFuZ2VyLWZnOnJlZDt9LnNrZXRjaC1vdmVybGF5LUIxe2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0yNjM0MzQ3MTgwKTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1CMntmaWxsOnVybCgjc3RyZWFrcy1kYXJrZXItZDItMjYzNDM0NzE4MCk7bWl4LWJsZW5kLW1vZGU6bGlnaHRlbn0uc2tldGNoLW92ZXJsYXktQjN7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQjZ7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUEye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmstZDItMjYzNDM0NzE4MCk7bWl4LWJsZW5kLW1vZGU6b3ZlcmxheX0uc2tldGNoLW92ZXJsYXktQUE0e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjM0MzQ3MTgwKTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFBNXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjYzNDM0NzE4MCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQjR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUI1e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjM0MzQ3MTgwKTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LU4xe2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0yNjM0MzQ3MTgwKTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1OMntmaWxsOnVybCgjc3RyZWFrcy1kYXJrLWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOm92ZXJsYXl9LnNrZXRjaC1vdmVybGF5LU4ze2ZpbGw6dXJsKCNzdHJlYWtzLW5vcm1hbC1kMi0yNjM0MzQ3MTgwKTttaXgtYmxlbmQtbW9kZTpjb2xvci1idXJufS5za2V0Y2gtb3ZlcmxheS1ONHtmaWxsOnVybCgjc3RyZWFrcy1ub3JtYWwtZDItMjYzNDM0NzE4MCk7bWl4LWJsZW5kLW1vZGU6Y29sb3ItYnVybn0uc2tldGNoLW92ZXJsYXktTjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjZ7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjd7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2MzQzNDcxODApO21peC1ibGVuZC1tb2RlOmRhcmtlbn0ubGlnaHQtY29kZXtkaXNwbGF5OiBibG9ja30uZGFyay1jb2Rle2Rpc3BsYXk6IG5vbmV9XV0+PC9zdHlsZT48ZyBjbGFzcz0iYUhjPSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iMTIuMDAwMDAwIiB5PSIxMi4wMDAwMDAiIHdpZHRoPSIyNTYuMDAwMDAwIiBoZWlnaHQ9IjgyLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRjdGOEZFIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI2IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSIxNDAuMDAwMDAwIiB5PSI1MC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjE0MC4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+Q2FwdHVyZSBoYXJkd2FyZTwvdHNwYW4+PHRzcGFuIHg9IjE0MC4wMDAwMDAiIGR5PSIxOC41MDAwMDAiPndyaXRlcyB0aHJvdWdoIGEgRE1BIGFkZHJlc3M8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9IllYQnciPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjI4OC4wMDAwMDAiIHk9IjEyLjAwMDAwMCIgd2lkdGg9IjI3My4wMDAwMDAiIGhlaWdodD0iODIuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjQyNC41MDAwMDAiIHk9IjUwLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDI0LjUwMDAwMCIgZHk9IjAuMDAwMDAwIj5UaGUgcHJvZ3JhbSB0aGF0IGNhcHR1cmVzPC90c3Bhbj48dHNwYW4geD0iNDI0LjUwMDAwMCIgZHk9IjE4LjUwMDAwMCI+cmVhZHMgdGhyb3VnaCBpdHMgbW1hcCBhZGRyZXNzPC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJiM1JvWlhJPSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iNTgxLjAwMDAwMCIgeT0iMTIuMDAwMDAwIiB3aWR0aD0iMjczLjAwMDAwMCIgaGVpZ2h0PSI4Mi4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0Y3RjhGRSIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNiIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNzE3LjUwMDAwMCIgeT0iNTAuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSI3MTcuNTAwMDAwIiBkeT0iMC4wMDAwMDAiPkFub3RoZXIgcHJvY2VzcyBvciBkZXZpY2U8L3RzcGFuPjx0c3BhbiB4PSI3MTcuNTAwMDAwIiBkeT0iMTguNTAwMDAwIj5tYXBzIHRoZSBkbWFidWYgZmlsZSBkZXNjcmlwdG9yPC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJjR0ZuWlhNPSBtZW0iPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjMxOS4wMDAwMDAiIHk9IjI2NS4wMDAwMDAiIHdpZHRoPSIyMTEuMDAwMDAwIiBoZWlnaHQ9IjgyLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRThGMUZGIiBjbGFzcz0iIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNDI0LjUwMDAwMCIgeT0iMzAzLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDI0LjUwMDAwMCIgZHk9IjAuMDAwMDAwIj5UaGUgcGFnZXMgb2Ygb25lIGJ1ZmZlcjwvdHNwYW4+PHRzcGFuIHg9IjQyNC41MDAwMDAiIGR5PSIxOC41MDAwMDAiPm9uZSBmcmFtZSBvZiBwaXhlbHM8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9IktHaDNJQzBtWjNRN0lIQmhaMlZ6S1Zzd1hRPT0iPjxtYXJrZXIgaWQ9Im1rLWQyLTI2MzQzNDcxODAtMzQ4ODM3ODEzNCIgbWFya2VyV2lkdGg9IjEwLjAwMDAwMCIgbWFya2VySGVpZ2h0PSIxMi4wMDAwMDAiIHJlZlg9IjcuMDAwMDAwIiByZWZZPSI2LjAwMDAwMCIgdmlld0JveD0iMC4wMDAwMDAgMC4wMDAwMDAgMTAuMDAwMDAwIDEyLjAwMDAwMCIgb3JpZW50PSJhdXRvIiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiPiA8cG9seWdvbiBwb2ludHM9IjAuMDAwMDAwLDAuMDAwMDAwIDEwLjAwMDAwMCw2LjAwMDAwMCAwLjAwMDAwMCwxMi4wMDAwMDAiIGZpbGw9IiMwRDMyQjIiIGNsYXNzPSJjb25uZWN0aW9uIGZpbGwtQjEiIHN0cm9rZS13aWR0aD0iMiIgLz4gPC9tYXJrZXI+PHBhdGggZD0iTSAxNDAuMDAwMDAwIDk2LjAwMDAwMCBMIDE0MC4wMDAwMDAgMjE1LjAwMDAwMCBTIDE0MC4wMDAwMDAgMjI1LjAwMDAwMCAxNTAuMDAwMDAwIDIyNS4wMDAwMDAgTCAzNjEuNzUwMDAwIDIyNS4wMDAwMDAgUyAzNzEuNzUwMDAwIDIyNS4wMDAwMDAgMzcxLjc1MDAwMCAyMzUuMDAwMDAwIEwgMzcxLjc1MDAwMCAyNjEuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yNjM0MzQ3MTgwLTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI2MzQzNDcxODApIiAvPjx0ZXh0IHg9IjIxMC4wMDAwMDAiIHk9IjIzMS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij53cml0ZXM8L3RleHQ+PC9nPjxnIGNsYXNzPSJLR0Z3Y0NBdEptZDBPeUJ3WVdkbGN5bGJNRjA9Ij48cGF0aCBkPSJNIDQyNC41MDAwMDAgOTYuMDAwMDAwIEwgNDI0LjUwMDAwMCAyNjEuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yNjM0MzQ3MTgwLTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI2MzQzNDcxODApIiAvPjx0ZXh0IHg9IjQyNS4wMDAwMDAiIHk9IjE4NS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5yZWFkczwvdGV4dD48L2c+PGcgY2xhc3M9IktHOTBhR1Z5SUMwbVozUTdJSEJoWjJWektWc3dYUT09Ij48cGF0aCBkPSJNIDcxNy41MDAwMDAgOTYuMDAwMDAwIEwgNzE3LjUwMDAwMCAyMTUuMDAwMDAwIFMgNzE3LjUwMDAwMCAyMjUuMDAwMDAwIDcwNy41MDAwMDAgMjI1LjAwMDAwMCBMIDQ4Ny4yNTAwMDAgMjI1LjAwMDAwMCBTIDQ3Ny4yNTAwMDAgMjI1LjAwMDAwMCA0NzcuMjUwMDAwIDIzNS4wMDAwMDAgTCA0NzcuMjUwMDAwIDI2MS4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI2MzQzNDcxODAtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjYzNDM0NzE4MCkiIC8+PHRleHQgeD0iNjQzLjAwMDAwMCIgeT0iMjMxLjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnJlYWRzPC90ZXh0PjwvZz48bWFzayBpZD0iZDItMjYzNDM0NzE4MCIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTEzIiB5PSItMTMiIHdpZHRoPSI4OTIiIGhlaWdodD0iMzg1Ij4KPHJlY3QgeD0iLTEzIiB5PSItMTMiIHdpZHRoPSI4OTIiIGhlaWdodD0iMzg1IiBmaWxsPSJ3aGl0ZSI+PC9yZWN0Pgo8cmVjdCB4PSIxODguMDAwMDAwIiB5PSIyMTUuMDAwMDAwIiB3aWR0aD0iNDQiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjQwNC4wMDAwMDAiIHk9IjE2OS4wMDAwMDAiIHdpZHRoPSI0MiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iNjIyLjAwMDAwMCIgeT0iMjE1LjAwMDAwMCIgd2lkdGg9IjQyIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8L21hc2s+PC9zdmc+PC9zdmc+Cgo8IS0tIGQyLXNvdXJjZS1zaGEyNTY6IDc1MWNiYjg2YTVlMTI1MjNiNzVjZWU4N2VmNGEzODk3OGM2YmU3OTYxNjIxZjg5OTc1YmVlY2FlODRiYTEwZDkgLS0+Cg==" alt="One block of memory with three names. The capture hardware writes through a DMA address, the capturing program reads through its mapping, and another process or device maps the dmabuf file descriptor."><div class="cap">One block of memory with three names. The capture hardware writes through a DMA address, the capturing program reads through its mapping, and another process or device maps the dmabuf file descriptor.</div></div>
+<h3 id="the-memory-outlives-the-queue">The memory outlives the queue</h3>
+<p>The lifetime follows from the reference. A program can free the buffers of the queue with a count of 0, and the exported memory stays. vb2 names this case in its own code:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/media/common/videobuf2/videobuf2-core.c</span><span>lines 843–850</span></div><pre><code>        /*
+         * We already have buffers allocated, so first check if they
+         * are not in use and can be freed.
+         */
+        mutex_lock(&amp;q-&gt;mmap_lock);
+        if (debug &amp;&amp; q-&gt;memory == VB2_MEMORY_MMAP &amp;&amp;
+            __buffers_in_use(q))
+            dprintk(q, 1, &quot;memory in use, orphaning buffers\n&quot;);</code></pre></div>
+<p>The queue forgets the buffers, and the memory lives on for the holders of the descriptors. The lab shows this on the board: it frees the buffers, closes the video node, and still reads a frame.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>Exported buffers keep their memory after the capture ends.</strong></p>
+<ul>
+<li>Symptom: the free memory of the board shrinks with every start of a program, by the size of its buffers.</li>
+<li>Cause: descriptors from <code>VIDIOC_EXPBUF</code> are still open, in this process or in one that received them.</li>
+<li>Fix: close every exported descriptor, in every process that holds one.</li>
+</ul>
+</div>
+<h3 id="a-queue-imports-a-buffer">A queue imports a buffer</h3>
+<p>The other direction is <code>V4L2_MEMORY_DMABUF</code>. The program requests buffers without memory, and it gives a descriptor at each QBUF. The allocator of the queue attaches to the dmabuf and maps it for the receiver. The frame then lands in memory that another party allocated.</p>
+<p>This is how a frame crosses from one device to the next without a copy. A queue of the receiver exports a buffer, and the queue of an encoder or of a converter imports it. What moves between the two is a small integer.</p>
+<details class="more">
+<summary><b>More detail</b>: what dmabuf does not solve</summary>
+
+<ul>
+<li><strong>Ownership in time.</strong> Two holders of a descriptor can use the memory at the same moment. The states of section 2 protect a buffer only inside one queue.</li>
+<li><strong>The format.</strong> A dmabuf is bytes. The width, the height and the pixel format travel in another way, such as the caps of GStreamer in Lesson 18.</li>
+</ul>
+</details>
+
+<h3 id="dmabuf-on-a-raspberry-pi-5">dmabuf on a Raspberry Pi 5</h3>
+<p>The allocator is the same file, so export and import work in the same way. The Raspberry Pi 5 shows the use of it inside the kernel tree. Its ISP has a second driver with queues of its own, and they accept the same two models:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -n &#x27;io_modes&#x27; $RPI/drivers/media/platform/raspberrypi/pisp_be/pisp_be.c</span>
+<span class="out">1450:   q-&gt;io_modes = VB2_MMAP | VB2_DMABUF;</span></code></pre></div>
+<p>A raw frame of the receiver can go to the ISP as a descriptor, and Lesson 10 follows a frame along this path. On the Jetson, the ISP has no driver in the kernel tree, and the buffers above VI belong to NVIDIA's own layer. Lesson 11 covers that layer.</p>
+<h3 id="side-by-side-5" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export of a buffer</td>
+<td><code>VIDIOC_EXPBUF</code>, through vb2</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>Import of a buffer</td>
+<td><code>V4L2_MEMORY_DMABUF</code> at the VI node</td>
+<td><code>V4L2_MEMORY_DMABUF</code> at each node of the receiver</td>
+</tr>
+<tr>
+<td>The next device in the kernel tree</td>
+<td>None, the ISP is not a V4L2 device</td>
+<td>The ISP back end, with queues that import dmabuf</td>
+</tr>
+<tr>
+<td>Buffers above the receiver</td>
+<td>NVIDIA's layer over dmabuf, Lesson 11</td>
+<td>Plain dmabuf descriptors</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="7-the-cost-of-a-copy">7. The cost of a copy</h2>
+<p>Lesson 05 computed the load of a mode on the wires. A buffer lives in memory, where every pixel of the Jetson's raw formats takes two bytes. The traffic of the two IMX477 modes follows from the frame size:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> echo $((1920 * 1080 * 2)) $((1920 * 1080 * 2 * 60))</span>
+<span class="out">4147200 248832000</span>
+<span class="cmd"><span class="prompt">container$</span> echo $((3840 * 2160 * 2)) $((3840 * 2160 * 2 * 30))</span>
+<span class="out">16588800 497664000</span></code></pre></div>
+<p>The 60-frame mode writes 249 megabytes into memory in every second. The 4K mode writes 498 megabytes. This is the work of the receiver alone, before any program reads a pixel.</p>
+<h3 id="one-copy-doubles-the-traffic">One copy doubles the traffic</h3>
+<p>A copy reads every byte of a frame and writes it again. One copy of the 4K stream adds 498 megabytes of reads and 498 megabytes of writes in every second. That is one gigabyte of memory traffic with no new information in it.</p>
+<p>A pipeline with a copy at each step multiplies this. The memory of the SoC is shared: the ISP, the GPU, the encoder and the programs all use the same memory bus. A copy also takes processor time, and a 16.6-megabyte frame pushes other data out of the caches.</p>
+<p>The time is limited too. At 60 frames in a second, a frame has 16.7 ms. A step that needs longer holds its buffer, the queue runs empty, and section 2 named the result.</p>
+<h3 id="the-design-that-follows">The design that follows</h3>
+<p>Both mechanisms of this lesson exist to remove copies. MMAP removes the copy from the kernel to the program. dmabuf removes the copies between devices. With both, a frame is written once by the receiver, and every later stage maps the same pages.</p>
+<p>So the rule for a camera pipeline is to count its copies. Lesson 18 counts them in a GStreamer pipeline.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A pipeline that works at a small mode drops frames at the full mode.</strong></p>
+<ul>
+<li>Symptom: the frame rate falls when the resolution rises, and the processor load is high.</li>
+<li>Cause: a stage copies each frame, and the copy takes longer than one frame time at the larger size.</li>
+<li>Fix: find the stage that copies, and pass the buffer as a dmabuf in its place.</li>
+</ul>
+</div>
+<h3 id="the-same-arithmetic-on-a-raspberry-pi-5">The same arithmetic on a Raspberry Pi 5</h3>
+<p>The receiver of the Raspberry Pi 5 can store raw frames packed, so a pixel takes less than two bytes. Its driver rounds each line up to a multiple of 16 bytes. The full mode of the IMX477 there is 4056×3040 at 12 bits and 10 frames in a second:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> echo $(( (4056 * 12 / 8 + 15) / 16 * 16 )) $(( (4056 * 12 / 8 + 15) / 16 * 16 * 3040 )) $(( (4056 * 12 / 8 + 15) / 16 * 16 * 3040 * 10 ))</span>
+<span class="out">6096 18531840 185318400</span></code></pre></div>
+<p>A line has 6096 bytes, a frame has 18.5 megabytes, and the stream writes 185 megabytes in a second. The rule about copies is the same on both boards.</p>
+<h3 id="side-by-side-6" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bytes of a raw pixel in memory</td>
+<td>2</td>
+<td>1.25 or 1.5 packed, or 2</td>
+</tr>
+<tr>
+<td>A line of the largest IMX477 mode</td>
+<td>7680 bytes</td>
+<td>6096 bytes, a multiple of 16</td>
+</tr>
+<tr>
+<td>Largest IMX477 frame</td>
+<td>16,588,800 bytes</td>
+<td>18,531,840 bytes</td>
+</tr>
+<tr>
+<td>Traffic of that mode</td>
+<td>498 megabytes in a second</td>
+<td>185 megabytes in a second</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="caveats">Caveats</h2>
+<p>Every warning box of the sections, as one table:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A picture with a horizontal break, and no error</td>
+<td>the buffer was read between QBUF and DQBUF</td>
+<td><a href="#2-a-buffer-is-always-in-one-state">2</a></td>
+</tr>
+<tr>
+<td>The capture rate is lower than the sensor rate</td>
+<td>the queue ran empty</td>
+<td><a href="#2-a-buffer-is-always-in-one-state">2</a></td>
+</tr>
+<tr>
+<td>Frames of a new mode have the size of the old one</td>
+<td>the buffers were requested before the format</td>
+<td><a href="#4-what-the-driver-adds-three-hooks">4</a></td>
+</tr>
+<tr>
+<td><code>VIDIOC_REQBUFS</code> returns <code>EINVAL</code> on one board only</td>
+<td>the queue does not list <code>V4L2_MEMORY_USERPTR</code></td>
+<td><a href="#5-three-ways-to-put-memory-under-a-buffer">5</a></td>
+</tr>
+<tr>
+<td>Free memory shrinks with every start of a program</td>
+<td>exported descriptors are still open</td>
+<td><a href="#6-dmabuf-memory-with-a-file-descriptor-as-its-name">6</a></td>
+</tr>
+<tr>
+<td>Frames drop at the full mode only</td>
+<td>a stage copies each frame</td>
+<td><a href="#7-the-cost-of-a-copy">7</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="self-check">Self-check</h2>
+<div class="quiz"><div class="q">A buffer is ACTIVE. Which code may write to its memory, which code may read it, and which call ends this state?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>The capture hardware may write to it. Nothing may read it.</li>
+<li>The driver ends the state with <code>vb2_buffer_done</code>, which makes the buffer DONE or ERROR.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A program requests 2 buffers on a Raspberry Pi 5 and 300 buffers on the Jetson. How many does it get on each board, and which code decides?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>3 on the Raspberry Pi 5, where <code>queue_setup</code> raises the count. 32 on the Jetson, where vb2 limits it before the hook runs.</li>
+<li>The count of <code>VIDIOC_REQBUFS</code> is a request, and the kernel writes the granted count back.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">The offsets of four buffers are 0x0, 0x8000, 0x10000 and 0x18000, and each buffer has four megabytes. What is an offset?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>A ticket for <code>mmap</code>. It holds the index of the buffer, shifted left by 15 bits with pages of 4 KB.</li>
+<li>It is not an address and not a position in a file.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A capture on the Jetson returns the sequence numbers 1 to 8 without a gap. One step between two timestamps is 33.3 ms, and the others are 16.7 ms. What happened?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>One frame was lost, most likely because no buffer was ACTIVE when it arrived.</li>
+<li>The Jetson driver counts the buffers that it returns, so its numbers show no gap. The timestamps show the lost frame.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A program sets a new format and then captures with the buffers that it requested earlier. Why can this fail?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li><code>queue_setup</code> took the size of a buffer from <code>sizeimage</code> at the time of the request.</li>
+<li>A larger format does not fit into those buffers. The program must free them and request new ones.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">Which memory model does a program choose when it only saves frames to a file? Which one when the frames go to an encoder?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>MMAP for the file. The program reads the frames itself, and the kernel allocates the memory.</li>
+<li>DMABUF for the encoder. The frame passes as a descriptor, and no stage copies it.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A program exports four buffers, frees the queue with a count of 0, and exits without closing anything. Is the memory of the buffers lost?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>No. The kernel closes all descriptors of a process when it exits, and the last close releases each dmabuf.</li>
+<li>The memory stays only if another process still holds a descriptor.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">Compute the memory traffic of the 4K mode of the IMX477 with one copy in the pipeline.</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>The receiver writes 3840 × 2160 × 2 × 30 = 497,664,000 bytes in a second.</li>
+<li>The copy reads the same amount and writes it again. The total is 1,492,992,000 bytes in a second, three times the traffic of the receiver.</li>
+</ul>
+</div></details></div>
+
+<h2 id="lab">Lab</h2>
+<p>The lab is the board work. It builds <code>grab.c</code> on the board and runs it. Then it changes the program in three small steps. The first measures the frame rate. The second is a slow reader that makes the queue run empty. The third exports a buffer that outlives its queue.</p>
+<ul>
+<li>Instructions: <a href="lab.html">lab/README.md</a>.</li>
+<li>Lesson 11 — Jetson: the stack, the build and tegracam follows a buffer below the hooks of this lesson, into the capture hardware.</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://docs.kernel.org/userspace-api/media/v4l/mmap.html">Streaming I/O (Memory Mapping) — The Linux Kernel documentation</a> — the calls of section 3, with the rules for the offset and for the release of buffers.</li>
+<li><a href="https://docs.kernel.org/userspace-api/media/v4l/dmabuf.html">Streaming I/O (DMA buffer importing) — The Linux Kernel documentation</a> — the import side of section 6, as a program uses it.</li>
+<li><a href="https://docs.kernel.org/driver-api/media/v4l2-videobuf2.html">V4L2 videobuf2 functions and data structures — The Linux Kernel documentation</a> — the reference for the queue, the hooks and the buffer states.</li>
+<li><a href="https://docs.kernel.org/driver-api/dma-buf.html">Buffer Sharing and Synchronization (dma-buf) — The Linux Kernel documentation</a> — the framework behind the descriptors of section 6.</li>
+</ul>
+</main>
+</body>
+</html>
