@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab 03 Map Graph</title>
+<title>Lab 04 Capture Raw</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* layout: a header band, then one centred reading column that opens with a contents box */
@@ -90,92 +90,42 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 </style>
 </head>
 <body>
-<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Map the graph, capture raw Bayer, sweep the controls</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Capture raw Bayer, view it, sweep the controls</h1><p>Embedded Linux Camera Course · Lab 04</p></div></header>
 <main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
-<p>The sections of the lesson showed the three device nodes, the graph and the raw layout on a toy file. This lab is the board work. You read the real graph of the devkit, capture at both modes, and sweep a control with a short loop. The brightness of the captures is the evidence that the control writes reached the sensor.</p>
+<p>The sections of the lesson showed the mode list, the raw layout and the controls on small files. This lab is the board work. You capture at both modes of the IMX477 and turn the captures into pictures. Then you sweep a control with a short loop. The brightness of the captures then follows the control.</p>
 <h2 id="goal">Goal</h2>
 <ul>
-<li>A filled map of the media graph of the devkit, each entity tied to its driver and its device node.</li>
-<li>The control list of the IMX477, saved as <code>imx477-ctrls.txt</code> for Lesson 08.</li>
+<li>The control list of the IMX477, saved as <code>imx477-ctrls.txt</code> for a later lesson.</li>
 <li>Raw captures at both IMX477 modes with the exact sizes, and their pictures from <code>ffmpeg</code>.</li>
 <li>A sweep of the exposure and of the gain, and a table of brightness against both.</li>
 </ul>
 <h2 id="hardware">Hardware</h2>
 <ul>
 <li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
-<li>The IMX477 on CAM0, enabled since the lab of Lesson 02. <code>ls /dev/video*</code> shows <code>/dev/video0</code> after boot.</li>
+<li>The IMX477 on CAM0, with <code>v4l-utils</code> installed since Lab 03.</li>
 <li>About 200 MB free on the board for the raw files.</li>
 <li>No container. Every step runs on the board, or on the host to copy a file.</li>
 </ul>
 <h2 id="steps">Steps</h2>
-<h3 id="step-1--install-the-tools-5-min">Step 1 — Install the tools (5 min)</h3>
+<h3 id="step-1--install-ffmpeg-5-min">Step 1 — Install ffmpeg (5 min)</h3>
 <ol type="1">
-<li>Install <code>v4l-utils</code>, the package that holds <code>media-ctl</code> and <code>v4l2-ctl</code>, and <code>ffmpeg</code>:</li>
+<li>Install <code>ffmpeg</code>, and make a directory for the files of this lab:</li>
 </ol>
-<div class="codeblock"><pre><code>orin$ sudo apt install v4l-utils ffmpeg
-orin$ mkdir -p ~/lab03 &amp;&amp; cd ~/lab03</code></pre></div>
-<p><code>apt</code> prints its install log. The three tools are then on the path, and the lab works in <code>~/lab03</code>.</p>
-<h3 id="step-2--list-the-nodes-and-map-the-graph-15-min">Step 2 — List the nodes and map the graph (15 min)</h3>
-<ol type="1">
-<li>List the device nodes:</li>
-</ol>
-<div class="codeblock"><pre><code>orin$ ls -l /dev/video* /dev/media* /dev/v4l-subdev*</code></pre></div>
-<p>Expected: one <code>/dev/video0</code>, one <code>/dev/media0</code> and two <code>/dev/v4l-subdev*</code> nodes, all with major 81. If <code>/dev/video0</code> is missing, the overlay is not applied. Return to the lab of Lesson 02.</p>
-<ol start="2" type="1">
-<li>Dump the graph:</li>
-</ol>
-<div class="codeblock"><pre><code>orin$ media-ctl -p -d /dev/media0</code></pre></div>
-<p>Expected: three entities and two links marked <code>[ENABLED]</code>, as in section 3 of the lesson.</p>
-<ol start="3" type="1">
-<li>Fill in this worksheet from the dump. It is the first deliverable of the lab:</li>
-</ol>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Entity name (from the dump)</th>
-<th>Kind</th>
-<th>/dev node</th>
-<th>Its source pad links to</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</tbody>
-</table></div>
-<p>The kinds are: sensor subdev, NVCSI channel subdev, video node. Answer two questions in writing. Which entity does the I2C sensor driver create? Which two entities belong to platform drivers that the overlay of Lesson 02 did not create?</p>
-<ol start="4" type="1">
-<li><p>Draw the three entities with arrows in the direction of the data flow.</p></li>
-<li><p>Record the NVCSI entity name exactly as printed. Section 3 of the lesson expects <code>13e00000.host1x:nvcsi@15a00000-0</code> on kernel 6.8. Your record confirms or corrects that expectation.</p></li>
-</ol>
-<h3 id="step-3--enumerate-the-formats-and-save-the-control-list-10-min">Step 3 — Enumerate the formats and save the control list (10 min)</h3>
+<div class="codeblock"><pre><code>orin$ sudo apt install ffmpeg
+orin$ mkdir -p ~/lab04 &amp;&amp; cd ~/lab04</code></pre></div>
+<p><code>apt</code> prints its install log. Every later command runs in <code>~/lab04</code>.</p>
+<h3 id="step-2--enumerate-the-formats-and-save-the-control-list-10-min">Step 2 — Enumerate the formats and save the control list (10 min)</h3>
 <ol type="1">
 <li>List the formats:</li>
 </ol>
 <div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 --list-formats-ext</code></pre></div>
-<p>Record the fourcc and both pairs of size and rate. Compare them with the two rows of <code>imx477_frmfmt[]</code> in <code>nvidia-oot/drivers/media/i2c/imx477_mode_tbls.h</code> that section 4 quotes.</p>
+<p>Record the fourcc and both pairs of size and rate. Compare them with the two rows of <code>imx477_frmfmt[]</code> in <code>nvidia-oot/drivers/media/i2c/imx477_mode_tbls.h</code> that section 1 quotes.</p>
 <ol start="2" type="1">
-<li>Save the control list to a file. Lesson 08 compares it with the list of virtcam:</li>
+<li>Save the control list to a file. Lesson 09 compares it with the list of virtcam:</li>
 </ol>
 <div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -l | tee imx477-ctrls.txt</code></pre></div>
-<p>Note the min, max and default of <code>gain</code>, <code>exposure</code>, <code>frame_rate</code> and <code>sensor_mode</code>. Compare the max of gain and of exposure with the device-tree values quoted in section 7. Each is higher by exactly one. State the reason in one sentence.</p>
-<h3 id="step-4--capture-five-frames-at-each-mode-15-min">Step 4 — Capture five frames at each mode (15 min)</h3>
+<p>Note the min, max and default of <code>gain</code>, <code>exposure</code>, <code>frame_rate</code> and <code>sensor_mode</code>. Compare the max of gain and of exposure with the device-tree values quoted in section 4. Each is higher by exactly one. State the reason in one sentence.</p>
+<h3 id="step-3--capture-five-frames-at-each-mode-15-min">Step 3 — Capture five frames at each mode (15 min)</h3>
 <ol type="1">
 <li>Select the mode by control first, then stream. The two commands are separate on purpose, because controls persist:</li>
 </ol>
@@ -192,9 +142,9 @@ orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat
         --stream-mmap --stream-count=5 --stream-to=mode1.raw
 orin$ ls -l mode1.raw</code></pre></div>
 <p>Expected: 20,736,000 bytes, that is 1920 × 1080 × 2 × 5. Confirm that the driver accepted the smaller mode: <code>v4l2-ctl -d /dev/video0 -V</code> must report 1920x1080.</p>
-<h3 id="step-5--view-the-bayer-data-15-min">Step 5 — View the Bayer data (15 min)</h3>
+<h3 id="step-4--view-the-bayer-data-15-min">Step 4 — View the Bayer data (15 min)</h3>
 <ol type="1">
-<li>Turn the first frame of each capture into two pictures, a grey one and a color one. The commands are those of section 6:</li>
+<li>Turn the first frame of each capture into two pictures, a grey one and a color one. The commands are those of section 3:</li>
 </ol>
 <div class="codeblock"><pre><code>orin$ M0=&quot;-loglevel error -y -f rawvideo -video_size 3840x2160&quot;
 orin$ M1=&quot;-loglevel error -y -f rawvideo -video_size 1920x1080&quot;
@@ -208,11 +158,11 @@ orin$ ffmpeg $M1 -pixel_format bayer_rggb16le -i mode1.raw -vf &quot;$LEVELS&quo
 <li>Open the four pictures in an image viewer, on the board or after an <code>scp</code> to the host. Record three observations:
 <ul>
 <li>The grey picture is viewable, because <code>gray10le</code> states the true depth. At 800% zoom on a bright, uniform area, you see the 2×2 checkerboard of the mosaic.</li>
-<li>The color picture has real colors and a green cast. State the reason in one sentence (section 6 of the lesson).</li>
+<li>The color picture has real colors and a green cast. State the reason in one sentence (section 3 of the lesson).</li>
 <li>Point the camera at a red object and capture one more frame. In the grey picture the red area shows one bright site and three dim sites in each 2×2 cell.</li>
 </ul></li>
 </ol>
-<h3 id="step-6--sweep-the-exposure-then-the-gain-15-min">Step 6 — Sweep the exposure, then the gain (15 min)</h3>
+<h3 id="step-5--sweep-the-exposure-then-the-gain-15-min">Step 5 — Sweep the exposure, then the gain (15 min)</h3>
 <ol type="1">
 <li>Define one function that prints the mean and the maximum of a frame. Both are in DN out of 1023:</li>
 </ol>
@@ -237,7 +187,7 @@ orin$ ffmpeg $M1 -pixel_format bayer_rggb16le -i mode1.raw -vf &quot;$LEVELS&quo
 <ol start="3" type="1">
 <li>Write the same loop for <code>gain</code>, with the values 16, 64 and 256. Set <code>exposure=4000</code> first. This loop is the writing exercise of the lab.</li>
 </ol>
-<h3 id="step-7--fill-the-brightness-table-10-min">Step 7 — Fill the brightness table (10 min)</h3>
+<h3 id="step-6--fill-the-brightness-table-10-min">Step 6 — Fill the brightness table (10 min)</h3>
 <ol type="1">
 <li>Fill the table from the <code>YAVG</code> and <code>YMAX</code> lines:</li>
 </ol>
@@ -305,18 +255,16 @@ orin$ ffmpeg $M1 -pixel_format bayer_rggb16le -i mode1.raw -vf &quot;$LEVELS&quo
 </ul></li>
 </ol>
 <h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
-<p>This lab has no Raspberry Pi form yet. Three of its steps are different there, and none is verified on a board <em>(verified-on-target: pending)</em>.</p>
+<p>This lab has no Raspberry Pi form yet. Two of its steps are different there, and none is verified on a board <em>(verified-on-target: pending)</em>.</p>
 <ul>
-<li><strong>Step 2.</strong> <code>media-ctl -p</code> prints more entities: the sensor, the CSI-2 receiver, the front end and eight video nodes.</li>
-<li><strong>Step 3.</strong> The mode list comes from the subdevice of the sensor, not from a video node.</li>
-<li><strong>Step 4.</strong> Before a capture, a program enables the link to <code>csi2_ch0</code> and sets a format on each pad. The frames are packed, so the <code>gray10le</code> commands of Step 5 cannot read them as they are.</li>
+<li><strong>Step 2.</strong> The mode list comes from the subdevice of the sensor, not from a video node.</li>
+<li><strong>Step 3.</strong> Before a capture, a program enables the link to <code>csi2_ch0</code> and sets a format on each pad. The frames are packed, so the <code>gray10le</code> commands of Step 4 cannot read them as they are.</li>
 </ul>
 <h2 id="expected-output">Expected output</h2>
 <ol type="1">
-<li><strong>The worksheet.</strong> The three-row entity table with each row tied to its <code>/dev</code> node. The two written answers, the drawing, and the recorded NVCSI entity name.</li>
-<li><strong><code>imx477-ctrls.txt</code></strong>, saved in <code>~/lab03</code> for Lesson 08, with the one-sentence reason for the two <code>+1</code> ranges.</li>
+<li><strong><code>imx477-ctrls.txt</code></strong>, saved in <code>~/lab04</code> for a later lesson, with the one-sentence reason for the two <code>+1</code> ranges.</li>
 <li><strong>The captures.</strong> <code>mode0.raw</code> of 82,944,000 bytes and <code>mode1.raw</code> of 20,736,000 bytes, with their two pictures each and the three observations.</li>
-<li><strong>The two loops</strong> of Step 6, saved in a text file.</li>
+<li><strong>The two loops</strong> of Step 5, saved in a text file.</li>
 <li><strong>The brightness table</strong> with six measured means and maxima, and the three answers.</li>
 </ol>
 <p>A typical form of the result. The absolute numbers depend on the scene and the lighting:</p>
@@ -334,14 +282,9 @@ exposure 16000 -&gt; YAVG 953.1, YMAX 1023   &lt;- flattening: samples clip at 1
 </thead>
 <tbody>
 <tr>
-<td>No <code>/dev/video0</code> at all</td>
-<td>The overlay of Lesson 02 is not applied, or the wrong extlinux entry booted</td>
-<td>Repeat the verification of the lab of Lesson 02: <code>extlinux.conf</code>, reboot, <code>dmesg | grep imx477</code></td>
-</tr>
-<tr>
 <td><code>select timeout</code> during <code>--stream-mmap</code></td>
 <td>No pixels reach VI: mode and format do not match, an Argus session hangs, or a CSI problem</td>
-<td>Run the two <code>-c</code> commands again. Run <code>sudo systemctl restart nvargus-daemon</code>. Check <code>dmesg | tail -30</code>. Lesson 14 lists further causes</td>
+<td>Run the two <code>-c</code> commands again. Run <code>sudo systemctl restart nvargus-daemon</code>. Check <code>dmesg | tail -30</code>. Lesson 20 lists further causes</td>
 </tr>
 <tr>
 <td>The capture file is four times the expected size</td>

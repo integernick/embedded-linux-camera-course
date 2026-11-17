@@ -121,7 +121,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="nvenc">NVENC</h3>
 <ul>
 <li>NVIDIA's hardware video encoder block. <strong>The Orin Nano does not have one.</strong></li>
-<li>Encoding on this platform is CPU software encoding (x264enc), per NVIDIA's official "Software Encode in Orin Nano" statement. Lesson 13 depends on that fact.</li>
+<li>Encoding on this platform is CPU software encoding (x264enc), per NVIDIA's official "Software Encode in Orin Nano" statement. Lesson 19 depends on that fact.</li>
 </ul>
 <h3 id="host1x--syncpoint">host1x / syncpoint</h3>
 <ul>
@@ -138,7 +138,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="mipi-csi-2">MIPI CSI-2</h3>
 <p><a id="mipi-csi-2-d-phy"></a></p>
 <ul>
-<li>The camera serial interface protocol: packets that carry pixel data over D-PHY lanes. Lesson 06 covers it.</li>
+<li>The camera serial interface protocol: packets that carry pixel data over D-PHY lanes. Lesson 05 covers it.</li>
 </ul>
 <h3 id="d-phy">D-PHY</h3>
 <ul>
@@ -160,7 +160,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="gmsl">GMSL</h3>
 <ul>
 <li>Maxim/ADI Gigabit Multimedia Serial Link: a coax/twisted-pair SerDes family for cameras that are meters away from the SoC.</li>
-<li>This course covers SerDes as vendor-neutral theory in Lesson 09, from public ADI datasheets. The practical track uses direct-attached CSI sensors.</li>
+<li>This course covers SerDes as vendor-neutral theory in Lesson 13, from public ADI datasheets. The practical track uses direct-attached CSI sensors.</li>
 </ul>
 <h3 id="serializer">serializer</h3>
 <p><a id="serializer"></a></p>
@@ -177,7 +177,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="slvs-ec">SLVS-EC</h3>
 <ul>
 <li>Sony's high-speed sensor interface: 8b/10b-coded lanes with embedded clock, no LP states, link training.</li>
-<li>Orin has no SLVS-EC receiver, so a bridge to MIPI is mandatory. Lesson 15 is based on that fact.</li>
+<li>Orin has no SLVS-EC receiver, so a bridge to MIPI is mandatory. Lesson 22 is based on that fact.</li>
 </ul>
 <h3 id="bayer--rggb--rg10--rg12">Bayer / RGGB / RG10 / RG12</h3>
 <p><a id="bayer"></a></p>
@@ -220,7 +220,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="frmfmt-table">frmfmt table</h3>
 <ul>
 <li>The driver-side mode list (<code>camera_common_frmfmt[]</code>). It feeds <strong>V4L2 enumeration only</strong> (<code>v4l2-ctl --list-formats-ext</code>).</li>
-<li>virtcam's table has 2 entries, deliberately different from the 3 modes of its DT. See <a href="#dt-mode-nodes">DT mode nodes</a> and Lesson 08.</li>
+<li>virtcam's table has 2 entries, deliberately different from the 3 modes of its DT. See <a href="#dt-mode-nodes">DT mode nodes</a> and Lesson 09.</li>
 </ul>
 <h3 id="dt-mode-nodes">DT mode nodes</h3>
 <ul>
@@ -235,7 +235,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="videobuf2-vb2">videobuf2 (vb2)</h3>
 <p><a id="videobuf2"></a></p>
 <ul>
-<li>The kernel's capture-buffer framework: queues, buffer states, and the REQBUFS→QBUF→STREAMON→DQBUF call sequence that Lesson 10's <code>capture.c</code> performs by hand.</li>
+<li>The kernel's capture-buffer framework: queues, buffer states, and the REQBUFS→QBUF→STREAMON→DQBUF call sequence that Lesson 06's <code>capture.c</code> performs by hand.</li>
 </ul>
 <h3 id="dmabuf">dmabuf</h3>
 <ul>
@@ -277,7 +277,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <ul>
 <li>The module identity string of <code>tegra-camera-platform</code>, which Argus uses to select ISP tuning. virtcam's is <code>jakku_front_VIRTCAM</code>.</li>
 <li>A badge that does not match degrades color.</li>
-<li>On JetPack 7.2.1 the badge is the module name that nvargus matches against every <a href="#nito">nito</a> file it finds. Every badge therefore needs its own tuning file (Lessons 17 and 18).</li>
+<li>On JetPack 7.2.1 the badge is the module name that nvargus matches against every <a href="#nito">nito</a> file it finds. Every badge therefore needs its own tuning file (Lessons 17 and 17).</li>
 </ul>
 <h3 id="nito">nito</h3>
 <ul>
@@ -286,19 +286,19 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <li>On JetPack 7.2.1 (Jetson Linux r39.2.1) nvargus <strong>requires</strong> one per badge and serves nothing without it.</li>
 <li>A nito holds one knobset per sensor mode, eight at most. Its module name must equal the badge as the daemon prints it.</li>
 <li>The converter (<code>nvcfg2nito</code>) was partner-only until NVIDIA published it in the JetPack 7.2.1 Customer IQ Migration Tools. A camera hotfix in the same package restores the daemon's text-configuration mode.</li>
-<li>Lesson 17 produces an untuned nito, and Lesson 18 a tuned one.</li>
+<li>Lesson 17 produces an untuned nito, and Lesson 17 a tuned one.</li>
 </ul>
 <h3 id="personality">personality</h3>
 <ul>
 <li>The course's word for everything that distinguishes one camera from another.</li>
-<li>It covers the sensor and lens, and the mode table and control table in the device tree. It also covers the nito that tunes the ISP for that sensor behind that lens. Lesson 18 covers it.</li>
+<li>It covers the sensor and lens, and the mode table and control table in the device tree. It also covers the nito that tunes the ISP for that sensor behind that lens. Lesson 17 covers it.</li>
 </ul>
 <h3 id="conftesth">conftest.h</h3>
 <ul>
 <li>NVIDIA's generated feature-test header (<code>&lt;nvidia/conftest.h&gt;</code>).</li>
 <li>At OOT-build time, <code>conftest.sh</code> compile-tests the real kernel headers and emits <code>NV_*</code> macros, for example for one-arg probe and void remove.</li>
 <li>With these macros one driver source builds on kernel 5.15 and on 6.8.</li>
-<li>The generated cache is at <code>out/nvidia-conftest/</code> in a built tree, and the tegracam headers include it transitively. Lesson 16 covers the mechanism.</li>
+<li>The generated cache is at <code>out/nvidia-conftest/</code> in a built tree, and the tegracam headers include it transitively. Lesson 21 covers the mechanism.</li>
 </ul>
 <h3 id="3a">3A</h3>
 <ul>
@@ -324,7 +324,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h3 id="x264enc">x264enc</h3>
 <ul>
 <li>CPU H.264 encoder. It is the only H.264 option on Orin Nano, which has no NVENC.</li>
-<li>The course pipelines use it with <code>tune=zerolatency speed-preset=ultrafast</code>. At a constrained bitrate that setting produces the block artifacts that Lesson 13 examines.</li>
+<li>The course pipelines use it with <code>tune=zerolatency speed-preset=ultrafast</code>. At a constrained bitrate that setting produces the block artifacts that Lesson 19 examines.</li>
 </ul>
 <h3 id="nvv4l2h264enc">nvv4l2h264enc</h3>
 <ul>

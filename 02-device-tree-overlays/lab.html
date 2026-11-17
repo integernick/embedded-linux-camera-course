@@ -332,7 +332,7 @@ orin$ sudo cp ~/course-deploy/practice-mux-overlay.dtbo ~/course-deploy/practice
 <li>Remove the two <code>/boot/course/practice-*</code> entries from the <code>OVERLAYS</code> line, keep the IMX477, and reboot. Confirm that <code>mux@70</code> is gone and that <code>/dev/video0</code> remains.</li>
 </ol>
 <h3 id="step-6--prepare-the-virtcam-entry-for-later-lessons-10-min">Step 6 — Prepare the virtcam entry for later lessons (10 min)</h3>
-<p>virtcam is the course's own sensor driver. The lesson's section <a href="index.html#the-two-cameras">The two cameras</a> states what it is and why the course uses it. This step prepares only its overlay. Lesson 08 loads the driver.</p>
+<p>virtcam is the course's own sensor driver. The lesson's section <a href="index.html#the-two-cameras">The two cameras</a> states what it is and why the course uses it. This step prepares only its overlay. Lesson 09 loads the driver.</p>
 <ol type="1">
 <li>Compile the overlay with the same two stages and check it against the base DTB. Then read back the sensor node and the badge:</li>
 </ol>

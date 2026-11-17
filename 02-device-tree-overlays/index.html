@@ -123,14 +123,14 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <h2 id="the-two-cameras">The two cameras</h2>
 <p>The sections read the overlays of two cameras. Both use the same connector and the same blocks of the SoC, so their overlays have the same structure.</p>
 <p><strong>The stock camera</strong> is the Raspberry Pi High Quality Camera, which carries a Sony IMX477 sensor. NVIDIA ships a driver for it, <code>nv_imx477</code>, and a set of overlays. Both are part of every JetPack install. This camera is the reference of the course. It works on a fresh install, so a statement about a working camera can always be checked against it.</p>
-<p><strong><a href="../glossary.html#virtcam">virtcam</a></strong> is the course's own sensor driver, in the <span class="fileref" title="../../virtcam/README.md"><code>virtcam/</code></span> directory. To the kernel it is a normal camera sensor. It has a device-tree node, it registers with NVIDIA's camera framework, and it produces <code>/dev/video0</code>. It differs from a normal driver in one respect: it never writes a register of the sensor. A userspace program, <a href="../glossary.html#picam-conf">picam-conf</a>, sends the register sequences over I2C instead. Lesson 09 covers that program.</p>
+<p><strong><a href="../glossary.html#virtcam">virtcam</a></strong> is the course's own sensor driver, in the <span class="fileref" title="../../virtcam/README.md"><code>virtcam/</code></span> directory. To the kernel it is a normal camera sensor. It has a device-tree node, it registers with NVIDIA's camera framework, and it produces <code>/dev/video0</code>. It differs from a normal driver in one respect: it never writes a register of the sensor. A userspace program, <a href="../glossary.html#picam-conf">picam-conf</a>, sends the register sequences over I2C instead. Lesson 13 covers that program.</p>
 <p>A driver that does not program its sensor has three uses in this course:</p>
 <ul>
-<li><strong>It is small.</strong> In a production sensor driver, most lines are register tables and exposure arithmetic. <code>virtcam.c</code> has fewer than 400 lines. What remains is what NVIDIA's stack demands from every sensor driver, and Lesson 08 reads all of it.</li>
+<li><strong>It is small.</strong> In a production sensor driver, most lines are register tables and exposure arithmetic. <code>virtcam.c</code> has fewer than 400 lines. What remains is what NVIDIA's stack demands from every sensor driver, and Lesson 09 reads all of it.</li>
 <li><strong>Products use the same split.</strong> Some sensors are behind a serializer and deserializer pair, an FPGA, or a bridge chip. Register settings also change often during bring-up. A userspace configurator handles both cases without a kernel rebuild.</li>
 <li><strong>It separates two kinds of fault.</strong> With virtcam, a symptom belongs to one of two sides: the description that the kernel holds, or the registers that the sensor holds.</li>
 </ul>
-<p>This lesson needs only the overlay of virtcam. The lab compiles it and prepares its boot entry. Lesson 08 loads the driver.</p>
+<p>This lesson needs only the overlay of virtcam. The lab compiles it and prepares its boot entry. Lesson 09 loads the driver.</p>
 <p>The Raspberry Pi kernel has its own overlay for the stock camera, <code>imx477-overlay.dts</code>, and Lesson 01 read its driver. The last part of each section reads that overlay.</p>
 <h2 id="sections">Sections</h2>
 <div class="table-wrap"><table>
@@ -1065,7 +1065,7 @@ dtoverlay=imx477</code></pre></div>
 <p>The two links are of different kinds.</p>
 <p><strong>Link 1 is a cable.</strong> The sensor endpoint and the first NVCSI endpoint describe the MIPI CSI-2 lanes. The lanes run from the camera module through the ribbon cable and the CAM0 connector to pins of the SoC.</p>
 <p>So the properties of these two endpoints describe the board. <code>bus-width = &lt;2&gt;</code> is the number of data lanes. <code>port-index = &lt;1&gt;</code> is the CSI port of the SoC that the CAM0 connector is wired to.</p>
-<p><strong>Link 2 is a connection inside the SoC.</strong> NVCSI and VI are two blocks of the same chip, each with its own registers, clock and power switch. The pixel words leave NVCSI on dedicated on-chip wiring into VI: a one-way stream with line and frame markers, and no addresses. NVCSI has no DMA engine, so it cannot write memory. VI is the first block that can, and it writes the stream into the buffers of Lesson 10. No pin, trace or connector corresponds to this link.</p>
+<p><strong>Link 2 is a connection inside the SoC.</strong> NVCSI and VI are two blocks of the same chip, each with its own registers, clock and power switch. The pixel words leave NVCSI on dedicated on-chip wiring into VI: a one-way stream with line and frame markers, and no addresses. NVCSI has no DMA engine, so it cannot write memory. VI is the first block that can, and it writes the stream into the buffers of Lesson 06. No pin, trace or connector corresponds to this link.</p>
 <details class="more">
 <summary><b>More detail</b>: the switch between NVCSI and VI</summary>
 
@@ -1080,7 +1080,7 @@ dtoverlay=imx477</code></pre></div>
 <li>NVCSI is the peripheral, a VI channel is the DMA channel, and <code>port-index</code> is the mux setting.</li>
 <li>On Orin the CPU does not program the two blocks itself. The VI driver sends the setup of a capture channel, with the stream id and the virtual channel, to the camera firmware on the <a href="../glossary.html#rtcpu--rce">RTCPU</a>.</li>
 <li>The firmware programs NVCSI and VI from that setup. Appendix B covers the firmware.</li>
-<li>One port can carry several streams, separated by the virtual channel field of the CSI-2 packets. The <code>vc_id</code> property of a mode node selects one. Lesson 09 uses it behind a deserializer.</li>
+<li>One port can carry several streams, separated by the virtual channel field of the CSI-2 packets. The <code>vc_id</code> property of a mode node selects one. Lesson 13 uses it behind a deserializer.</li>
 <li>The endpoint on the NVCSI side of this link, <code>rbpcv3_imx477_csi_out0</code>, carries only <code>remote-endpoint</code>. The three other endpoints carry <code>port-index</code> and <code>bus-width</code>, because NVCSI and VI each read the port number from their own node.</li>
 </ul>
 </details>
@@ -1163,7 +1163,7 @@ dtoverlay=imx477</code></pre></div>
 <details class="more">
 <summary><b>More detail</b>: the same numbers on three endpoints, and the other connector</summary>
 
-<p>Three of the four endpoints carry <code>port-index = &lt;1&gt;</code> and <code>bus-width = &lt;2&gt;</code>: both ends of the cable, and the VI end of the internal link. The <code>-C</code> file has the same structure with <code>port-index = &lt;2&gt;</code>, because CAM1 is wired to another CSI port. Lesson 06 — MIPI CSI-2: protocol and debugging covers the meaning of those numbers.</p>
+<p>Three of the four endpoints carry <code>port-index = &lt;1&gt;</code> and <code>bus-width = &lt;2&gt;</code>: both ends of the cable, and the VI end of the internal link. The <code>-C</code> file has the same structure with <code>port-index = &lt;2&gt;</code>, because CAM1 is wired to another CSI port. Lesson 05 — MIPI CSI-2 covers the meaning of those numbers.</p>
 </details>
 
 <div class="callout warning">
@@ -1179,7 +1179,7 @@ dtoverlay=imx477</code></pre></div>
 </div>
 <h3 id="the-module-catalogue-for-argus">The module catalogue for Argus</h3>
 <p>The fourth place that the fragment writes is <code>tegra-camera-platform</code>. The base tree has no such node, so the overlay creates it. It lists the camera modules for <a href="../glossary.html#argus">Argus</a>, NVIDIA's camera service.</p>
-<p>Each module has a name, the <a href="../glossary.html#badge">badge</a>, and the path of its sensor node. The badge of the stock camera is <code>jakku_front_RBPCV3</code>. Lesson 07 — The tegracam framework via nv_imx477.c covers that node.</p>
+<p>Each module has a name, the <a href="../glossary.html#badge">badge</a>, and the path of its sensor node. The badge of the stock camera is <code>jakku_front_RBPCV3</code>. Lesson 11 — Jetson: the stack, the build and tegracam covers that node.</p>
 <h3 id="two-devices-and-one-link-on-a-raspberry-pi-5">Two devices and one link on a Raspberry Pi 5</h3>
 <p>The Raspberry Pi overlay describes the same cable with one endpoint pair. One fragment holds the receiver side:</p>
 <div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">arch/arm/boot/dts/overlays/imx477_378-overlay.dtsi</span><span>lines 54–67</span></div><pre><code>    csi_frag: fragment@101 {
@@ -1197,7 +1197,7 @@ dtoverlay=imx477</code></pre></div>
             };
         };</code></pre></div>
 <p><code>csi1</code> is the camera front end of RP1 for one connector (<code>raspberrypi,rp1-cfe</code>). That one device receives the CSI-2 lanes and also writes the frames to memory, so no second link exists.</p>
-<p>The endpoint uses standard properties: <code>data-lanes = &lt;1 2&gt;</code> lists the two data lanes. The endpoint of the sensor also has <code>link-frequencies</code>, the rate of the link in Hz. On the Jetson, the rate is in the mode nodes of the sensor, which Lesson 07 covers.</p>
+<p>The endpoint uses standard properties: <code>data-lanes = &lt;1 2&gt;</code> lists the two data lanes. The endpoint of the sensor also has <code>link-frequencies</code>, the rate of the link in Hz. On the Jetson, the rate is in the mode nodes of the sensor, which Lesson 11 covers.</p>
 <h3 id="side-by-side-5" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
 <thead>
 <tr>
@@ -1314,7 +1314,7 @@ dtoverlay=imx477</code></pre></div>
 <details class="more">
 <summary><b>More detail</b>: which node carries the reset property</summary>
 
-<p>No device-tree rule states which node carries a reset property. Instead, the driver decides: <code>nv_imx477</code> reads <code>reset-gpios</code> from the sensor node (Lesson 07).</p>
+<p>No device-tree rule states which node carries a reset property. Instead, the driver decides: <code>nv_imx477</code> reads <code>reset-gpios</code> from the sensor node (Lesson 11).</p>
 </details>
 
 <h3 id="the-clock">The clock</h3>
@@ -1329,7 +1329,7 @@ dtoverlay=imx477</code></pre></div>
                             mclk = &quot;extperiph1&quot;;
                             clock-frequency = &lt;24000000&gt;;</code></pre></div>
 <p>The provider is <a href="../glossary.html#bpmp">BPMP</a>, the boot and power management processor. On Tegra, a request to enable a clock or to set its rate is a message to BPMP firmware, not a register write. <code>TEGRA234_CLK_EXTPERIPH1</code> is the clock that the SoC routes to the camera connector as the master clock of a sensor. <code>mclk = "extperiph1"</code> then names the entry of <code>clock-names</code> that the driver uses for it.</p>
-<p>virtcam enables that clock at probe time and never disables it. That is a deliberate defect, and Lesson 08 covers it.</p>
+<p>virtcam enables that clock at probe time and never disables it. That is a deliberate defect, and Lesson 09 covers it.</p>
 <details class="more">
 <summary><b>More detail</b>: supplies, and the clock in the compiled blob</summary>
 
@@ -1546,7 +1546,7 @@ dtoverlay=imx477</code></pre></div>
 <span class="out">702</span></code></pre></div>
 <ul>
 <li>The cam node is under the mux that the first overlay created. The table grew from 699 to 702 entries: two labels from the mux overlay and one from the cam overlay.</li>
-<li><code>fdtoverlay</code> also works against a base DTB that no board has booted yet. Lesson 16 — Porting the stack to JetPack 7.2.1 (Jetson Linux r39.2.1) uses it to check overlays without a board.</li>
+<li><code>fdtoverlay</code> also works against a base DTB that no board has booted yet. Lesson 21 — One driver, three kernels: guards, DKMS and packaging uses it to check overlays without a board.</li>
 </ul>
 </details>
 
@@ -1802,7 +1802,7 @@ dtoverlay=imx477,cam0</code></pre></div>
 <p>The lab is the board work. It enables the stock IMX477 on CAM0 through <code>extlinux.conf</code> and verifies it in the live tree and on the I2C bus. It then asks for two practice overlays, written from a skeleton, and applies them on the board in the correct order. The last step prepares the boot entry of the virtcam overlay, which later lessons boot.</p>
 <ul>
 <li>Instructions: <a href="lab.html">lab/README.md</a>.</li>
-<li>Lesson 03 — V4L2 from userspace uses the <code>/dev/video0</code> that this lab creates.</li>
+<li>Lesson 03 — What a camera is made of: drivers, nodes and the media graph uses the <code>/dev/video0</code> that this lab creates.</li>
 </ul>
 <h2 id="references">References</h2>
 <ul>

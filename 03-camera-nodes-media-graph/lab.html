@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 03 Map Graph</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Map the graph of one camera</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<p>The sections of the lesson showed the three kinds of device node and the graph. This lab is the board work. You list the nodes of the camera of the devkit and read its real graph. Then you tie each entity to its driver.</p>
+<h2 id="goal">Goal</h2>
+<ul>
+<li>A filled map of the media graph of the devkit, each entity tied to its driver and its device node.</li>
+<li>The recorded name of the NVCSI entity on your board.</li>
+</ul>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
+<li>The IMX477 on CAM0, enabled since the lab of Lesson 02. <code>ls /dev/video*</code> shows <code>/dev/video0</code> after boot.</li>
+<li>No container. Every step runs on the board.</li>
+</ul>
+<h2 id="steps">Steps</h2>
+<h3 id="step-1--install-the-tool-5-min">Step 1 — Install the tool (5 min)</h3>
+<ol type="1">
+<li>Install <code>v4l-utils</code>, the package that holds <code>media-ctl</code> and <code>v4l2-ctl</code>:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ sudo apt install v4l-utils</code></pre></div>
+<p><code>apt</code> prints its install log. Both tools are then on the path.</p>
+<h3 id="step-2--list-the-nodes-and-map-the-graph-15-min">Step 2 — List the nodes and map the graph (15 min)</h3>
+<ol type="1">
+<li>List the device nodes:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ ls -l /dev/video* /dev/media* /dev/v4l-subdev*</code></pre></div>
+<p>Expected: one <code>/dev/video0</code>, one <code>/dev/media0</code> and two <code>/dev/v4l-subdev*</code> nodes, all with major 81. If <code>/dev/video0</code> is missing, the overlay is not applied. Return to the lab of Lesson 02.</p>
+<ol start="2" type="1">
+<li>Dump the graph:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ media-ctl -p -d /dev/media0</code></pre></div>
+<p>Expected: three entities and two links marked <code>[ENABLED]</code>, as in section 3 of the lesson.</p>
+<ol start="3" type="1">
+<li>Fill in this worksheet from the dump. It is the first deliverable of the lab:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity name (from the dump)</th>
+<th>Kind</th>
+<th>/dev node</th>
+<th>Its source pad links to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>The kinds are: sensor subdev, NVCSI channel subdev, video node. Answer two questions in writing. Which entity does the I2C sensor driver create? Which two entities belong to platform drivers that the overlay of Lesson 02 did not create?</p>
+<ol start="4" type="1">
+<li><p>Draw the three entities with arrows in the direction of the data flow.</p></li>
+<li><p>Record the NVCSI entity name exactly as printed. Section 3 of the lesson expects <code>13e00000.host1x:nvcsi@15a00000-0</code> on kernel 6.8. Your record confirms or corrects that expectation.</p></li>
+</ol>
+<h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
+<p>This lab has no Raspberry Pi form yet, and nothing of it is verified on a board <em>(verified-on-target: pending)</em>.</p>
+<ul>
+<li><strong>Step 2.</strong> <code>media-ctl -p</code> prints more entities: the sensor, the CSI-2 receiver, the front end and eight video nodes. Only the link from the sensor is marked <code>[ENABLED]</code>.</li>
+</ul>
+<h2 id="expected-output">Expected output</h2>
+<ol type="1">
+<li><strong>The worksheet.</strong> The three-row entity table with each row tied to its <code>/dev</code> node.</li>
+<li><strong>The two written answers and the drawing</strong> of Step 2.</li>
+<li><strong>The recorded name</strong> of the NVCSI entity.</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No <code>/dev/video0</code> at all</td>
+<td>The overlay of Lesson 02 is not applied, or the wrong extlinux entry booted</td>
+<td>Repeat the verification of the lab of Lesson 02: <code>extlinux.conf</code>, reboot, <code>dmesg | grep imx477</code></td>
+</tr>
+<tr>
+<td><code>Permission denied</code> on <code>/dev/video0</code></td>
+<td>The user is not in the <code>video</code> group</td>
+<td>Use <code>sudo</code> for the commands, or run <code>sudo usermod -aG video $USER</code> and log in again</td>
+</tr>
+<tr>
+<td><code>media-ctl: command not found</code></td>
+<td><code>v4l-utils</code> is not installed</td>
+<td>Repeat Step 1</td>
+</tr>
+</tbody>
+</table></div>
+</main>
+</body>
+</html>

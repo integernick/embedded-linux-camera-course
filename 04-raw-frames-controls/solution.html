@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lab 03 Solution Walkthrough</title>
+<title>Lab 04 Solution Walkthrough</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* layout: a header band, then one centred reading column that opens with a contents box */
@@ -90,68 +90,29 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 </style>
 </head>
 <body>
-<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Solution walkthrough</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
-<main><nav class="toc"><b>Contents</b><ul><li><a href="#step-2--the-worksheet-filled">Step 2 — the worksheet, filled</a></li><li><a href="#step-3--formats-and-the-saved-control-list">Step 3 — formats and the saved control list</a></li><li><a href="#step-4--the-captures">Step 4 — the captures</a></li><li><a href="#step-5--what-the-pictures-must-show">Step 5 — what the pictures must show</a></li><li><a href="#step-6--the-two-loops">Step 6 — the two loops</a></li><li><a href="#step-7--the-sweep-worked">Step 7 — the sweep, worked</a></li><li><a href="#the-older-viewer-bayer_viewpy">The older viewer: bayer_view.py</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
-<p><a href="lab.html">Lab 03</a> · <a href="index.html">Lesson 03</a></p>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Solution walkthrough</h1><p>Embedded Linux Camera Course · Lab 04</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#step-2--formats-and-the-saved-control-list">Step 2 — formats and the saved control list</a></li><li><a href="#step-2--the-captures">Step 2 — the captures</a></li><li><a href="#step-3--what-the-pictures-must-show">Step 3 — what the pictures must show</a></li><li><a href="#step-4--the-two-loops">Step 4 — the two loops</a></li><li><a href="#step-5--the-sweep-worked">Step 5 — the sweep, worked</a></li><li><a href="#the-older-viewer-bayer_viewpy">The older viewer: bayer_view.py</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
+<p><a href="lab.html">Lab 04</a> · <a href="index.html">Lesson 04</a></p>
 <ul>
 <li>The container side of this lesson is the three raw files of <code>examples/</code> and the arithmetic of the sections. <code>verify-build-jp7.sh</code> and <code>verify-build-rpi.sh</code> run every container transcript of the lesson on every battery run.</li>
 <li>Every board output below is <em>(illustrative)</em>. The captured values depend on the scene and the lighting, and the on-target status of the lab is <em>(verified-on-target: pending)</em>. The course <code>VERIFICATION.md</code> lists that tag.</li>
 <li>The forms and the arithmetic must match.</li>
 </ul>
-<h2 id="step-2--the-worksheet-filled">Step 2 — the worksheet, filled</h2>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Entity name (from the dump)</th>
-<th>Kind</th>
-<th>/dev node</th>
-<th>Its source pad links to</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>imx477 9-001a</code></td>
-<td>sensor subdev, registered by the IMX477 I2C driver through tegracam</td>
-<td><code>/dev/v4l-subdev1</code></td>
-<td>the NVCSI channel entity, sink pad 0</td>
-</tr>
-<tr>
-<td><code>13e00000.host1x:nvcsi@15a00000-0</code></td>
-<td>NVCSI channel subdev, a platform driver that the overlay did not create</td>
-<td><code>/dev/v4l-subdev0</code></td>
-<td><code>vi-output, imx477 9-001a</code>, sink pad 0</td>
-</tr>
-<tr>
-<td><code>vi-output, imx477 9-001a</code></td>
-<td>video node of the VI channel, a platform driver</td>
-<td><code>/dev/video0</code></td>
-<td>none, because it is the sink and has no source pad</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li>The drawing: <code>imx477 9-001a</code> → <code>nvcsi channel</code> → <code>vi-output</code>. Data flows left to right, as in the diagram of section 3 of the lesson.</li>
-<li>The I2C sensor driver creates <code>imx477 9-001a</code>.</li>
-<li>The NVCSI channel and the vi-output node belong to the NVCSI and <code>tegra-camrtc-capture-vi</code> platform drivers, which probed from the base device tree. The overlay of Lesson 02 only connected them to the sensor through endpoints.</li>
-<li>Under a dual-camera overlay the CAM0 sensor is <code>10-001a</code>, and the graph is the same (Lesson 02, section 7).</li>
-<li>The entity type of the video node is <code>Node subtype V4L</code>, not a subdev. It is the one entity that is not a processing stage.</li>
-<li>On kernel 6.8 the NVCSI entity name carries its channel number, <code>-0</code>, because the subdev name buffer has 52 bytes. The recorded name on a flashed r39.2.1 board is <em>(verified-on-target: pending)</em>.</li>
-</ul>
-<h2 id="step-3--formats-and-the-saved-control-list">Step 3 — formats and the saved control list</h2>
+<h2 id="step-2--formats-and-the-saved-control-list">Step 2 — formats and the saved control list</h2>
 <ul>
 <li>Expected enumeration: one pixel format <code>'RG10'</code> (10-bit Bayer RGRG/GBGB) with exactly two sizes, 3840x2160 at 30 fps and 1920x1080 at 60 fps.</li>
-<li>They come from the two-row <code>imx477_frmfmt[]</code> table at the end of <code>nvidia-oot/drivers/media/i2c/imx477_mode_tbls.h</code>, quoted in section 4.</li>
+<li>They come from the two-row <code>imx477_frmfmt[]</code> table at the end of <code>nvidia-oot/drivers/media/i2c/imx477_mode_tbls.h</code>, quoted in section 1.</li>
 <li>The sizes and the rates are the rows. The fourcc comes from the DT mode properties <code>mode_type</code>, <code>pixel_phase</code> and <code>csi_pixel_bit_depth</code>.</li>
 </ul>
 <p>In <code>imx477-ctrls.txt</code>, against the device tree (<code>min_gain_val=16</code>, <code>max_gain_val=356</code>, <code>min_exp_time=13</code>, <code>max_exp_time=683709</code>):</p>
 <ul>
-<li><code>gain: min=16 max=357</code> and <code>exposure: min=13 max=683710</code>. Both maximum values are the DT value <strong>+1</strong>, the tegracam sentinel for a value left indeterminate by alternating exposure (section 8).</li>
+<li><code>gain: min=16 max=357</code> and <code>exposure: min=13 max=683710</code>. Both maximum values are the DT value <strong>+1</strong>, the tegracam sentinel for a value left indeterminate by alternating exposure (section 5).</li>
 <li><code>frame_rate: min=2000000 max=30000000</code> has no +1. Only gain and exposure get the sentinel.</li>
 <li><code>sensor_mode: min=0 max=2</code>. The maximum equals the number of DT modes, not modes − 1.</li>
-<li>Keep the file. Lesson 08 runs the same <code>-l</code> against virtcam and compares the two lists.</li>
+<li>Keep the file. Lesson 09 runs the same <code>-l</code> against virtcam and compares the two lists.</li>
 <li>The comparison shows the same four tegracam controls with different ranges, which is evidence for the source of the ranges.</li>
 </ul>
-<h2 id="step-4--the-captures">Step 4 — the captures</h2>
+<h2 id="step-2--the-captures">Step 2 — the captures</h2>
 <div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=0
 orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=3840,height=2160,pixelformat=RG10 \
         --stream-mmap --stream-count=5 --stream-to=mode0.raw
@@ -167,15 +128,15 @@ orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat
 <li><code>camera_common_try_fmt()</code> rewrites a size that does not match back to the size of the current mode, without an error.</li>
 <li>Confirm with <code>v4l2-ctl -d /dev/video0 -V</code> before streaming.</li>
 </ul>
-<h2 id="step-5--what-the-pictures-must-show">Step 5 — what the pictures must show</h2>
+<h2 id="step-3--what-the-pictures-must-show">Step 3 — what the pictures must show</h2>
 <ul>
 <li>The grey picture at 800% zoom shows the 2×2 checkerboard of the mosaic.</li>
-<li>The color picture shows the scene with a green cast. That is expected. The green sites read higher than the red and blue sites. Nothing scaled the channels, because the ISP is not on this path (Lesson 12).</li>
+<li>The color picture shows the scene with a green cast. That is expected. The green sites read higher than the red and blue sites. Nothing scaled the channels, because the ISP is not on this path (Lesson 16).</li>
 <li>Under normal indoor light the blue sites read lowest. Tungsten and warm LED light contain little blue.</li>
 <li>Red-object check: over the red area only one site of each 2×2 cell responds strongly, the R site. The grey picture shows a repeating cell of one bright and three dim sites.</li>
 <li>The darkest sample is well above 0. The sensor adds a constant black level, so a raw zero is not scene black.</li>
 </ul>
-<h2 id="step-6--the-two-loops">Step 6 — the two loops</h2>
+<h2 id="step-4--the-two-loops">Step 4 — the two loops</h2>
 <p>The exposure loop is in the lab. The gain loop differs in three places: the fixed exposure before the loop, the name of the control, and the values:</p>
 <div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c exposure=4000
 orin$ for g in 16 64 256; do
@@ -185,11 +146,11 @@ orin$ for g in 16 64 256; do
           echo &quot;gain $g&quot;; stats gain_$g.raw
       done</code></pre></div>
 <ul>
-<li><code>stats</code> is the function of Step 6 of the lab. It reads one frame as 10-bit samples and prints two values.</li>
+<li><code>stats</code> is the function of Step 5 of the lab. It reads one frame as 10-bit samples and prints two values.</li>
 <li>The <code>scale</code> filter in that function keeps the full range of the samples. Without it, ffmpeg compresses the values, and a sample of 900 is reported as 835.</li>
 <li>Check on the host: for <code>examples/scene.raw</code>, with <code>-video_size 160x120</code>, the same filter prints a mean of 327.479 and a maximum of 900.</li>
 </ul>
-<h2 id="step-7--the-sweep-worked">Step 7 — the sweep, worked</h2>
+<h2 id="step-5--the-sweep-worked">Step 5 — the sweep, worked</h2>
 <p>The deliverable table with example numbers from a fixed indoor scene:</p>
 <div class="table-wrap"><table>
 <thead>
@@ -258,19 +219,19 @@ orin$ for g in 16 64 256; do
 <h2 id="the-older-viewer-bayer_viewpy">The older viewer: bayer_view.py</h2>
 <ul>
 <li><span class="fileref" title="bayer_view.py">bayer_view.py</span> is a Python viewer for the 16-bit layout of a Jetson capture. This lesson and its lab no longer use it.</li>
-<li>Lessons 09 and 12 still copy it from this directory. It stays here, with its self-test, until those lessons are converted.</li>
+<li>Lessons 13 and 16 still copy it from this directory. It stays here, with its self-test, until those lessons are converted.</li>
 </ul>
 <h2 id="mechanical-verification">Mechanical verification</h2>
 <ul>
 <li><span class="fileref" title="verify-build-jp7.sh">verify-build-jp7.sh</span> runs inside <code>jetson-build-jp7</code> with <code>TREE</code> at the pristine r39.2.1 tree and <code>SOLDIR</code> at this directory.</li>
 <li>It byte-compiles the generator of the raw files and the older viewer, and it runs the self-test of the viewer.</li>
-<li>It checks that the three raw files of <code>examples/</code> are what the generator writes, byte for byte. Then it re-runs the <code>od</code> transcripts of section 5.</li>
-<li>It re-runs the arithmetic transcripts: the CID and size arithmetic, the name length, the fourcc and the unit conversions.</li>
-<li>The five pictures of section 6 are not checked by the battery, because the container has no <code>ffmpeg</code>. <span class="fileref" title="../img/make_raw_figures.sh">make_raw_figures.sh</span> makes them on the host.</li>
-<li>It greps the course's own virtcam files for the <code>devnode</code>, <code>use_sensor_mode_id</code>, <code>mode_type</code>, frmfmt and <code>ctrl_cid_list</code> transcripts.</li>
-<li>It greps the r39.2.1 tree for the kernel lines that the lesson prints. Those are <code>VIDEO_MAJOR</code>, the 52-byte subdev name buffer, the RG10 fourcc and the camera control class.</li>
-<li>It greps the stock IMX477 overlay and driver for the <code>devnode</code>, <code>use_sensor_mode_id</code> and <code>mode_type</code> lines and the two frmfmt rows.</li>
-<li><span class="fileref" title="verify-build-rpi.sh">verify-build-rpi.sh</span> checks the Raspberry Pi parts of the sections against the pinned Raspberry Pi tree. It asserts the eight video nodes, the two link flags, the mode table and the control IDs.</li>
+<li>It checks that the three raw files of <code>examples/</code> are what the generator writes, byte for byte. Then it re-runs the <code>od</code> transcripts of section 2.</li>
+<li>It re-runs the arithmetic transcripts: the CID and size arithmetic, the fourcc and the unit conversions.</li>
+<li>The five pictures of section 3 are not checked by the battery, because the container has no <code>ffmpeg</code>. <span class="fileref" title="../img/make_raw_figures.sh">make_raw_figures.sh</span> makes them on the host.</li>
+<li>It greps the course's own virtcam files for the <code>use_sensor_mode_id</code>, <code>mode_type</code>, frmfmt and <code>ctrl_cid_list</code> transcripts.</li>
+<li>It greps the r39.2.1 tree for the kernel lines that the lesson prints: the RG10 fourcc and the camera control class.</li>
+<li>It greps the stock IMX477 overlay and driver for the <code>use_sensor_mode_id</code> and <code>mode_type</code> lines and the two frmfmt rows.</li>
+<li><span class="fileref" title="verify-build-rpi.sh">verify-build-rpi.sh</span> checks the Raspberry Pi parts of the sections against the pinned Raspberry Pi tree. It asserts the mode table, the control IDs and the two side effects.</li>
 <li>Neither script writes into the trees, and neither depends on another lesson. Both finish in seconds. The course battery (<code>tools/verify.sh</code>) runs both inside the build container.</li>
 </ul>
 </main>

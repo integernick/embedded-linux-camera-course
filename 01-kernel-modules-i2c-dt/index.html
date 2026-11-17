@@ -163,7 +163,7 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 </tbody>
 </table></div>
 <p>The first two are written for this lesson. The joystick driver is an unmodified kernel driver, and both kernels ship it.</p>
-<p><strong><a href="../glossary.html#virtcam">virtcam</a></strong> is the course's own sensor driver for the Jetson. To the kernel it is a normal camera sensor: it has a device-tree node, and it registers with NVIDIA's camera framework. It differs from a normal driver in one respect: it never transfers a byte on the I2C bus. That makes it small, so its probe function can be read whole. Lesson 08 explains what such a driver is for.</p>
+<p><strong><a href="../glossary.html#virtcam">virtcam</a></strong> is the course's own sensor driver for the Jetson. To the kernel it is a normal camera sensor: it has a device-tree node, and it registers with NVIDIA's camera framework. It differs from a normal driver in one respect: it never transfers a byte on the I2C bus. That makes it small, so its probe function can be read whole. Lesson 09 explains what such a driver is for.</p>
 <p><strong>imx477</strong> is the driver for the Sony IMX477, the sensor of the Raspberry Pi High Quality Camera. It is a complete driver of the kind that the mainline kernel holds. It powers the sensor, reads its identity and programs its registers.</p>
 <p>Every quoted block starts with an annotation that names its source, its file and its lines. The quote checker of the course compares each block with that source byte for byte.</p>
 <h2 id="sections">Sections</h2>
@@ -375,7 +375,7 @@ endif</code></pre></div>
 </tr>
 </tbody>
 </table></div>
-<p>The second row is the reason that this lesson comes first. On a Jetson every camera driver is an external module, including NVIDIA's own. Lesson 04 covers that source tree.</p>
+<p>The second row is the reason that this lesson comes first. On a Jetson every camera driver is an external module, including NVIDIA's own. Lesson 11 covers that source tree.</p>
 <h2 id="2-the-kernel-checks-a-module-before-it-runs-it">2. The kernel checks a module before it runs it</h2>
 <p>A module runs inside the kernel, with no protection between the two. So a module that was built for another kernel must not load. The loader makes two checks before it runs a line of the module, and the build makes a third. Each check has its own error message.</p>
 <h3 id="the-version-string">The version string</h3>
@@ -593,7 +593,7 @@ module_i2c_driver(toy_driver);</code></pre></div>
 <li>Before Linux 6.3, <code>probe()</code> of an I2C driver had a second argument, a <code>const struct i2c_device_id *</code>. Before 6.1, <code>remove()</code> returned an <code>int</code>.</li>
 <li>Both kernels of this course are newer. So <code>toy_i2c.c</code> has one form of each function.</li>
 <li>A driver that also supports older kernels selects the form at compile time. <code>virtcam.c</code> does so with two <code>#if</code> blocks around its signatures, which section 7 quotes.</li>
-<li>Lesson 16 — Porting the stack to JetPack 7.2.1 (Jetson Linux r39.2.1) covers the method behind those blocks.</li>
+<li>Lesson 21 — One driver, three kernels: guards, DKMS and packaging covers the method behind those blocks.</li>
 </ul>
 </details>
 
@@ -1393,7 +1393,7 @@ error_power_off:
 </tr>
 </tbody>
 </table></div>
-<p>NVIDIA's own driver for this sensor, <code>nv_imx477.c</code>, is a tegracam driver with the structure of virtcam. Lesson 07 reads it.</p>
+<p>NVIDIA's own driver for this sensor, <code>nv_imx477.c</code>, is a tegracam driver with the structure of virtcam. Lesson 11 reads it.</p>
 <h2 id="8-cleanup-and-the-log-that-a-probe-leaves">8. Cleanup, and the log that a probe leaves</h2>
 <p>A probe allocates memory and registers objects. Something must undo both when the driver unbinds or when probe fails halfway. The kernel undoes one kind by itself, and the driver undoes the other.</p>
 <h3 id="allocations-are-released-by-the-kernel-registrations-by-the-driver">Allocations are released by the kernel, registrations by the driver</h3>
@@ -1422,7 +1422,7 @@ static void virtcam_remove(struct i2c_client *client)
 <div class="title">
 <p>Important</p>
 </div>
-<p><code>virtcam_remove()</code> has a deliberate defect. Probe enables the sensor clock, and remove never disables it. So the clock keeps running after <code>rmmod</code> until a reboot. The lab of Lesson 08 demonstrates the defect and fixes it.</p>
+<p><code>virtcam_remove()</code> has a deliberate defect. Probe enables the sensor clock, and remove never disables it. So the clock keeps running after <code>rmmod</code> until a reboot. The lab of Lesson 09 demonstrates the defect and fixes it.</p>
 </div>
 <p class="board pi"><strong>Raspberry Pi 5</strong> the remove function of imx477:</p>
 <div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 2243–2256</span></div><pre><code>static void imx477_remove(struct i2c_client *client)
