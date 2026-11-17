@@ -91,10 +91,10 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 </head>
 <body>
 <header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Solution walkthrough</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
-<main><nav class="toc"><b>Contents</b><ul><li><a href="#step-2--the-worksheet-filled">Step 2 — the worksheet, filled</a></li><li><a href="#step-3--formats-and-the-saved-control-list">Step 3 — formats and the saved control list</a></li><li><a href="#step-4--the-captures">Step 4 — the captures</a></li><li><a href="#step-5--what-the-pngs-must-show">Step 5 — what the PNGs must show</a></li><li><a href="#step-6--the-sweep-script">Step 6 — the sweep script</a></li><li><a href="#step-7--the-sweep-worked">Step 7 — the sweep, worked</a></li><li><a href="#the-exported-tool-bayer_viewpy">The exported tool: bayer_view.py</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#step-2--the-worksheet-filled">Step 2 — the worksheet, filled</a></li><li><a href="#step-3--formats-and-the-saved-control-list">Step 3 — formats and the saved control list</a></li><li><a href="#step-4--the-captures">Step 4 — the captures</a></li><li><a href="#step-5--what-the-pictures-must-show">Step 5 — what the pictures must show</a></li><li><a href="#step-6--the-two-loops">Step 6 — the two loops</a></li><li><a href="#step-7--the-sweep-worked">Step 7 — the sweep, worked</a></li><li><a href="#the-older-viewer-bayer_viewpy">The older viewer: bayer_view.py</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
 <p><a href="lab.html">Lab 03</a> · <a href="index.html">Lesson 03</a></p>
 <ul>
-<li>The container side of this lesson is the toy file, the viewer and the sweep script. <code>verify-build-jp7.sh</code> and <code>verify-build-rpi.sh</code> run every container transcript of the lesson on every battery run.</li>
+<li>The container side of this lesson is the three raw files of <code>examples/</code> and the arithmetic of the sections. <code>verify-build-jp7.sh</code> and <code>verify-build-rpi.sh</code> run every container transcript of the lesson on every battery run.</li>
 <li>Every board output below is <em>(illustrative)</em>. The captured values depend on the scene and the lighting, and the on-target status of the lab is <em>(verified-on-target: pending)</em>. The course <code>VERIFICATION.md</code> lists that tag.</li>
 <li>The forms and the arithmetic must match.</li>
 </ul>
@@ -167,71 +167,27 @@ orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat
 <li><code>camera_common_try_fmt()</code> rewrites a size that does not match back to the size of the current mode, without an error.</li>
 <li>Confirm with <code>v4l2-ctl -d /dev/video0 -V</code> before streaming.</li>
 </ul>
-<h2 id="step-5--what-the-pngs-must-show">Step 5 — what the PNGs must show</h2>
-<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> python3 bayer_view.py mode1.raw --width 1920 --height 1080 --bits 10 --stats --out mode1.png</span>
-<span class="out">file: mode1.raw</span>
-<span class="out">frames: 5  frame: 0  size: 1920x1080  bits: 10  stride: 3840 bytes  backend: pure-python</span>
-<span class="out">min: 60  max: 1023  mean: 341.72  saturated: 0.21%</span>
-<span class="out">channel means  R: 355.9  Gr: 405.1  Gb: 404.6  B: 201.3</span>
-<span class="out">wrote mode1.png</span></code></pre></div>
+<h2 id="step-5--what-the-pictures-must-show">Step 5 — what the pictures must show</h2>
 <ul>
-<li><code>min</code> is well above 0. The sensor adds a constant black-level pedestal, so a raw zero is not scene black.</li>
-<li><code>Gr ≈ Gb</code>: the two green sites receive the same scene. A large difference between them indicates a parsing or pattern error, not a property of the scene.</li>
-<li>Under normal indoor light <code>B</code> is the lowest. Tungsten and warm LED light contain little blue. AWB would correct this imbalance, and nothing corrects it on this path.</li>
-<li>In the grayscale PNG at 800% zoom the 2×2 mosaic checkerboard is visible.</li>
-<li>The <code>--demosaic</code> PNG shows the scene with a green cast. That is expected. The green sites read higher than the red and blue sites, and no white balance scaled the channels, because the ISP is bypassed (Lesson 12).</li>
-<li>Red-object check: over the red area only one site per 2×2 cell responds strongly, the R site. The grayscale PNG shows a repeating cell of one bright and three dim sites.</li>
+<li>The grey picture at 800% zoom shows the 2×2 checkerboard of the mosaic.</li>
+<li>The color picture shows the scene with a green cast. That is expected. The green sites read higher than the red and blue sites. Nothing scaled the channels, because the ISP is not on this path (Lesson 12).</li>
+<li>Under normal indoor light the blue sites read lowest. Tungsten and warm LED light contain little blue.</li>
+<li>Red-object check: over the red area only one site of each 2×2 cell responds strongly, the R site. The grey picture shows a repeating cell of one bright and three dim sites.</li>
+<li>The darkest sample is well above 0. The sensor adds a constant black level, so a raw zero is not scene black.</li>
 </ul>
-<h2 id="step-6--the-sweep-script">Step 6 — the sweep script</h2>
-<p>The complete script, <span class="fileref" title="sweep.sh">sweep.sh</span>, from its first command on:</p>
-<div class="codeblock"><div class="src"><b>this course</b><span class="path">03-v4l2-userspace/solutions/sweep.sh</span><span>lines 15–42</span></div><pre><code>set -euo pipefail
-
-DEV=${DEV:-/dev/video0}
-WIDTH=${WIDTH:-1920}
-HEIGHT=${HEIGHT:-1080}
-VIEWER=${VIEWER:-bayer_view.py}
-
-if [ &quot;$#&quot; -lt 2 ]; then
-    echo &quot;usage: $0 CONTROL VALUE...&quot; &gt;&amp;2
-    exit 1
-fi
-ctrl=$1
-shift
-
-run() {
-    if [ &quot;${DRY_RUN:-0}&quot; = 1 ]; then
-        printf &#x27;%s\n&#x27; &quot;$*&quot;
-    else
-        &quot;$@&quot;
-    fi
-}
-
-for value in &quot;$@&quot;; do
-    run v4l2-ctl -d &quot;$DEV&quot; -c &quot;$ctrl=$value&quot;
-    run v4l2-ctl -d &quot;$DEV&quot; --set-fmt-video=&quot;width=$WIDTH,height=$HEIGHT,pixelformat=RG10&quot; \
-        --stream-mmap --stream-count=3 --stream-to=&quot;${ctrl}_${value}.raw&quot;
-    run python3 &quot;$VIEWER&quot; &quot;${ctrl}_${value}.raw&quot; --width &quot;$WIDTH&quot; --height &quot;$HEIGHT&quot; --bits 10 --frame 2 --stats
-done</code></pre></div>
+<h2 id="step-6--the-two-loops">Step 6 — the two loops</h2>
+<p>The exposure loop is in the lab. The gain loop differs in three places: the fixed exposure before the loop, the name of the control, and the values:</p>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c exposure=4000
+orin$ for g in 16 64 256; do
+          v4l2-ctl -d /dev/video0 -c gain=$g
+          v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 \
+              --stream-mmap --stream-skip=2 --stream-count=1 --stream-to=gain_$g.raw
+          echo &quot;gain $g&quot;; stats gain_$g.raw
+      done</code></pre></div>
 <ul>
-<li>Every command of the loop goes through <code>run</code>, so one variable switches between printing and running.</li>
-<li><code>set -euo pipefail</code> stops the sweep at the first failed capture, so a <code>select timeout</code> does not produce a table with holes.</li>
-<li>The viewer path defaults to <code>bayer_view.py</code> in the current directory, which is where Step 1 put it.</li>
-<li>Frame 2 is read because the control write arrives while the sensor streams its first frames. The value applies to the integration of a later frame.</li>
-</ul>
-<p>The dry run is deterministic, so the battery asserts it:</p>
-<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">orin$</span> DRY_RUN=1 ./sweep.sh exposure 1000 4000 16000</span>
-<span class="out">v4l2-ctl -d /dev/video0 -c exposure=1000</span>
-<span class="out">v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 --stream-mmap --stream-count=3 --stream-to=exposure_1000.raw</span>
-<span class="out">python3 bayer_view.py exposure_1000.raw --width 1920 --height 1080 --bits 10 --frame 2 --stats</span>
-<span class="out">v4l2-ctl -d /dev/video0 -c exposure=4000</span>
-<span class="out">v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 --stream-mmap --stream-count=3 --stream-to=exposure_4000.raw</span>
-<span class="out">python3 bayer_view.py exposure_4000.raw --width 1920 --height 1080 --bits 10 --frame 2 --stats</span>
-<span class="out">v4l2-ctl -d /dev/video0 -c exposure=16000</span>
-<span class="out">v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 --stream-mmap --stream-count=3 --stream-to=exposure_16000.raw</span>
-<span class="out">python3 bayer_view.py exposure_16000.raw --width 1920 --height 1080 --bits 10 --frame 2 --stats</span></code></pre></div>
-<ul>
-<li>Without <code>DRY_RUN=1</code>, each <code>v4l2-ctl -c</code> line prints nothing, each capture prints <code>&lt;&lt;&lt;</code>, and each viewer call prints its four lines of statistics.</li>
-<li>The script with no values prints <code>usage: ./sweep.sh CONTROL VALUE...</code> and exits with status 1.</li>
+<li><code>stats</code> is the function of Step 6 of the lab. It reads one frame as 10-bit samples and prints two values.</li>
+<li>The <code>scale</code> filter in that function keeps the full range of the samples. Without it, ffmpeg compresses the values, and a sample of 900 is reported as 835.</li>
+<li>Check on the host: for <code>examples/scene.raw</code>, with <code>-video_size 160x120</code>, the same filter prints a mean of 327.479 and a maximum of 900.</li>
 </ul>
 <h2 id="step-7--the-sweep-worked">Step 7 — the sweep, worked</h2>
 <p>The deliverable table with example numbers from a fixed indoor scene:</p>
@@ -242,7 +198,7 @@ done</code></pre></div>
 <th>Value</th>
 <th>Physical</th>
 <th>Mean (DN)</th>
-<th>Saturated %</th>
+<th>Maximum (DN)</th>
 </tr>
 </thead>
 <tbody>
@@ -251,42 +207,42 @@ done</code></pre></div>
 <td>1000</td>
 <td>1 ms</td>
 <td>92.4 <em>(illustrative)</em></td>
-<td>0.0</td>
+<td>411</td>
 </tr>
 <tr>
 <td>exposure</td>
 <td>4000</td>
 <td>4 ms</td>
 <td>341.7</td>
-<td>0.2</td>
+<td>1023</td>
 </tr>
 <tr>
 <td>exposure</td>
 <td>16000</td>
 <td>16 ms</td>
 <td>953.1</td>
-<td>41.8</td>
+<td>1023</td>
 </tr>
 <tr>
 <td>gain (at 4 ms)</td>
 <td>16</td>
 <td>1.0x</td>
 <td>341.7</td>
-<td>0.2</td>
+<td>1023</td>
 </tr>
 <tr>
 <td>gain</td>
 <td>64</td>
 <td>4.0x</td>
 <td>891.6</td>
-<td>37.5</td>
+<td>1023</td>
 </tr>
 <tr>
 <td>gain</td>
 <td>256</td>
 <td>16.0x</td>
 <td>1014.8</td>
-<td>91.9</td>
+<td>1023</td>
 </tr>
 </tbody>
 </table></div>
@@ -294,68 +250,23 @@ done</code></pre></div>
 <ul>
 <li><strong>Linearity:</strong> 1 ms to 4 ms multiplies the mean by about 3.7, not by 4.0. With the black-level pedestal subtracted from both means, the ratio is about 4.</li>
 <li>Exposure scales the photon signal, not the pedestal. The same holds for the first gain step before clipping.</li>
-<li><strong>Flattening:</strong> samples clip at 1023, the 10-bit maximum. When <code>Saturated %</code> grows, clipped pixels add no further DN, so the mean approaches 1023, as rows 3 and 6 show.</li>
-<li>A sweep that measures linearity stays near 0% saturation. Dim the scene or limit the exposure range.</li>
-<li><strong>Frame 2:</strong> the control writes program the sensor over I2C, and exposure and gain take effect a frame or two later. The value applies to the integration of a <em>following</em> frame.</li>
-<li>Frame 0 of a new stream can still have the previous settings. Frame 2 is after the transition.</li>
+<li><strong>Flattening:</strong> samples clip at 1023, the 10-bit maximum. A maximum of 1023 shows that some samples clip. Clipped samples add no further DN, so the mean approaches 1023, as rows 3 and 6 show.</li>
+<li>A sweep that measures linearity keeps the maximum below 1023. Dim the scene or limit the exposure range.</li>
+<li><strong>Two skipped frames:</strong> the control writes program the sensor over I2C, and exposure and gain take effect a frame or two later. The value applies to the integration of a <em>following</em> frame.</li>
+<li>The first frame of a new stream can still have the previous settings. The third frame is after the transition.</li>
 </ul>
-<h2 id="the-exported-tool-bayer_viewpy">The exported tool: bayer_view.py</h2>
+<h2 id="the-older-viewer-bayer_viewpy">The older viewer: bayer_view.py</h2>
 <ul>
-<li>Assumptions, stated in section 5 of the lesson and normative in the kernel's pixfmt-srggb10 page: each pixel is one 16-bit little-endian word. The 10- or 12-bit sample is in the LOW bits, the Jetson VI <code>T_R16</code> memory format.</li>
-<li>Frames are concatenated with no headers. The default stride is <code>width*2</code>, and <code>--stride</code> handles padded layouts.</li>
-<li>The default pattern is RGGB. <code>--pattern</code> selects the other phases.</li>
-<li><code>numpy</code> is used when it can be imported. Otherwise a pure-Python fallback gives identical results more slowly: a 4K frame takes a few seconds.</li>
-</ul>
-<div class="table-wrap"><table>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--width/--height</code></td>
-<td>frame geometry (must match the captured mode exactly)</td>
-</tr>
-<tr>
-<td><code>--bits {10,12}</code></td>
-<td>RG10 vs RG12 sample width; sets scaling and saturation threshold</td>
-</tr>
-<tr>
-<td><code>--frame N</code></td>
-<td>pick one frame out of a multi-frame <code>--stream-to</code> file</td>
-</tr>
-<tr>
-<td><code>--stats</code></td>
-<td>min/max/mean, saturated %, per-site means R/Gr/Gb/B</td>
-</tr>
-<tr>
-<td><code>--out FILE</code></td>
-<td>16-bit grayscale PNG (samples shifted up to 16 bits)</td>
-</tr>
-<tr>
-<td><code>--demosaic</code></td>
-<td>half-res RGB8 PNG instead: R, avg(Gr,Gb), B per 2×2 cell</td>
-</tr>
-<tr>
-<td><code>--self-test</code></td>
-<td>hardware-free synthetic-buffer test suite (exit 0/1)</td>
-</tr>
-</tbody>
-</table></div>
-<ul>
-<li>The PNG writer is self-contained (zlib and struct, filter 0), so the tool has no dependency beyond Python 3.</li>
-<li>That is deliberate, because Lessons 09, 12 and 14 copy it onto boards and into containers.</li>
-<li><code>read_png()</code> reads the PNGs that the tool writes. The transcripts of section 6 use it to read a pixel back.</li>
+<li><span class="fileref" title="bayer_view.py">bayer_view.py</span> is a Python viewer for the 16-bit layout of a Jetson capture. This lesson and its lab no longer use it.</li>
+<li>Lessons 09 and 12 still copy it from this directory. It stays here, with its self-test, until those lessons are converted.</li>
 </ul>
 <h2 id="mechanical-verification">Mechanical verification</h2>
 <ul>
 <li><span class="fileref" title="verify-build-jp7.sh">verify-build-jp7.sh</span> runs inside <code>jetson-build-jp7</code> with <code>TREE</code> at the pristine r39.2.1 tree and <code>SOLDIR</code> at this directory.</li>
-<li>It byte-compiles the viewer and the toy generator, and it runs the self-test of the viewer. The self-test covers the RG10 and RG12 paths, PNG writing and readback, padded strides and multi-frame indexing.</li>
-<li>It re-runs the toy transcripts of the lesson. Those are the toy file and its bytes, the statistics of both frames, the geometry error and the two PNG readbacks.</li>
+<li>It byte-compiles the generator of the raw files and the older viewer, and it runs the self-test of the viewer.</li>
+<li>It checks that the three raw files of <code>examples/</code> are what the generator writes, byte for byte. Then it re-runs the <code>od</code> transcripts of section 5.</li>
 <li>It re-runs the arithmetic transcripts: the CID and size arithmetic, the name length, the fourcc and the unit conversions.</li>
-<li>It runs the dry run of <code>sweep.sh</code> and compares it with the nine lines above, and it checks the usage error.</li>
+<li>The five pictures of section 6 are not checked by the battery, because the container has no <code>ffmpeg</code>. <span class="fileref" title="../img/make_raw_figures.sh">make_raw_figures.sh</span> makes them on the host.</li>
 <li>It greps the course's own virtcam files for the <code>devnode</code>, <code>use_sensor_mode_id</code>, <code>mode_type</code>, frmfmt and <code>ctrl_cid_list</code> transcripts.</li>
 <li>It greps the r39.2.1 tree for the kernel lines that the lesson prints. Those are <code>VIDEO_MAJOR</code>, the 52-byte subdev name buffer, the RG10 fourcc and the camera control class.</li>
 <li>It greps the stock IMX477 overlay and driver for the <code>devnode</code>, <code>use_sensor_mode_id</code> and <code>mode_type</code> lines and the two frmfmt rows.</li>

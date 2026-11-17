@@ -92,41 +92,29 @@ details.more > ul, details.more > ol { margin-left: 14px; }
 <body>
 <header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Map the graph, capture raw Bayer, sweep the controls</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
 <main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
-<p>The sections of the lesson showed the three device nodes, the graph and the raw layout on a toy file. This lab is the board work. You read the real graph of the devkit, capture at both modes, and write one script that sweeps a control. The brightness of the captures is the evidence that the control writes reached the sensor.</p>
+<p>The sections of the lesson showed the three device nodes, the graph and the raw layout on a toy file. This lab is the board work. You read the real graph of the devkit, capture at both modes, and sweep a control with a short loop. The brightness of the captures is the evidence that the control writes reached the sensor.</p>
 <h2 id="goal">Goal</h2>
 <ul>
 <li>A filled map of the media graph of the devkit, each entity tied to its driver and its device node.</li>
 <li>The control list of the IMX477, saved as <code>imx477-ctrls.txt</code> for Lesson 08.</li>
-<li>Raw captures at both IMX477 modes with the exact sizes, and their PNGs from <code>bayer_view.py</code>.</li>
-<li>A sweep script, written from a skeleton, and a table of brightness against exposure and gain.</li>
+<li>Raw captures at both IMX477 modes with the exact sizes, and their pictures from <code>ffmpeg</code>.</li>
+<li>A sweep of the exposure and of the gain, and a table of brightness against both.</li>
 </ul>
 <h2 id="hardware">Hardware</h2>
 <ul>
 <li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
 <li>The IMX477 on CAM0, enabled since the lab of Lesson 02. <code>ls /dev/video*</code> shows <code>/dev/video0</code> after boot.</li>
 <li>About 200 MB free on the board for the raw files.</li>
-<li>Python 3 on the board. The viewer runs without <code>numpy</code>, and faster with it.</li>
 <li>No container. Every step runs on the board, or on the host to copy a file.</li>
 </ul>
 <h2 id="steps">Steps</h2>
-<h3 id="step-1--install-the-tools-and-copy-the-viewer-10-min">Step 1 — Install the tools and copy the viewer (10 min)</h3>
+<h3 id="step-1--install-the-tools-5-min">Step 1 — Install the tools (5 min)</h3>
 <ol type="1">
-<li>Install <code>v4l-utils</code>, the package that holds <code>media-ctl</code> and <code>v4l2-ctl</code>:</li>
+<li>Install <code>v4l-utils</code>, the package that holds <code>media-ctl</code> and <code>v4l2-ctl</code>, and <code>ffmpeg</code>:</li>
 </ol>
-<div class="codeblock"><pre><code>orin$ sudo apt install v4l-utils</code></pre></div>
-<p><code>apt</code> prints its install log. Both tools are then on the path.</p>
-<ol start="2" type="1">
-<li>Copy the viewer from the course clone on the host. The lab does not ask for the viewer to be written, so taking it from <code>solutions/</code> is intended:</li>
-</ol>
-<div class="codeblock"><pre><code>host$ ssh &quot;$BOARD_USER@$BOARD_IP&quot; &quot;mkdir -p ~/lab03&quot;
-host$ scp lessons/03-v4l2-userspace/solutions/bayer_view.py &quot;$BOARD_USER@$BOARD_IP:lab03/&quot;</code></pre></div>
-<p><code>ssh</code> prints nothing, and <code>scp</code> prints one progress line.</p>
-<ol start="3" type="1">
-<li>Check that the tool works without the camera:</li>
-</ol>
-<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> cd ~/lab03 &amp;&amp; python3 bayer_view.py --self-test | tail -1</span>
-<span class="out">self-test: OK (13 checks, artifacts in /tmp/bayer_view_selftest_mkk049p2)</span></code></pre></div>
-<p>The directory name differs on every run. You should see <code>self-test: OK</code> with 13 checks and the exit code 0. Without <code>tail -1</code>, the output is one <code>ok:</code> line per check.</p>
+<div class="codeblock"><pre><code>orin$ sudo apt install v4l-utils ffmpeg
+orin$ mkdir -p ~/lab03 &amp;&amp; cd ~/lab03</code></pre></div>
+<p><code>apt</code> prints its install log. The three tools are then on the path, and the lab works in <code>~/lab03</code>.</p>
 <h3 id="step-2--list-the-nodes-and-map-the-graph-15-min">Step 2 — List the nodes and map the graph (15 min)</h3>
 <ol type="1">
 <li>List the device nodes:</li>
@@ -206,61 +194,52 @@ orin$ ls -l mode1.raw</code></pre></div>
 <p>Expected: 20,736,000 bytes, that is 1920 × 1080 × 2 × 5. Confirm that the driver accepted the smaller mode: <code>v4l2-ctl -d /dev/video0 -V</code> must report 1920x1080.</p>
 <h3 id="step-5--view-the-bayer-data-15-min">Step 5 — View the Bayer data (15 min)</h3>
 <ol type="1">
-<li>Convert frame 0 of each capture to a 16-bit grayscale PNG, then to a color PNG with a simple demosaic:</li>
+<li>Turn the first frame of each capture into two pictures, a grey one and a color one. The commands are those of section 6:</li>
 </ol>
-<div class="codeblock"><pre><code>orin$ python3 bayer_view.py mode0.raw --width 3840 --height 2160 --bits 10 --out mode0.png
-orin$ python3 bayer_view.py mode0.raw --width 3840 --height 2160 --bits 10 --demosaic --out mode0_rgb.png
-orin$ python3 bayer_view.py mode1.raw --width 1920 --height 1080 --bits 10 --out mode1.png
-orin$ python3 bayer_view.py mode1.raw --width 1920 --height 1080 --bits 10 --demosaic --out mode1_rgb.png</code></pre></div>
-<p>Each command prints one <code>wrote</code> line. A 4K frame takes a few seconds without <code>numpy</code>.</p>
+<div class="codeblock"><pre><code>orin$ M0=&quot;-loglevel error -y -f rawvideo -video_size 3840x2160&quot;
+orin$ M1=&quot;-loglevel error -y -f rawvideo -video_size 1920x1080&quot;
+orin$ LEVELS=&quot;format=rgb48le,colorlevels=rimax=0.0156:gimax=0.0156:bimax=0.0156&quot;
+orin$ ffmpeg $M0 -pixel_format gray10le -i mode0.raw -frames:v 1 mode0.png
+orin$ ffmpeg $M0 -pixel_format bayer_rggb16le -i mode0.raw -vf &quot;$LEVELS&quot; -frames:v 1 mode0_rgb.png
+orin$ ffmpeg $M1 -pixel_format gray10le -i mode1.raw -frames:v 1 mode1.png
+orin$ ffmpeg $M1 -pixel_format bayer_rggb16le -i mode1.raw -vf &quot;$LEVELS&quot; -frames:v 1 mode1_rgb.png</code></pre></div>
+<p>The commands print nothing. Each one reads the first frame of its file, because of <code>-frames:v 1</code>.</p>
 <ol start="2" type="1">
-<li>Open the PNGs in an image viewer, on the board or after an <code>scp</code> to the host. Record three observations:
+<li>Open the four pictures in an image viewer, on the board or after an <code>scp</code> to the host. Record three observations:
 <ul>
-<li>The grayscale PNG is viewable, because the tool scaled 10 bits up to 16. At 800% zoom on a bright, uniform area, the 2×2 checkerboard of the mosaic is visible.</li>
-<li>The <code>--demosaic</code> PNG has real colors and a green cast. State the reason in one sentence (section 6 of the lesson).</li>
-<li>Point the camera at a red object and capture one more frame. In the grayscale PNG the red area shows one bright site and three dim sites per 2×2 cell.</li>
+<li>The grey picture is viewable, because <code>gray10le</code> states the true depth. At 800% zoom on a bright, uniform area, you see the 2×2 checkerboard of the mosaic.</li>
+<li>The color picture has real colors and a green cast. State the reason in one sentence (section 6 of the lesson).</li>
+<li>Point the camera at a red object and capture one more frame. In the grey picture the red area shows one bright site and three dim sites in each 2×2 cell.</li>
 </ul></li>
 </ol>
-<h3 id="step-6--write-the-sweep-script-15-min">Step 6 — Write the sweep script (15 min)</h3>
-<p>This step is the writing exercise. The script sets one control to several values and measures each capture. Create <code>~/lab03/sweep.sh</code> from this skeleton:</p>
-<div class="codeblock"><pre><code>#!/usr/bin/env bash
-# sweep.sh CONTROL VALUE...   for example: ./sweep.sh exposure 1000 4000 16000
-set -euo pipefail
-DEV=${DEV:-/dev/video0}
-WIDTH=${WIDTH:-1920}
-HEIGHT=${HEIGHT:-1080}
-VIEWER=${VIEWER:-bayer_view.py}
-ctrl=$1
-shift
-run() {
-    if [ &quot;${DRY_RUN:-0}&quot; = 1 ]; then printf &#x27;%s\n&#x27; &quot;$*&quot;; else &quot;$@&quot;; fi
-}
-for value in &quot;$@&quot;; do
-    # TODO: set the control to $value with v4l2-ctl -c
-    # TODO: stream three frames of WIDTH x HEIGHT in RG10 into ${ctrl}_${value}.raw
-    # TODO: print the --stats of frame 2 of that file with the viewer
-done</code></pre></div>
+<h3 id="step-6--sweep-the-exposure-then-the-gain-15-min">Step 6 — Sweep the exposure, then the gain (15 min)</h3>
 <ol type="1">
-<li><p>Replace each <code>TODO</code> with one <code>run</code> line. Every command goes through <code>run</code>, so <code>DRY_RUN=1</code> prints the commands instead of running them.</p></li>
-<li><p>Check the script without the camera:</p></li>
+<li>Define one function that prints the mean and the maximum of a frame. Both are in DN out of 1023:</li>
 </ol>
-<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">orin$</span> chmod +x sweep.sh</span>
-<span class="cmd"><span class="prompt">orin$</span> DRY_RUN=1 ./sweep.sh exposure 1000 4000 16000</span>
-<span class="out">v4l2-ctl -d /dev/video0 -c exposure=1000</span>
-<span class="out">v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 --stream-mmap --stream-count=3 --stream-to=exposure_1000.raw</span>
-<span class="out">python3 bayer_view.py exposure_1000.raw --width 1920 --height 1080 --bits 10 --frame 2 --stats</span></code></pre></div>
-<p>The dry run prints these three lines, then the same three for 4000 and 16000: nine lines in all. Nothing is captured.</p>
+<div class="codeblock"><pre><code>orin$ stats() { ffmpeg -loglevel error -f rawvideo -video_size 1920x1080 -pixel_format gray10le -i &quot;$1&quot; \
+          -vf &quot;scale=in_range=full:out_range=full,signalstats,metadata=print:file=-&quot; -f null - | grep -E &#x27;YAVG|YMAX&#x27;; }</code></pre></div>
+<p>The function prints nothing now. <code>YAVG</code> is the mean of all samples, and <code>YMAX</code> is the largest sample.</p>
+<ol start="2" type="1">
+<li>Sweep the exposure. Keep the scene and the lighting fixed, because no automatic control runs on this path:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=1</span>
+<span class="cmd"><span class="prompt">orin$</span> for e in 1000 4000 16000; do</span>
+<span class="out">          v4l2-ctl -d /dev/video0 -c exposure=$e</span>
+<span class="out">          v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 \</span>
+<span class="out">              --stream-mmap --stream-skip=2 --stream-count=1 --stream-to=exposure_$e.raw</span>
+<span class="out">          echo &quot;exposure $e&quot;; stats exposure_$e.raw</span>
+<span class="out">      done</span>
+<span class="out">&lt;</span>
+<span class="out">exposure 1000</span>
+<span class="out">lavfi.signalstats.YAVG=92.4</span>
+<span class="out">lavfi.signalstats.YMAX=411</span></code></pre></div>
+<p>You get the same four lines for 4000 and for 16000. <code>--stream-skip=2</code> drops the first two frames, so each file holds one frame.</p>
 <ol start="3" type="1">
-<li>Run it for real. Keep the scene and the lighting fixed, because no automatic control runs on this path:</li>
+<li>Write the same loop for <code>gain</code>, with the values 16, 64 and 256. Set <code>exposure=4000</code> first. This loop is the writing exercise of the lab.</li>
 </ol>
-<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=1
-orin$ ./sweep.sh exposure 1000 4000 16000
-orin$ v4l2-ctl -d /dev/video0 -c exposure=4000
-orin$ ./sweep.sh gain 16 64 256</code></pre></div>
-<p>Expected: for each value, three <code>&lt;</code> marks and the four lines of statistics. The <code>mean</code> grows with the value until <code>saturated</code> grows.</p>
 <h3 id="step-7--fill-the-brightness-table-10-min">Step 7 — Fill the brightness table (10 min)</h3>
 <ol type="1">
-<li>Fill the deliverable table from the <code>--stats</code> lines. The mean is in DN out of 1023:</li>
+<li>Fill the table from the <code>YAVG</code> and <code>YMAX</code> lines:</li>
 </ol>
 <div class="table-wrap"><table>
 <thead>
@@ -269,7 +248,7 @@ orin$ ./sweep.sh gain 16 64 256</code></pre></div>
 <th>Value (control units)</th>
 <th>Physical value</th>
 <th>Mean (DN)</th>
-<th>Saturated %</th>
+<th>Maximum (DN)</th>
 </tr>
 </thead>
 <tbody>
@@ -320,9 +299,9 @@ orin$ ./sweep.sh gain 16 64 256</code></pre></div>
 <ol start="2" type="1">
 <li>Answer three questions under the table:
 <ul>
-<li>Is the mean roughly linear in exposure until saturation starts? Four times the exposure should give about four times the mean.</li>
-<li>Why does the trend flatten when <code>Saturated %</code> grows?</li>
-<li>Why does the script read frame 2 and not frame 0? The control writes arrive while the sensor already streams its first frames.</li>
+<li>Is the mean roughly linear in exposure? Four times the exposure should give about four times the mean.</li>
+<li>Why does the trend flatten when the maximum reaches 1023?</li>
+<li>Why does the loop skip two frames? The control writes arrive while the sensor already streams its first frames.</li>
 </ul></li>
 </ol>
 <h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
@@ -330,20 +309,20 @@ orin$ ./sweep.sh gain 16 64 256</code></pre></div>
 <ul>
 <li><strong>Step 2.</strong> <code>media-ctl -p</code> prints more entities: the sensor, the CSI-2 receiver, the front end and eight video nodes.</li>
 <li><strong>Step 3.</strong> The mode list comes from the subdevice of the sensor, not from a video node.</li>
-<li><strong>Step 4.</strong> Before a capture, a program enables the link to <code>csi2_ch0</code> and sets a format on each pad. The frames are packed, so <code>bayer_view.py</code> cannot read them as they are.</li>
+<li><strong>Step 4.</strong> Before a capture, a program enables the link to <code>csi2_ch0</code> and sets a format on each pad. The frames are packed, so the <code>gray10le</code> commands of Step 5 cannot read them as they are.</li>
 </ul>
 <h2 id="expected-output">Expected output</h2>
 <ol type="1">
 <li><strong>The worksheet.</strong> The three-row entity table with each row tied to its <code>/dev</code> node. The two written answers, the drawing, and the recorded NVCSI entity name.</li>
 <li><strong><code>imx477-ctrls.txt</code></strong>, saved in <code>~/lab03</code> for Lesson 08, with the one-sentence reason for the two <code>+1</code> ranges.</li>
-<li><strong>The captures.</strong> <code>mode0.raw</code> of 82,944,000 bytes and <code>mode1.raw</code> of 20,736,000 bytes, with their PNG pairs and the three observations.</li>
-<li><strong><code>sweep.sh</code></strong>, with a dry run that prints the nine expected lines.</li>
-<li><strong>The brightness table</strong> with six measured means, and the three answers.</li>
+<li><strong>The captures.</strong> <code>mode0.raw</code> of 82,944,000 bytes and <code>mode1.raw</code> of 20,736,000 bytes, with their two pictures each and the three observations.</li>
+<li><strong>The two loops</strong> of Step 6, saved in a text file.</li>
+<li><strong>The brightness table</strong> with six measured means and maxima, and the three answers.</li>
 </ol>
 <p>A typical form of the result. The absolute numbers depend on the scene and the lighting:</p>
-<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>exposure 1000  -&gt; mean  92.4 DN, sat 0.0%
-exposure 4000  -&gt; mean 341.7 DN, sat 0.2%
-exposure 16000 -&gt; mean 953.1 DN, sat 41.8%   &lt;- flattening: pixels clip at 1023</code></pre></div>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>exposure 1000  -&gt; YAVG  92.4, YMAX  411
+exposure 4000  -&gt; YAVG 341.7, YMAX 1023
+exposure 16000 -&gt; YAVG 953.1, YMAX 1023   &lt;- flattening: samples clip at 1023</code></pre></div>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <div class="table-wrap"><table>
 <thead>
@@ -370,14 +349,14 @@ exposure 16000 -&gt; mean 953.1 DN, sat 41.8%   &lt;- flattening: pixels clip at
 <td>Run <code>v4l2-ctl -c sensor_mode=1</code>, set the format again, and confirm with <code>v4l2-ctl -V</code></td>
 </tr>
 <tr>
-<td><code>bayer_view.py</code> refuses: "is not a multiple of one frame"</td>
-<td>Width and height do not match the captured mode, or the copy is truncated</td>
-<td>Use the exact width and height of the mode. Repeat the <code>scp</code>. Check the <code>ls -l</code> arithmetic first</td>
+<td>The picture is scrambled or striped</td>
+<td>The <code>-video_size</code> does not match the captured mode</td>
+<td>Use the exact width and height of the mode. Check the <code>ls -l</code> arithmetic first</td>
 </tr>
 <tr>
-<td>The PNG opens and is black</td>
-<td>The raw file was viewed without the tool and without scaling</td>
-<td>Use <code>bayer_view.py</code>, which shifts 10-bit samples up to 16 bits, or multiply the data by 64</td>
+<td>The picture is black</td>
+<td>The file was read as 16-bit words</td>
+<td>Use <code>-pixel_format gray10le</code>, which states the true depth</td>
 </tr>
 <tr>
 <td><code>Device or resource busy</code></td>
@@ -390,9 +369,9 @@ exposure 16000 -&gt; mean 953.1 DN, sat 41.8%   &lt;- flattening: pixels clip at
 <td>Use <code>sudo</code> for the commands, or run <code>sudo usermod -aG video $USER</code> and log in again</td>
 </tr>
 <tr>
-<td>The dry run of <code>sweep.sh</code> prints nothing, or runs the commands</td>
-<td>A <code>run</code> prefix is missing, or <code>DRY_RUN=1</code> was not set</td>
-<td>Put <code>run</code> in front of every command inside the loop. Set <code>DRY_RUN=1</code> in the same command line</td>
+<td><code>stats</code> prints nothing</td>
+<td>The file is shorter than one frame, or the function was not defined in this shell</td>
+<td>Check the size with <code>ls -l</code>. Define the function again</td>
 </tr>
 <tr>
 <td>The sweep means change very little with exposure</td>
