@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="index.html">Course</a></p><h1>Glossary</h1><p>Embedded Linux Camera Course</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#silicon--soc-blocks">Silicon / SoC blocks</a></li><li><a href="#protocol--interface">Protocol / interface</a></li><li><a href="#kernel-objects--frameworks">Kernel objects &amp;amp; frameworks</a></li><li><a href="#userspace-stack">Userspace stack</a></li><li><a href="#course-specific-shorthand">Course-specific shorthand</a></li></ul></nav>
+<ul>
+<li>Canonical terms, as the lessons use them. One term per concept: lessons never introduce synonyms.</li>
+<li>Definitions describe how each item behaves on the course setup: JetPack 6.2.1 / L4T r36.4.4 and JetPack 7.2.1 / r39.2.1 on the Orin Nano devkit. The setup includes the <code>virtcam</code> stub driver and the <code>picam-conf</code> configurator.</li>
+</ul>
+<h2 id="silicon--soc-blocks">Silicon / SoC blocks</h2>
+<h3 id="vi">VI</h3>
+<ul>
+<li>Video Input: the Tegra capture engine (<code>tegra-capture-vi</code>). It receives pixels from NVCSI and writes them into memory buffers by DMA.</li>
+<li>The V4L2 <code>/dev/video*</code> nodes are the interface to VI channels.</li>
+</ul>
+<h3 id="nvcsi">NVCSI</h3>
+<ul>
+<li>The Tegra234 MIPI CSI-2 receiver block (<code>nvcsi@15a00000</code>).</li>
+<li>It terminates the D-PHY lanes, decodes packets, and routes streams into VI by port and virtual channel.</li>
+</ul>
+<h3 id="isp">ISP</h3>
+<ul>
+<li>NVIDIA's hardware image signal processor: demosaic, black level, white-balance gains, color correction, gamma, noise reduction.</li>
+<li>Only the Argus path uses it. A <code>v4l2-ctl</code> capture bypasses it entirely, which is why raw captures look dark and green.</li>
+</ul>
+<h3 id="rtcpu--rce">RTCPU / RCE</h3>
+<ul>
+<li>The camera real-time co-processor ("Real-time Camera Engine"), which runs NVIDIA's firmware blob.</li>
+<li>It owns per-frame capture scheduling and error detection. Linux communicates with it over capture-IVC channels.</li>
+<li>Many dmesg capture errors are messages <em>from</em> it. Appendix B covers it in detail.</li>
+</ul>
+<h3 id="nvenc">NVENC</h3>
+<ul>
+<li>NVIDIA's hardware video encoder block. <strong>The Orin Nano does not have one.</strong></li>
+<li>Encoding on this platform is CPU software encoding (x264enc), per NVIDIA's official "Software Encode in Orin Nano" statement. Lesson 13 depends on that fact.</li>
+</ul>
+<h3 id="host1x--syncpoint">host1x / syncpoint</h3>
+<ul>
+<li>Tegra's DMA and synchronization layer.</li>
+<li>Syncpoints are hardware counters that engines increment as work completes. The capture stack uses them to signal "frame N landed in buffer B".</li>
+<li>A capture timeout is a syncpoint that never arrived. On r36 the message is <code>uncorr_err: request timed out</code>. Descriptions of the older vi4 driver name <code>PXL_SOF syncpt timeout</code>.</li>
+</ul>
+<h3 id="bpmp">BPMP</h3>
+<ul>
+<li>Boot and Power Management Processor.</li>
+<li>It owns clock tree operations. Sensor <code>mclk</code> / <code>extperiph1</code> requests go through it. It also proxies one of the I2C buses.</li>
+</ul>
+<h2 id="protocol--interface">Protocol / interface</h2>
+<h3 id="mipi-csi-2">MIPI CSI-2</h3>
+<p><a id="mipi-csi-2-d-phy"></a></p>
+<ul>
+<li>The camera serial interface protocol: packets that carry pixel data over D-PHY lanes. Lesson 06 covers it.</li>
+</ul>
+<h3 id="d-phy">D-PHY</h3>
+<ul>
+<li>The physical layer under CSI-2 on this platform: one clock lane plus 1–4 data lanes, each a differential pair.</li>
+<li>Each lane alternates between LP (low-power signaling) and HS (high-speed payload) states.</li>
+<li><code>cil_settletime</code> and <code>discontinuous_clk</code> in the DT are D-PHY settings.</li>
+</ul>
+<h3 id="virtual-channel-vc">virtual channel (VC)</h3>
+<ul>
+<li>A 2-bit field in every CSI-2 packet header. It lets one physical port carry several independent streams.</li>
+<li><code>vc-id</code> in the DT selects the channel that a capture receives.</li>
+<li>A direct-attached sensor sets the VC itself. On a SerDes link the deserializer typically rewrites it, which makes multi-camera aggregation possible.</li>
+</ul>
+<h3 id="data-type-dt-id">data type (DT id)</h3>
+<ul>
+<li>The CSI-2 packet-header field that names the payload format: RAW10 = 0x2B, RAW12 = 0x2C.</li>
+<li>A mismatch between the arriving type and the type that the DT declares produces CHANSEL_NOMATCH errors.</li>
+</ul>
+<h3 id="gmsl">GMSL</h3>
+<ul>
+<li>Maxim/ADI Gigabit Multimedia Serial Link: a coax/twisted-pair SerDes family for cameras that are meters away from the SoC.</li>
+<li>This course covers SerDes as vendor-neutral theory in Lesson 09, from public ADI datasheets. The practical track uses direct-attached CSI sensors.</li>
+</ul>
+<h3 id="serializer">serializer</h3>
+<p><a id="serializer"></a></p>
+<ul>
+<li>The camera-side SerDes chip. It takes the sensor's CSI-2 output and serializes it over the link.</li>
+<li>The public reference part in this course is ADI's MAX9295D, whose datasheet is freely available.</li>
+</ul>
+<h3 id="deserializer">deserializer</h3>
+<p><a id="deserializer"></a></p>
+<ul>
+<li>The SoC-side SerDes chip. It recovers the stream and emits MIPI CSI-2 into the CAM connector, and rewrites VCs when configured to.</li>
+<li>The public reference datasheet is ADI's MAX96716A family. Interpretations beyond public documentation are marked as inferred.</li>
+</ul>
+<h3 id="slvs-ec">SLVS-EC</h3>
+<ul>
+<li>Sony's high-speed sensor interface: 8b/10b-coded lanes with embedded clock, no LP states, link training.</li>
+<li>Orin has no SLVS-EC receiver, so a bridge to MIPI is mandatory. Lesson 15 is based on that fact.</li>
+</ul>
+<h3 id="bayer--rggb--rg10--rg12">Bayer / RGGB / RG10 / RG12</h3>
+<p><a id="bayer"></a></p>
+<ul>
+<li>The color-filter mosaic that raw sensors emit (RGGB pattern here), and its 10/12-bit V4L2 formats.</li>
+<li>Raw Bayer needs demosaic and white balance, both ISP functions, to look like a photograph.</li>
+</ul>
+<h2 id="kernel-objects--frameworks">Kernel objects &amp; frameworks</h2>
+<h3 id="platform-device">platform device</h3>
+<ul>
+<li>A block of the SoC with a register window at a fixed address, such as NVCSI or VI. It sits on no scannable bus, so the kernel creates its <code>struct device</code> from its device tree node.</li>
+<li>The <code>reg</code> property gives the address, as in <code>nvcsi@15a00000</code>. A platform driver probes it by <code>compatible</code>, the same rule as for an I2C device (Lesson 01).</li>
+</ul>
+<h3 id="v4l2_subdev">v4l2_subdev</h3>
+<p><a id="v4l2"></a></p>
+<ul>
+<li>The kernel object that represents one entity in a media pipeline, here the sensor driver.</li>
+<li>It exposes ops tables and controls. VI binds to it at probe, which prints the <code>subdev … bound</code> dmesg line.</li>
+</ul>
+<h3 id="media-controller">media controller</h3>
+<ul>
+<li>The topology API (<code>/dev/media0</code>, <code>media-ctl -p</code>): entities, pads and links that describe how subdevs connect to video nodes.</li>
+</ul>
+<h3 id="pad">pad</h3>
+<ul>
+<li>A media-controller connection point on an entity, either sink or source. Formats are negotiated per pad.</li>
+</ul>
+<h3 id="ctrl-handler">ctrl handler</h3>
+<p><a id="ctrl-handler-v4l2_ctrl_handler"></a></p>
+<ul>
+<li><code>v4l2_ctrl_handler</code>: the kernel's control registry per device or subdev.</li>
+<li>On this platform tegracam builds it from the driver's CID list.</li>
+</ul>
+<h3 id="tegracam">tegracam</h3>
+<ul>
+<li>NVIDIA's sensor-driver framework (<code>tegracam_device</code>, <code>camera_common_data</code>, <code>camera_common_sensor_ops</code>, <code>tegracam_ctrl_ops</code>).</li>
+<li>The driver provides ops tables and mode metadata, and the framework does the V4L2 and media registration.</li>
+<li>The <code>tegracam sensor driver:&lt;name&gt;_vX.Y.Z</code> line of the probe log shows its version.</li>
+</ul>
+<h3 id="frmfmt-table">frmfmt table</h3>
+<ul>
+<li>The driver-side mode list (<code>camera_common_frmfmt[]</code>). It feeds <strong>V4L2 enumeration only</strong> (<code>v4l2-ctl --list-formats-ext</code>).</li>
+<li>virtcam's table has 2 entries, deliberately different from the 3 modes of its DT. See <a href="#dt-mode-nodes">DT mode nodes</a> and Lesson 08.</li>
+</ul>
+<h3 id="dt-mode-nodes">DT mode nodes</h3>
+<ul>
+<li>The <code>mode0..modeN</code> device-tree nodes that carry the property set: resolutions, clocks, gain and exposure factors and limits.</li>
+<li>They feed <strong>Argus enumeration</strong>. <code>nvargus_nvraw --lps</code> and the GST_ARGUS ranges are read from these nodes, not from the sensor.</li>
+</ul>
+<h3 id="the-three-struct-pattern">the three-struct pattern</h3>
+<ul>
+<li>Physical device struct (<code>i2c_client</code>) ↔︎ private glue struct (the driver's own) ↔︎ framework device (<code>v4l2_subdev</code>/<code>tegracam_device</code>).</li>
+<li>Every framework driver has this structure, from an I2C joystick on the input subsystem to virtcam (Lesson 01).</li>
+</ul>
+<h3 id="videobuf2-vb2">videobuf2 (vb2)</h3>
+<p><a id="videobuf2"></a></p>
+<ul>
+<li>The kernel's capture-buffer framework: queues, buffer states, and the REQBUFS→QBUF→STREAMON→DQBUF call sequence that Lesson 10's <code>capture.c</code> performs by hand.</li>
+</ul>
+<h3 id="dmabuf">dmabuf</h3>
+<ul>
+<li>Fd-based buffer sharing between devices and processes. It is the common buffer handle of the Jetson multimedia stack.</li>
+<li>The error string <code>dmabuf_fd -1 mapped entry NOT found</code> is a lifetime error in this layer.</li>
+</ul>
+<h3 id="nvmm">NVMM</h3>
+<ul>
+<li>"NVIDIA memory" as a GStreamer caps feature (<code>memory:NVMM</code>).</li>
+<li>Its buffers stay in device-accessible memory, backed by NvBufSurface, so elements can pass frames without a copy.</li>
+</ul>
+<h3 id="nvbufsurface">NvBufSurface</h3>
+<ul>
+<li>The NVIDIA userspace buffer API behind NVMM: allocation, pitch/block-linear layout, and CPU mapping when needed.</li>
+</ul>
+<h3 id="oot-modules">OOT modules</h3>
+<ul>
+<li>NVIDIA's out-of-tree kernel modules (<code>nvidia-oot/</code>). All camera code has been there since JetPack 6.</li>
+<li>They are built against the kernel headers (<code>kernel-jammy-src</code> on r36.4.4, <code>kernel-noble</code> on r39.2.1) and shipped as <code>oot_modules.tar.xz</code>.</li>
+</ul>
+<h3 id="regmap">regmap</h3>
+<ul>
+<li>The kernel's register-access abstraction, configured here for 16-bit addr / 8-bit val, plus NVIDIA's <code>regmap_util_write_table_8</code> for mode-table blobs.</li>
+<li>It handles 16-bit register addresses, which the <code>i2c_smbus_*</code> helpers cannot.</li>
+</ul>
+<h2 id="userspace-stack">Userspace stack</h2>
+<h3 id="argus">Argus</h3>
+<p><a id="argus--libargus--nvargus-daemon"></a></p>
+<ul>
+<li>NVIDIA's camera userspace: the <code>libargus</code> client API and <code>nvargus-daemon</code>. They own the ISP path, run 3A, and serve <code>nvarguscamerasrc</code>.</li>
+<li><code>nvargus_nvraw</code> is its tool for dumping raw frames with metadata.</li>
+</ul>
+<h3 id="nvarguscamerasrc">nvarguscamerasrc</h3>
+<ul>
+<li>The GStreamer source that wraps Argus (NVMM NV12 output).</li>
+<li>Its <code>sensor-id</code>/<code>sensor-mode</code> indexes are positions in the <strong>Argus/DT list</strong>, not in the frmfmt list.</li>
+</ul>
+<h3 id="badge">badge</h3>
+<ul>
+<li>The module identity string of <code>tegra-camera-platform</code>, which Argus uses to select ISP tuning. virtcam's is <code>jakku_front_VIRTCAM</code>.</li>
+<li>A badge that does not match degrades color.</li>
+<li>On JetPack 7.2.1 the badge is the module name that nvargus matches against every <a href="#nito">nito</a> file it finds. Every badge therefore needs its own tuning file (Lessons 17 and 18).</li>
+</ul>
+<h3 id="nito">nito</h3>
+<ul>
+<li>The per-module ISP tuning blob (<code>.nito</code>): AE/AWB tables, noise profiles, LSC and CCMs. It is keyed by badge, and it never touches the sensor.</li>
+<li>On JP6 a missing nito fell back to default tuning.</li>
+<li>On JetPack 7.2.1 (Jetson Linux r39.2.1) nvargus <strong>requires</strong> one per badge and serves nothing without it.</li>
+<li>A nito holds one knobset per sensor mode, eight at most. Its module name must equal the badge as the daemon prints it.</li>
+<li>The converter (<code>nvcfg2nito</code>) was partner-only until NVIDIA published it in the JetPack 7.2.1 Customer IQ Migration Tools. A camera hotfix in the same package restores the daemon's text-configuration mode.</li>
+<li>Lesson 17 produces an untuned nito, and Lesson 18 a tuned one.</li>
+</ul>
+<h3 id="personality">personality</h3>
+<ul>
+<li>The course's word for everything that distinguishes one camera from another.</li>
+<li>It covers the sensor and lens, and the mode table and control table in the device tree. It also covers the nito that tunes the ISP for that sensor behind that lens. Lesson 18 covers it.</li>
+</ul>
+<h3 id="conftesth">conftest.h</h3>
+<ul>
+<li>NVIDIA's generated feature-test header (<code>&lt;nvidia/conftest.h&gt;</code>).</li>
+<li>At OOT-build time, <code>conftest.sh</code> compile-tests the real kernel headers and emits <code>NV_*</code> macros, for example for one-arg probe and void remove.</li>
+<li>With these macros one driver source builds on kernel 5.15 and on 6.8.</li>
+<li>The generated cache is at <code>out/nvidia-conftest/</code> in a built tree, and the tegracam headers include it transitively. Lesson 16 covers the mechanism.</li>
+</ul>
+<h3 id="3a">3A</h3>
+<ul>
+<li>Auto-exposure, auto-white-balance, autofocus.</li>
+<li>On the course setup, virtcam's ctrl ops ignore the AE writes (the layer boundary), AWB is digital in the ISP, and AF does not exist.</li>
+</ul>
+<h3 id="picam-conf">picam-conf</h3>
+<p><a id="picam-conf"></a></p>
+<ul>
+<li>The course's MIT-licensed userspace configurator. It parses YAML register sequences and writes them to a real IMX219 over <code>/dev/i2c-*</code>.</li>
+<li>Its sequences are derived from NVIDIA's GPL <code>imx219_mode_tbls.h</code> by <code>derive_imx219.py</code> and byte-compared on every battery run, so the values cannot differ from their source.</li>
+</ul>
+<h3 id="sequences-picam-conf-yaml">sequences (picam-conf YAML)</h3>
+<p><a id="sequences"></a></p>
+<ul>
+<li>The picam-conf file schema: a <code>device</code> block (name, <code>i2c_addr</code>) plus named <code>sequences</code>, each an ordered list of <code>write: {reg, val}</code> and <code>sleep_ms</code> steps.</li>
+</ul>
+<h3 id="nvvidconv">nvvidconv</h3>
+<ul>
+<li>GStreamer element for conversion and scaling, and for moving frames between NVMM and system memory.</li>
+<li>Every transfer between NVMM and CPU memory in a pipeline goes through it.</li>
+</ul>
+<h3 id="x264enc">x264enc</h3>
+<ul>
+<li>CPU H.264 encoder. It is the only H.264 option on Orin Nano, which has no NVENC.</li>
+<li>The course pipelines use it with <code>tune=zerolatency speed-preset=ultrafast</code>. At a constrained bitrate that setting produces the block artifacts that Lesson 13 examines.</li>
+</ul>
+<h3 id="nvv4l2h264enc">nvv4l2h264enc</h3>
+<ul>
+<li>The NVENC-backed hardware encoder element on Jetsons that have NVENC. It is <strong>not available on Orin Nano</strong>.</li>
+<li>Lessons mention it only to state the difference.</li>
+</ul>
+<h2 id="course-specific-shorthand">Course-specific shorthand</h2>
+<h3 id="the-stub-driver">the stub driver</h3>
+<p><a id="virtcam"></a></p>
+<ul>
+<li><code>virtcam/virtcam.c</code>, the course's own tegracam sensor driver. Every op returns 0, and the driver consists of metadata only.</li>
+<li>With it the framework can be studied without a sensor. The layer boundary between what the driver declares and what the hardware does stays visible.</li>
+</ul>
+<h3 id="the-devkit-path">the devkit path</h3>
+<ul>
+<li>Orin Nano devkit and Raspberry Pi IMX477: a real sensor with NVIDIA's own driver (<code>nv_imx477.c</code>).</li>
+<li>It is the course's reference system for the standard behaviour of the stack.</li>
+</ul>
+<h3 id="layer-boundary">layer boundary</h3>
+<ul>
+<li>Any point where responsibility passes from one layer to another (driver ↔︎ DT ↔︎ Argus ↔︎ app). Lessons name each layer boundary when they reach one.</li>
+<li>The two main ones are virtcam's mode lists of 2 and 3 entries, and the AE writes that the stub ignores.</li>
+</ul>
+</main>
+</body>
+</html>

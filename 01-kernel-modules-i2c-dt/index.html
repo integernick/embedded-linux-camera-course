@@ -1,0 +1,1682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 01 Kernel Modules</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Kernel modules, I2C drivers, and the three-struct pattern</h1><p>Embedded Linux Camera Course · Lesson 01</p><p><span class="chip jetson">Jetson Orin Nano · JetPack 7.2.1</span><span class="chip pi">Raspberry Pi 5 · Linux 6.18</span><span class="chip">8 sections, about 65 min</span></p></div></header>
+<main><nav class="toc"><b>Contents</b><ol><li><a href="#1-a-module-is-code-that-the-kernel-links-at-runtime">A module is code that the kernel links at runtime</a></li><li><a href="#2-the-kernel-checks-a-module-before-it-runs-it">The kernel checks a module before it runs it</a></li><li><a href="#3-a-driver-registers-and-the-bus-core-calls-probe">A driver registers, and the bus core calls probe</a></li><li><a href="#4-a-compatible-string-joins-a-node-to-a-driver">A compatible string joins a node to a driver</a></li><li><a href="#5-three-structs-bus-device-private-state-framework-device">Three structs: bus device, private state, framework device</a></li><li><a href="#6-the-same-pattern-in-two-camera-sensor-drivers">The same pattern in two camera sensor drivers</a></li><li><a href="#7-a-probe-function-line-by-line">A probe function, line by line</a></li><li><a href="#8-cleanup-and-the-log-that-a-probe-leaves">Cleanup, and the log that a probe leaves</a></li></ol><div class="rest"><a href="#caveats">Caveats</a><a href="#self-check">Self-check</a><a href="#lab">Lab</a><a href="#references">References</a></div></nav>
+<p>A camera sensor driver is a kernel module. The kernel loads it at runtime, checks it, and calls its <code>probe()</code> function when a matching device exists. Every later lesson builds, loads or reads such a module. So this lesson starts with the smallest possible module and ends with the probe function of a camera sensor driver.</p>
+<p>The lesson has eight numbered sections. Each section shows its commands together with their output, so it can be read without a board. Where the two boards of the course differ, the Jetson form comes first and the Raspberry Pi 5 form follows it.</p>
+<div class="callout note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>The text describes two boards. The <strong>Jetson Orin Nano</strong> runs JetPack 7.2.1 (Jetson Linux r39.2.1), with kernel 6.8 in the <code>kernel-noble</code> tree. The <strong>Raspberry Pi 5</strong> side is read from the Raspberry Pi kernel at tag <code>stable_20261103</code>, which is Linux 6.18.60. The Jetson is the default board: the running text, the commands and the lab are written for it.</p>
+</div>
+<h2 id="objectives">Objectives</h2>
+<ul>
+<li>Building an out-of-tree module, and the two checks that decide whether a kernel loads it</li>
+<li><code>module_init()</code>, <code>module_param()</code> and <code>MODULE_LICENSE()</code>, and how the license string can stop a build</li>
+<li>Registration against probing: what <code>module_i2c_driver()</code> generates, and when <code>probe()</code> runs</li>
+<li>The chain from a device-tree node to an <code>i2c_client</code>, to a match, to <code>probe()</code></li>
+<li>The three-struct pattern in an input driver and in two camera sensor drivers</li>
+<li>The five role tags for probe lines: <code>[client]</code>, <code>[priv]</code>, <code>[framework]</code>, <code>[dt]</code> and <code>[power]</code></li>
+<li>The source line behind each line of a probe log</li>
+</ul>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Lessons: none. The lesson assumes C and a Linux shell, and nothing about the kernel.</li>
+<li>The course build container with the r39.2.1 tree built once, per sections 1 and 2 of <span class="fileref" title="../../setup/canonical-commands.md">setup/canonical-commands.md</span>. The Jetson transcripts of the sections come from it.</li>
+<li>For the Raspberry Pi 5 transcripts: the Raspberry Pi kernel tree in the same container, per <span class="fileref" title="../../setup/canonical-commands.md#the-raspberry-pi-kernel-tree">the Raspberry Pi kernel tree</span>.</li>
+<li>Hardware, for the lab only: an Orin Nano devkit with JetPack 7.2.1, reachable over SSH, per sections 4 and 8 of <span class="fileref" title="../../setup/hardware-setup.md">setup/hardware-setup.md</span>. No camera.</li>
+<li>Time: about 65 min for the sections and 75 min for the lab.</li>
+</ul>
+<h2 id="the-five-drivers-of-this-lesson">The five drivers of this lesson</h2>
+<p>The sections read five drivers, from the smallest to the largest:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Driver</th>
+<th>Source</th>
+<th>Lines</th>
+<th>Its use in this lesson</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hello</code></td>
+<td><span class="fileref" title="lab/hello/hello.c"><code>lab/hello/</code></span></td>
+<td>31</td>
+<td>A module without a device: load, log, unload</td>
+</tr>
+<tr>
+<td><code>toy_i2c</code></td>
+<td><span class="fileref" title="examples/toy/toy_i2c.c"><code>examples/toy/</code></span></td>
+<td>60</td>
+<td>The smallest I2C driver: it binds to a device and logs</td>
+</tr>
+<tr>
+<td>Qwiic joystick</td>
+<td>the kernel tree of both boards</td>
+<td>146</td>
+<td>A complete driver that serves a kernel framework</td>
+</tr>
+<tr>
+<td>virtcam</td>
+<td><span class="fileref" title="../../virtcam/README.md"><code>virtcam/</code></span></td>
+<td>381</td>
+<td>The camera sensor driver of the Jetson side</td>
+</tr>
+<tr>
+<td>imx477</td>
+<td>the Raspberry Pi kernel tree</td>
+<td>2279</td>
+<td>The camera sensor driver of the Raspberry Pi 5 side</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first two are written for this lesson. The joystick driver is an unmodified kernel driver, and both kernels ship it.</p>
+<p><strong><a href="../glossary.html#virtcam">virtcam</a></strong> is the course's own sensor driver for the Jetson. To the kernel it is a normal camera sensor: it has a device-tree node, and it registers with NVIDIA's camera framework. It differs from a normal driver in one respect: it never transfers a byte on the I2C bus. That makes it small, so its probe function can be read whole. Lesson 08 explains what such a driver is for.</p>
+<p><strong>imx477</strong> is the driver for the Sony IMX477, the sensor of the Raspberry Pi High Quality Camera. It is a complete driver of the kind that the mainline kernel holds. It powers the sensor, reads its identity and programs its registers.</p>
+<p>Every quoted block starts with an annotation that names its source, its file and its lines. The quote checker of the course compares each block with that source byte for byte.</p>
+<h2 id="sections">Sections</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Section</th>
+<th>Minutes</th>
+<th>The question that it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="#1-a-module-is-code-that-the-kernel-links-at-runtime">A module is code that the kernel links at runtime</a></td>
+<td>9</td>
+<td>What a module is, and how one is built for each board</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="#2-the-kernel-checks-a-module-before-it-runs-it">The kernel checks a module before it runs it</a></td>
+<td>9</td>
+<td>Why a module loads on one kernel and not on another</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="#3-a-driver-registers-and-the-bus-core-calls-probe">A driver registers, and the bus core calls probe</a></td>
+<td>9</td>
+<td>When the code of a driver runs</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="#4-a-compatible-string-joins-a-node-to-a-driver">A compatible string joins a node to a driver</a></td>
+<td>7</td>
+<td>How the kernel pairs a device with a driver</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="#5-three-structs-bus-device-private-state-framework-device">Three structs: bus device, private state, framework device</a></td>
+<td>7</td>
+<td>What every driver for a framework has in common</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="#6-the-same-pattern-in-two-camera-sensor-drivers">The same pattern in two camera sensor drivers</a></td>
+<td>8</td>
+<td>How a Jetson sensor driver and a mainline sensor driver hold their objects</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="#7-a-probe-function-line-by-line">A probe function, line by line</a></td>
+<td>9</td>
+<td>What a sensor driver does between the match and the first frame</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="#8-cleanup-and-the-log-that-a-probe-leaves">Cleanup, and the log that a probe leaves</a></td>
+<td>7</td>
+<td>Who frees what, and how to read a probe log</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="1-a-module-is-code-that-the-kernel-links-at-runtime">1. A module is code that the kernel links at runtime</h2>
+<p>The kernel of a board is one image file, and the bootloader loads it once. A driver that is compiled into that image cannot change without a rebuild of the image and a reboot. So the kernel has a second way to receive code. A <strong>module</strong> is an object file that the kernel links into itself while it runs. Loading a module adds a driver to the running kernel, and unloading removes it.</p>
+<h3 id="the-hello-module">The hello module</h3>
+<p>A complete module fits in 31 lines. The file <span class="fileref" title="lab/hello/hello.c"><code>lab/hello/hello.c</code></span> greets at load time and says goodbye at unload time:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/lab/hello/hello.c</span><span>lines 6–31</span></div><pre><code>#define pr_fmt(fmt) KBUILD_MODNAME &quot;: &quot; fmt
+
+#include &lt;linux/init.h&gt;
+#include &lt;linux/module.h&gt;
+#include &lt;linux/utsname.h&gt;
+
+static char *who = &quot;world&quot;;
+module_param(who, charp, 0444);
+MODULE_PARM_DESC(who, &quot;name to greet at load time&quot;);
+
+static int __init hello_init(void)
+{
+    pr_info(&quot;hello %s, this is Linux %s\n&quot;, who, utsname()-&gt;release);
+    return 0;
+}
+
+static void __exit hello_exit(void)
+{
+    pr_info(&quot;goodbye %s\n&quot;, who);
+}
+
+module_init(hello_init);
+module_exit(hello_exit);
+
+MODULE_LICENSE(&quot;GPL&quot;);
+MODULE_DESCRIPTION(&quot;Greet at load, say goodbye at unload&quot;);</code></pre></div>
+<p>Four parts of this file occur in every module:</p>
+<ul>
+<li><strong>Entry and exit.</strong> <code>module_init()</code> names the function that the kernel runs at load. <code>module_exit()</code> names the function that it runs at unload. <code>hello_init()</code> returns 0 to accept the load, and a negative errno refuses it.</li>
+<li><strong>Logging.</strong> <code>pr_info()</code> writes to the kernel log, which <code>dmesg</code> reads. The file defines <code>pr_fmt</code> before its first <code>#include</code>, so every line carries the prefix <code>hello:</code>.</li>
+<li><strong>A parameter.</strong> <code>module_param()</code> turns the variable <code>who</code> into a load-time option: <code>insmod hello.ko who=Orin</code>. The third argument, <code>0444</code>, makes its sysfs file read-only.</li>
+<li><strong>A license.</strong> <code>MODULE_LICENSE()</code> is read by the build and by the loader. Section 2 shows what each one does with it.</li>
+</ul>
+<details class="more">
+<summary><b>More detail</b>: <code>__init</code>, <code>__exit</code>, and a writable string parameter</summary>
+
+<ul>
+<li><code>__init</code> places the function in a section that the kernel frees once the load completes.</li>
+<li><code>__exit</code> code is dropped when the same source is built into the kernel image, because built-in code never unloads.</li>
+<li>The kernel's <code>printk.h</code> supplies a default <code>pr_fmt</code> without a prefix. It does so only when no definition exists yet, which is why the definition comes before the first <code>#include</code>.</li>
+<li><code>MODULE_PARM_DESC()</code> sets the text that <code>modinfo</code> prints for the parameter.</li>
+<li>A <code>charp</code> parameter with a write bit can be replaced through sysfs while the module runs. Each write frees the string that an earlier write stored. Code that kept the old pointer then reads freed memory.</li>
+</ul>
+</details>
+
+<h3 id="the-build">The build</h3>
+<p>A module is built by the build system of the kernel, pointed at a kernel tree that is configured and built. The <span class="fileref" title="lab/hello/Makefile"><code>Makefile</code></span> of the module has the two-part form of the kernel documentation:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/lab/hello/Makefile</span><span>lines 2–12</span></div><pre><code>ifneq ($(KERNELRELEASE),)
+obj-m := hello.o
+else
+KDIR ?= /lib/modules/$(shell uname -r)/build
+
+all:
+    $(MAKE) -C $(KDIR) M=$(CURDIR) modules
+
+clean:
+    $(MAKE) -C $(KDIR) M=$(CURDIR) clean
+endif</code></pre></div>
+<p>Make reads this file twice. On the first read, from the shell, <code>KERNELRELEASE</code> is not set, so the <code>all</code> recipe runs. It starts make again inside the kernel tree with <code>-C $(KDIR)</code>, and <code>M=</code> points back at this directory. On the second read, by the kernel's build system, <code>KERNELRELEASE</code> is set. So only the line <code>obj-m := hello.o</code> applies, and it requests <code>hello.ko</code>.</p>
+<p><code>KDIR</code> is the kernel tree. Its default is the build directory of the kernel that the building machine runs. A build for another machine sets it explicitly.</p>
+<p class="board jetson"><strong>Jetson</strong> the module is cross-built in the course container, against the tree that the kernel of the board came from. The directory <code>lab/hello</code> is first copied to <code>/build/hello</code> in the container, with the command of step 2 of the lab:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> cd /build/hello</span>
+<span class="cmd"><span class="prompt">container$</span> export CROSS_COMPILE=aarch64-linux-gnu-</span>
+<span class="cmd"><span class="prompt">container$</span> make KDIR=/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble ARCH=arm64</span>
+<span class="out">make -C /build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble M=/build/hello modules</span>
+<span class="out">make[1]: Entering directory &#x27;/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble&#x27;</span>
+<span class="out">  CC [M]  /build/hello/hello.o</span>
+<span class="out">  MODPOST /build/hello/Module.symvers</span>
+<span class="out">  CC [M]  /build/hello/hello.mod.o</span>
+<span class="out">  LD [M]  /build/hello/hello.ko</span>
+<span class="out">make[1]: Leaving directory &#x27;/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble&#x27;</span></code></pre></div>
+<p>The first output line is the re-entry into the kernel tree. <code>CC [M]</code> compiles the source, <code>MODPOST</code> checks every symbol that the module uses, and <code>LD [M]</code> links <code>hello.ko</code>.</p>
+<p class="board pi"><strong>Raspberry Pi 5</strong> the same directory and the same <code>Makefile</code> build against the Raspberry Pi kernel. Only <code>KDIR</code> changes:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> make KDIR=/build/out-rpi-6.18 ARCH=arm64 clean &gt; /dev/null</span>
+<span class="cmd"><span class="prompt">container$</span> make KDIR=/build/out-rpi-6.18 ARCH=arm64</span>
+<span class="out">make -C /build/out-rpi-6.18 M=/build/hello modules</span>
+<span class="out">make[1]: Entering directory &#x27;/build/out-rpi-6.18&#x27;</span>
+<span class="out">make[2]: Entering directory &#x27;/build/hello&#x27;</span>
+<span class="out">  CC [M]  hello.o</span>
+<span class="out">  MODPOST Module.symvers</span>
+<span class="out">  CC [M]  hello.mod.o</span>
+<span class="out">  CC [M]  .module-common.o</span>
+<span class="out">  LD [M]  hello.ko</span>
+<span class="out">make[2]: Leaving directory &#x27;/build/hello&#x27;</span>
+<span class="out">make[1]: Leaving directory &#x27;/build/out-rpi-6.18&#x27;</span></code></pre></div>
+<p>The first command removes the objects of the Jetson build. The steps of the build are the same, and 6.18 adds one compile step, <code>.module-common.o</code>. Its build system also prints file names relative to the module directory. It enters two directories, because this kernel was built into a separate output directory.</p>
+<div class="callout note">
+<div class="title">
+<p>Note</p>
+</div>
+<p>On a Raspberry Pi the usual build runs on the board itself, with a plain <code>make</code>. The default <code>KDIR</code> then points at the headers of the running kernel. The container build above proves that the source compiles against 6.18. Section 2 shows why its <code>hello.ko</code> is still not the file to load on a board.</p>
+</div>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>The build prints <code>warning: the compiler differs from the one used to build the kernel</code>.</strong></p>
+<ul>
+<li>Cause: the compiler that builds the module is not the one that the configuration of the tree records.</li>
+<li>Fix: build the tree and its modules in the same container. The module still builds, and section 2's checks are not affected.</li>
+</ul>
+</div>
+<details class="more">
+<summary><b>More detail</b>: why the tree must be built, not only unpacked</summary>
+
+<ul>
+<li>The build reads generated headers, such as <code>include/generated/autoconf.h</code>. They exist only after the tree is configured and prepared.</li>
+<li><code>MODPOST</code> reads <code>Module.symvers</code>, the list of every symbol that the kernel exports. It exists only after the kernel itself is built.</li>
+<li>Without that list, <code>MODPOST</code> stops with one <code>undefined!</code> error for each kernel function that the module calls.</li>
+<li><span class="fileref" title="../../setup/canonical-commands.md#2-building-the-kernel-tree-the-oot-modules-and-virtcam">Section 2 of the canonical commands</span> builds the Jetson tree once.</li>
+</ul>
+</details>
+
+<h3 id="side-by-side" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kernel</td>
+<td>6.8, NVIDIA's <code>kernel-noble</code> tree</td>
+<td>6.18, the <code>raspberrypi/linux</code> tree</td>
+</tr>
+<tr>
+<td>Where the camera drivers are</td>
+<td>Out-of-tree modules, in NVIDIA's <code>nvidia-oot</code> tree</td>
+<td>In the kernel tree, under <code>drivers/media/</code></td>
+</tr>
+<tr>
+<td>The <code>Makefile</code> of an external module</td>
+<td>The two-part form</td>
+<td>The same file</td>
+</tr>
+<tr>
+<td>The usual build</td>
+<td>A cross build in the container, with <code>KDIR</code> set</td>
+<td>A build on the board, with the default <code>KDIR</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The second row is the reason that this lesson comes first. On a Jetson every camera driver is an external module, including NVIDIA's own. Lesson 04 covers that source tree.</p>
+<h2 id="2-the-kernel-checks-a-module-before-it-runs-it">2. The kernel checks a module before it runs it</h2>
+<p>A module runs inside the kernel, with no protection between the two. So a module that was built for another kernel must not load. The loader makes two checks before it runs a line of the module, and the build makes a third. Each check has its own error message.</p>
+<h3 id="the-version-string">The version string</h3>
+<p>Every module file carries a description of the kernel that it was built for. <code>modinfo</code> prints it:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> modinfo hello.ko</span>
+<span class="out">filename:       /build/hello/hello.ko</span>
+<span class="out">description:    Greet at load, say goodbye at unload</span>
+<span class="out">license:        GPL</span>
+<span class="out">depends:</span>
+<span class="out">name:           hello</span>
+<span class="out">vermagic:       6.8.12-1021-tegra SMP preempt mod_unload modversions aarch64</span>
+<span class="out">parm:           who:name to greet at load time (charp)</span></code></pre></div>
+<p>The <code>vermagic</code> line is the description. Its first field is the kernel release, the string that <code>uname -r</code> prints on the board. The other fields are the configuration options that change the interface between a module and the kernel. The kernel builds the string from this macro:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/include/linux/vermagic.h</span><span>lines 42–47</span></div><pre><code>#define VERMAGIC_STRING                         \
+    UTS_RELEASE &quot; &quot;                         \
+    MODULE_VERMAGIC_SMP MODULE_VERMAGIC_PREEMPT             \
+    MODULE_VERMAGIC_MODULE_UNLOAD MODULE_VERMAGIC_MODVERSIONS   \
+    MODULE_ARCH_VERMAGIC                        \
+    MODULE_RANDSTRUCT</code></pre></div>
+<p>At load time, the loader compares the string of the module with its own:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/kernel/module/main.c</span><span>lines 2091–2095</span></div><pre><code>    } else if (!same_magic(modmagic, vermagic, info-&gt;index.vers)) {
+        pr_err(&quot;%s: version magic &#x27;%s&#x27; should be &#x27;%s&#x27;\n&quot;,
+               info-&gt;name, modmagic, vermagic);
+        return -ENOEXEC;
+    }</code></pre></div>
+<p>So a mismatch fails the load with <code>ENOEXEC</code>. <code>insmod</code> reports <code>Invalid module format</code>, and the kernel log names both strings.</p>
+<p class="board pi"><strong>Raspberry Pi 5</strong> the module from the 6.18 build of section 1 carries a different string:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> modinfo -F vermagic hello.ko</span>
+<span class="out">6.18.60-v8-16k SMP preempt mod_unload modversions aarch64</span></code></pre></div>
+<p>The fields are the same and the release differs. So neither file loads on the other board. The release <code>6.18.60-v8-16k</code> also belongs to this build of the pinned tree. A kernel that a distribution installs has its own release string, and <code>uname -r</code> on the board prints it <em>(verified-on-target: pending)</em>.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong><code>insmod</code> fails with <code>Invalid module format</code>.</strong></p>
+<ul>
+<li>Cause: the <code>vermagic</code> of the file does not match the running kernel. <code>dmesg</code> shows <code>version magic '...' should be '...'</code>.</li>
+<li>Fix: compare <code>modinfo -F vermagic &lt;file&gt;.ko</code> with <code>uname -r</code>. Then rebuild with <code>KDIR</code> on a tree of the same release. Do not use <code>insmod --force</code>.</li>
+</ul>
+</div>
+<details class="more">
+<summary><b>More detail</b>: the second check, a CRC for each symbol</summary>
+
+<ul>
+<li>The word <code>modversions</code> in the string announces a second check. With <code>CONFIG_MODVERSIONS</code>, the kernel stores a CRC of the prototype of every exported symbol.</li>
+<li>A module stores the CRC of each symbol that it imports. The loader compares the two.</li>
+<li>A module whose CRCs differ is refused even when the strings match. The kernel logs <code>disagrees about version of symbol</code> for each such symbol.</li>
+<li>The compiler takes part in neither check.</li>
+</ul>
+</details>
+
+<h3 id="the-out-of-tree-mark">The out-of-tree mark</h3>
+<p>After the version check, the loader records where the module came from:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/kernel/module/main.c</span><span>lines 2016–2021</span></div><pre><code>    if (!get_modinfo(info, &quot;intree&quot;)) {
+        if (!test_taint(TAINT_OOT_MODULE))
+            pr_warn(&quot;%s: loading out-of-tree module taints kernel.\n&quot;,
+                mod-&gt;name);
+        add_taint_module(mod, TAINT_OOT_MODULE, LOCKDEP_STILL_OK);
+    }</code></pre></div>
+<p>The mark is a taint flag and not an error. The kernel stores it in <code>/proc/sys/kernel/tainted</code> and prints it in every crash report. So a report shows that code from outside the kernel tree was loaded. The message prints only for the first such module since boot.</p>
+<p>Here the two boards differ. On a Jetson, NVIDIA's camera and GPU modules are out-of-tree modules too. They set the flag during boot, so <code>hello.ko</code> loads without the message. On a Raspberry Pi, the drivers come from the kernel tree. So the first external module prints the message <em>(verified-on-target: pending, both boards)</em>.</p>
+<h3 id="the-license-decides-which-functions-a-module-may-call">The license decides which functions a module may call</h3>
+<p>The third check runs at build time. A kernel function that modules may call is exported in one of two ways: <code>EXPORT_SYMBOL</code> or <code>EXPORT_SYMBOL_GPL</code>. <code>MODPOST</code> refuses a module that calls a function of the second kind without a GPL-compatible license:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/scripts/mod/modpost.c</span><span>lines 1765–1767</span></div><pre><code>        if (!mod-&gt;is_gpl_compatible &amp;&amp; exp-&gt;is_gpl_only)
+            error(&quot;GPL-incompatible module %s.ko uses GPL-only symbol &#x27;%s&#x27;\n&quot;,
+                  basename, exp-&gt;name);</code></pre></div>
+<p>That rule applies to every camera sensor driver of both boards. The file <code>Module.symvers</code> of NVIDIA's tree shows how the entry point of its camera framework is exported:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> grep -w tegracam_device_register /build/work-l4t-r39.2.1/Linux_for_Tegra/source/nvidia-oot/Module.symvers | cut -f2,4</span>
+<span class="out">tegracam_device_register    EXPORT_SYMBOL_GPL</span></code></pre></div>
+<p>The function is GPL-only, and so is every other function of that framework. The registration function of a mainline sensor driver, <code>v4l2_async_register_subdev_sensor()</code>, is exported in the same way. So a sensor driver for either board declares a GPL-compatible license, or it does not build.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>The build stops in <code>MODPOST</code> with <code>GPL-incompatible module ... uses GPL-only symbol</code>.</strong></p>
+<ul>
+<li>Cause: the <code>MODULE_LICENSE()</code> string is not GPL-compatible, and the module calls an <code>EXPORT_SYMBOL_GPL</code> function.</li>
+<li>Fix: declare a GPL-compatible license.</li>
+</ul>
+</div>
+<h3 id="insmod-loads-one-file-modprobe-loads-its-dependencies">insmod loads one file, modprobe loads its dependencies</h3>
+<p>Two commands load a module. <code>insmod &lt;file&gt;.ko</code> loads one file and nothing else. <code>modprobe &lt;name&gt;</code> loads a module that is installed under <code>/lib/modules/$(uname -r)/</code>, and it loads the modules that it depends on first. It finds them in <code>modules.dep</code>, which <code>depmod -a</code> writes.</p>
+<p><code>hello.ko</code> depends on nothing: its <code>depends:</code> line above is empty. A sensor driver does depend on other modules. For example, virtcam calls into NVIDIA's framework, so its <code>depends:</code> line names the module <code>tegra-camera</code>.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong><code>insmod</code> of a sensor driver fails, and <code>dmesg</code> lists <code>Unknown symbol</code> lines.</strong></p>
+<ul>
+<li>Cause: <code>insmod</code> never loads dependencies, and the module that exports those symbols is not loaded.</li>
+<li>Fix: install the file under <code>/lib/modules/$(uname -r)/</code>, run <code>depmod -a</code>, and load it with <code>modprobe</code>.</li>
+</ul>
+</div>
+<details class="more">
+<summary><b>Source</b>: the line that the loader prints for each missing symbol</summary>
+
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/kernel/module/main.c</span><span>lines 1422–1423</span></div><pre><code>            pr_warn(&quot;%s: Unknown symbol %s (err %d)\n&quot;,
+                mod-&gt;name, name, ret);</code></pre></div>
+<p><span class="fileref" title="../../setup/canonical-commands.md#3-copying-artifacts-to-the-board-and-the-vermagic-check">Section 3 of the canonical commands</span> installs the modules of the course under <code>updates/</code> and runs <code>depmod -a</code> for this reason.</p>
+</details>
+
+<h3 id="side-by-side-1" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vermagic</code> of the container build</td>
+<td><code>6.8.12-1021-tegra SMP preempt mod_unload modversions aarch64</code></td>
+<td><code>6.18.60-v8-16k SMP preempt mod_unload modversions aarch64</code></td>
+</tr>
+<tr>
+<td>Message at the first external module</td>
+<td>None, because the flag is already set</td>
+<td><code>loading out-of-tree module taints kernel.</code></td>
+</tr>
+<tr>
+<td>License of a sensor driver</td>
+<td>GPL-compatible, because the framework is GPL-only</td>
+<td>GPL-compatible, because the V4L2 registration is GPL-only</td>
+</tr>
+<tr>
+<td>Installing a module</td>
+<td>Under <code>/lib/modules/$(uname -r)/</code>, then <code>depmod -a</code></td>
+<td>The same</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="3-a-driver-registers-and-the-bus-core-calls-probe">3. A driver registers, and the bus core calls probe</h2>
+<p>The <code>hello</code> module runs code at load and at unload, and nothing between. A driver has a different shape. At load it only announces itself. Its real work starts later, when the kernel finds a device for it. This section shows that shape on the smallest I2C driver.</p>
+<h3 id="the-toy-driver">The toy driver</h3>
+<p>The file <span class="fileref" title="examples/toy/toy_i2c.c"><code>examples/toy/toy_i2c.c</code></span> is a driver for an invented device. It keeps one private struct for the device, and it logs. It never transfers a byte on the bus:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/examples/toy/toy_i2c.c</span><span>lines 10–34</span></div><pre><code>struct toy {
+    struct i2c_client *client;
+};
+
+static int toy_probe(struct i2c_client *client)
+{
+    struct toy *priv;
+
+    priv = devm_kzalloc(&amp;client-&gt;dev, sizeof(*priv), GFP_KERNEL);
+    if (!priv)
+        return -ENOMEM;
+
+    priv-&gt;client = client;
+    i2c_set_clientdata(client, priv);
+
+    dev_info(&amp;client-&gt;dev, &quot;bound at address 0x%02x\n&quot;, client-&gt;addr);
+    return 0;
+}
+
+static void toy_remove(struct i2c_client *client)
+{
+    struct toy *priv = i2c_get_clientdata(client);
+
+    dev_info(&amp;priv-&gt;client-&gt;dev, &quot;unbound\n&quot;);
+}</code></pre></div>
+<p>The file has no <code>module_init()</code>. Its last lines replace it:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/examples/toy/toy_i2c.c</span><span>lines 48–57</span></div><pre><code>static struct i2c_driver toy_driver = {
+    .driver = {
+        .name = &quot;toy&quot;,
+        .of_match_table = toy_of_match,
+    },
+    .probe = toy_probe,
+    .remove = toy_remove,
+    .id_table = toy_id,
+};
+module_i2c_driver(toy_driver);</code></pre></div>
+<p><code>struct i2c_driver</code> is the announcement: a name, two match tables, and the two functions <code>probe</code> and <code>remove</code>. <code>module_i2c_driver()</code> generates the entry and the exit function of the module:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/include/linux/i2c.h</span><span>lines 952–954</span></div><pre><code>#define module_i2c_driver(__i2c_driver) \
+    module_driver(__i2c_driver, i2c_add_driver, \
+            i2c_del_driver)</code></pre></div>
+<p>So the generated entry function calls <code>i2c_add_driver()</code>, and the generated exit function calls <code>i2c_del_driver()</code>. Loading the module registers a driver with the I2C core. That is all. Registration is not probing, and no device is involved yet.</p>
+<p>The driver builds in the same way as <code>hello</code>:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> cd /build/toy</span>
+<span class="cmd"><span class="prompt">container$</span> make KDIR=/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble ARCH=arm64</span>
+<span class="out">make -C /build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble M=/build/toy modules</span>
+<span class="out">make[1]: Entering directory &#x27;/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble&#x27;</span>
+<span class="out">  CC [M]  /build/toy/toy_i2c.o</span>
+<span class="out">  MODPOST /build/toy/Module.symvers</span>
+<span class="out">  CC [M]  /build/toy/toy_i2c.mod.o</span>
+<span class="out">  LD [M]  /build/toy/toy_i2c.ko</span>
+<span class="out">make[1]: Leaving directory &#x27;/build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble&#x27;</span></code></pre></div>
+<p>The output has the four steps of section 1. The same source also builds against the 6.18 tree without a change, because both kernels have the same <code>probe</code> and <code>remove</code> signatures. The build scripts of the lesson prove it on every run.</p>
+<h3 id="probe-runs-when-a-device-and-a-driver-meet">probe runs when a device and a driver meet</h3>
+<p><code>probe()</code> needs two things: a registered driver and a device that the driver claims. The two arrive independently, and the kernel acts when the second one arrives. A board shows this with a device that is created by hand. The file <code>new_device</code> of an I2C bus creates a device from a name and an address:</p>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> sudo insmod toy_i2c.ko</span>
+<span class="cmd"><span class="prompt">orin$</span> echo toy-sensor 0x50 | sudo tee /sys/bus/i2c/devices/i2c-7/new_device</span>
+<span class="out">toy-sensor 0x50</span>
+<span class="cmd"><span class="prompt">orin$</span> sudo dmesg | tail -2</span>
+<span class="out">[ 2143.615482] toy 7-0050: bound at address 0x50</span>
+<span class="out">[ 2143.615561] i2c i2c-7: new_device: Instantiated device toy-sensor at 0x50</span></code></pre></div>
+<p>After the <code>insmod</code>, the log has no line from the driver: a driver exists and no device does. The <code>echo</code> creates the device, and the first log line is from <code>toy_probe()</code>. So the I2C core called <code>probe()</code> while it created the device. In the opposite order the result is the same. If the device is created first, <code>probe()</code> runs during the <code>insmod</code> <em>(verified-on-target: pending)</em>.</p>
+<p>Nothing is connected at address 0x50 of that bus. The driver still binds, because a device is an object of the kernel and not a proof of hardware. A real driver proves the hardware itself, inside <code>probe()</code>, with a first transfer. Section 7 shows a driver that does and a driver that does not.</p>
+<h3 id="driver-code-runs-in-the-context-of-its-caller">Driver code runs in the context of its caller</h3>
+<p>A driver is not a program and not a thread. It is a set of functions, and the kernel calls them at defined moments:</p>
+<ul>
+<li><code>probe()</code> runs in the context of the side that arrived second. That is boot code that created the device, or the <code>insmod</code> process that loaded the module.</li>
+<li>A system call on a device node of the driver, such as an <code>ioctl()</code>, runs inside the program that made the call.</li>
+<li>Between those calls nothing in the driver runs, unless the driver starts a kernel thread, a timer or an interrupt handler.</li>
+</ul>
+<p>The call of <code>probe()</code> is one line of the I2C core:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/i2c/i2c-core-base.c</span><span>lines 586–589</span></div><pre><code>    if (driver-&gt;probe)
+        status = driver-&gt;probe(client);
+    else
+        status = -EINVAL;</code></pre></div>
+<details class="more">
+<summary><b>More detail</b>: the older probe with two arguments</summary>
+
+<ul>
+<li>Before Linux 6.3, <code>probe()</code> of an I2C driver had a second argument, a <code>const struct i2c_device_id *</code>. Before 6.1, <code>remove()</code> returned an <code>int</code>.</li>
+<li>Both kernels of this course are newer. So <code>toy_i2c.c</code> has one form of each function.</li>
+<li>A driver that also supports older kernels selects the form at compile time. <code>virtcam.c</code> does so with two <code>#if</code> blocks around its signatures, which section 7 quotes.</li>
+<li>Lesson 16 — Porting the stack to JetPack 7.2.1 (Jetson Linux r39.2.1) covers the method behind those blocks.</li>
+</ul>
+</details>
+
+<h3 id="two-kinds-of-devices-i2c-and-platform">Two kinds of devices: I2C and platform</h3>
+<p>The toy device and a camera sensor are I2C devices. Their bus has addresses, and the kernel represents each device as a <code>struct i2c_client</code>. Other blocks of a camera pipeline are not on a bus of that kind.</p>
+<p>The CSI-2 receiver of an SoC, for example, is a block of registers in the memory map. The kernel calls such a block a <a href="../glossary.html#platform-device">platform device</a>. A platform driver registers with <code>module_platform_driver()</code> and gets its <code>probe()</code> call in the same way. Lesson 03, section 1, shows where the two kinds meet.</p>
+<h3 id="side-by-side-2" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>probe</code> and <code>remove</code> of an I2C driver</td>
+<td><code>int probe(client)</code>, <code>void remove(client)</code></td>
+<td>The same</td>
+</tr>
+<tr>
+<td><code>toy_i2c.c</code></td>
+<td>Builds unchanged</td>
+<td>Builds unchanged</td>
+</tr>
+<tr>
+<td>A bus for the experiment</td>
+<td><code>i2c-7</code>, pins 3 and 5 of the 40-pin header</td>
+<td><code>i2c-1</code>, pins 3 and 5 of the 40-pin header, after I2C is enabled</td>
+</tr>
+</tbody>
+</table></div>
+<p>The bus numbers of the last row are the usual ones for these boards. The lab verifies them on the board before it uses them.</p>
+<h2 id="4-a-compatible-string-joins-a-node-to-a-driver">4. A compatible string joins a node to a driver</h2>
+<p>Section 3 created a device by hand. A camera sensor is not created that way. Its device comes from the device tree, and one string pairs it with its driver. This section follows that string.</p>
+<h3 id="the-two-halves-of-a-match">The two halves of a match</h3>
+<p>The driver's half is a table of strings. The toy driver has two tables:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/examples/toy/toy_i2c.c</span><span>lines 36–46</span></div><pre><code>static const struct of_device_id toy_of_match[] = {
+    { .compatible = &quot;toy,sensor&quot; },
+    { }
+};
+MODULE_DEVICE_TABLE(of, toy_of_match);
+
+static const struct i2c_device_id toy_id[] = {
+    { &quot;toy-sensor&quot; },
+    { }
+};
+MODULE_DEVICE_TABLE(i2c, toy_id);</code></pre></div>
+<p>The first table serves devices from a device tree. <code>"toy,sensor"</code> follows the <code>vendor,device</code> convention of every compatible string. The second table serves devices that are created by name, and section 3 used it. The <code>i2c_driver</code> struct passes both tables to the I2C core, in <code>.of_match_table</code> and <code>.id_table</code>.</p>
+<p>The device's half is a node of the device tree, under the node of an I2C bus. The file <span class="fileref" title="examples/toy/toy-node.dts"><code>examples/toy/toy-node.dts</code></span> holds such a node for the toy driver:</p>
+<div class="codeblock"><div class="src"><b>this course</b><span class="path">01-kernel-modules-i2c-dt/examples/toy/toy-node.dts</span><span>lines 18–21</span></div><pre><code>        toy@50 {
+            compatible = &quot;toy,sensor&quot;;
+            reg = &lt;0x50&gt;;
+        };</code></pre></div>
+<p><code>compatible</code> is the string to match, and <code>reg</code> is the I2C address. Lesson 02 covers how a node of this kind reaches the kernel. This lesson needs one fact: when the I2C adapter probes, the I2C core creates one <code>i2c_client</code> for each child node.</p>
+<div class="fig"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIGRhdGEtZDItdmVyc2lvbj0iMC43LjEiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiIHZpZXdCb3g9IjAgMCA4NTEgODMyIj48c3ZnIGNsYXNzPSJkMi0yODM0MjQ0NTE0IGQyLXN2ZyIgd2lkdGg9Ijg1MSIgaGVpZ2h0PSI4MzIiIHZpZXdCb3g9Ii0xMyAtMTMgODUxIDgzMiI+PHJlY3QgeD0iLTEzLjAwMDAwMCIgeT0iLTEzLjAwMDAwMCIgd2lkdGg9Ijg1MS4wMDAwMDAiIGhlaWdodD0iODMyLjAwMDAwMCIgcng9IjAuMDAwMDAwIiBmaWxsPSIjRkZGRkZGIiBjbGFzcz0iIGZpbGwtTjciIHN0cm9rZS13aWR0aD0iMCIgLz48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwouZDItMjgzNDI0NDUxNCAudGV4dC1ib2xkIHsKCWZvbnQtZmFtaWx5OiAiZDItMjgzNDI0NDUxNC1mb250LWJvbGQiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTI4MzQyNDQ1MTQtZm9udC1ib2xkOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQkEwQUFvQUFBQUFHTGdBQWd1RkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1h4SFhybU50WVhBQUFBRlVBQUFBdWdBQUFRd0ZTUVliWjJ4NVpnQUFBaEFBQUFsUEFBQU10RXlYYkRSb1pXRmtBQUFMWUFBQUFEWUFBQUEyRzM4ZTFHaG9aV0VBQUF1WUFBQUFKQUFBQUNRS2Z3WHZhRzEwZUFBQUM3d0FBQUNzQUFBQXdGaG9CL0JzYjJOaEFBQU1hQUFBQUdJQUFBQmlXRFpWS20xaGVIQUFBQXpNQUFBQUlBQUFBQ0FBU0FEM2JtRnRaUUFBRE93QUFBTW9BQUFJS2dqd1ZrRndiM04wQUFBUUZBQUFBQjBBQUFBZy85RUFNZ0FEQWlvQ3ZBQUZBQUFDaWdKWUFBQUFTd0tLQWxnQUFBRmVBRElCS1FBQUFnc0hBd01FQXdJQ0JHQUFBdmNBQUFBREFBQUFBQUFBQUFCQlJFSlBBQ0FBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWjhBQUFBQUFmQUNsQUFBQUNBQUEzaWNqTTY3TGdNQUFJWGhyMXAxcS92OVhrVzFpSWpFNHJhdzJPMWlGRS9nZlhnQXM4SG9PWXhDdTBpc1J6UWRqTTV5bG0vNFVWQlVRRVhwOTlSVmxaUlYxVFR0MnJQdndLRmpKMDZkdVhEcHlyVmI5d2tkMS9qampycnV2T3R1M0NWNVUwenluYSswMDhwSDN0UE9aMXA1eVhPZThwckhQSFFxL3JPQ1RWc2FhdGFzV0ZXMWJzTzJwaDA5aWtwNjFaWDE2VGRnMEpDS1lTTkdqUmszWWRLVWFUTm16Wm0zWU5HU1pYNEFBQUQvL3dFQUFQLy96eUl3U1FBQWVKeGNWbWxzRzllMVB2ZHlHWXNhUytJeUhKTGlPcU9aSWJXUUlvZkQwVTVUb2hZcnBOWm55WTVwS1JZTVI3RzhQVnQ1bHZQc3BrQ2R1azFsdUkzYzFpblFwREFhdEEyY0lJWlJJRTJoRmczUXVFSFVYMDdxUDJuaW9rSFFwcWpMQkVSYkZCS25tQmxxeXcvcUNvTjd6em4zTzkvM25Rc21HQVBBYy9nR0dLQUthc0VHRklCb0RWazVVUkJZUWhabG1hVU5zb0NzeEJpMmxWLzVzUkF4UmlMR3h1RE53RE96c3lnL2cyOXNuRHljbjV2NzUyeG5aL21sWDd4VnZvYk92d1dBSUtxVWNDdStDZlVBSm9ibnBXUXFKU2FjTk1IekxHTTJVdzZubUVqSnRCa2RtWGgrOHNDMWlmU3gwSWhiWnB2M04wME5oZE91a1FreTk5MVRKMThjRjVrWjJwZVk2VDEydHNGZGVBSXc1QUZ3RGkrRFJhOVVURGlkbE1Oc1pnVXhrVXBKU1o1bjJmeWJ4MTRZSDd2K1JJdTNiVElhbld6ejR1WHM5Yk5uWHhpOEVDNk1qQnppUUswdkR3QVA4VElZdENqVy9BcGUzbGdFQkc0QWJNZkxRS2pmV1NsRXNkYTF1K2cvZDNIZHBVc2JSUUFBREkxS0NiMlAxc0VOTEFETnFKZVR0WHNSZ25aTHlzb0tyTmtzSjFLeXBOMzFWOW14S3l1WWpRVDJOVWl4aFk3WjQwc1dZMkJ3ajV1emozUUZ5T24weU1IYWtPQ2lqdm9hVHA4cmZ5SjYyWE8wZmRyUzVIUFJXcjZNVXNKT3ZBb09DR2hvQ2l6QldrV0swSkpwMXhjU0tTbkpNZ1RsZEtMK1VKL1BTSjVmTWZxeVROZkJXTmZzUVQ0MTFSeHhoTWxRVU1LcnQzTWVYOC8vNWc1Y1RDOE41TDdlOHA2dFJzT2pRU21oVmJRT25pLzNpMlcydTJWRzd2NHptYUgveTBZSHZmMXNVRXFuVzExUmV3YzNSWFkvUFRHNTJPMm5aMzI1ekw0OFZmdEVzRjdIU2xCS2FCMnZnaDJDbTFocGdRVkozSUVTWDBuelJlRk01Mnd5MHVZMnJ5eFpqSjRCN0JKczlpWUhtNHFSMzdvNC9uU1AxNVg3MlVaZjNNTXVPZHp2MldyNkJ2ZjNBOVpxL3hOYUIxY0ZuODBrS2pSRXlPa1VFMnJ0QmpHcFprR0J3WE85ZlNjN0I0L0VqTGo4d0RJUWwxSnhmdVlIZDRWbUprWDJMRTZNTDZiVEMxazdWNVVTUTRjOGZ0UVJrV0tnWWVRQ1FJdjRYWFZWdVNIdkpqVkZpUlJyZmJ5M3QyR3NMNUNzcTkvcklldjlodzZoeTZkTTlkSlVralNmTkpsQ3ZQOTgrV3NBQm1DVUZreWdkWWhCSnd4cnlQQlNVZ1ZDSlpPMGVRVmFwTmdLd1JsQjY0TktMNGZaYkZBYlhnSE5ydi9QTXJ5MjVZdU9tYlpCZTMzUTVZbDB6RWpOb1orUEVsWEpnN0l2WUdNaVk0V2oyVXZEUGtIdytRUWhrdGduY0tJN1JOWjMzL2UwTlhlRmpYdkRnZnBFbmRHV2Jlb2FEWk1MMVl5amZiakJVdXUwMnpyN3hQRW9lcmN4SWtUQzRVaGplYVhCVGRjWkRDNjMxNmRqazFHYnJYRlUxVk9GbTVTVnRXcFZFdGJNQ3VGOUxERytmOFVYOUlaZGVQWDJJWGZUd3BIeUdncWx3bTY2ZkFjVUJXUUErQ08rajNsb0JnQUNXdUQ1cmRoK3ZBcWtybFZSRmdrN0t4QlU1cnJ4aHo5Ni9aY3ZuMDNqMWZMcDM2NlZQL3pONERQcWZxV0ViSGdWYW5YR1dVWHJGb0YvbCt0Y3NWYVpDTE9ONU1qRGoyRjI0d0Z0UStpVWlkRHpHSHhvSFVKYUhsclV1N3ZySnNUV21sRTFQQkNYTXZiUWNIenNzUlZma0d0Vi84UlFjVitncFNuTXhEZXYxMXErVTFrMmNVTHJGWndxT1hiaXRHUXhCdk5iUUtGaTJ0K3lDeWVkN3hwM2FyL2tydHRXVUdFR2NxYlBaTE5uMHVuVDJlenBkRXMwMmhKdGFhbG90WHR4Y3VMcDdndjVmWm1jS2xuZFo0YXdFNjJESGZ3QTlIWjFHdjE0Z2FiczJ6YWoxdW5iTHp3KzN6V2JDblo1VEtOOGFxcXAwUkYrRS84MDdtRy9lZjdBVXJyZVBmb2QxTEJsTXFvWERLRjFMWDRRd0NUSld0aE5FWW15YURYczlBTDBsTm5keStpRzBLTTYyaWRiWnZEbTkzT3VnR1lJdm1CODR5QnEySGFEQ2wvUWRiUU90bDE5MUZXcUkxeWY0eW12eGJYWFhlZnRkcURpZENKdU1qMXJORVlTNVllQWdGSks2R1cwRG9MR0gwRldIVVNiTFVJVVM4bnRZSlREU2ZzeDVURGZqei9KOXpMcFFNanZpM3I4bmVHbkRyUlBCM285U1U5N094L3Nqc3lUZktEZ3JxZnRWcWZkUWphMFIvcW5CTmRCaDFOd3VXdXEyZlpvM3hGZFExYWxoRTdqUmFDMXJrb1NLOG15cUxyS0RnT0d3bWcyWjMzbXdnWFdSN290dEYwbVQweTllOHA4NWNyNWU0MmMyYmhnSnZWWVhVb0ovUnNWVlo3dDBvQzFZcnQvR04rLzRnOTZlZWZLVXJVaE1Fd3VIRUhKOHNkU3hPTkRRK1c2ZnE0WmtLbzNwS0FpN0FVUURTTHRkS3BReXJKb3VQdVRHL3NzZG91eHltN0pYTHVGaXA5eGVVSEljNStWNnpaOUVoZFJVZFBSem5NN0lyQUN6NnRsRU1TTlN5KzBtaTFtSTdHM1NuNjJyYXFXTUJKVlJPd2JGMjYzRUhzSkkxRk5OS1BpcDl3UXp3K3puMnJyRVBkcHVlNGRkaUFjSG1EZjBmTFZBS0FTS3Fxelc3UUxPOUlROUhhZW1wdlhYMnEyT0MzR1BiWTl6TTF2di9oU0swbVR4aXBIbFlEd296R3FpYUthcURIbDh3bXFtYUthbkJOcVhGTHBRUnVvcUtwc213ZXl2QXVLR3J6a0ROVjZDTnNlTG13aGZuMWpzTnBtTWU2eFZuVmR1MDIzamI1dE5wNUZwZ2FmQi8zNUEyYUFZd2ZaRDhyVlBRY2E5ZG5JS1NYME4zd1ZxaXM2MXJsRk9WUU42MjhaL2Fua1JIdU9YNzU4WFAyNXd6UWRkcnZDTGxlWWZQWFdyVmRldVhYcjFYUGN6UFIwZ1dFSzA5TXpuRnEzSHdCOWdxK0NGMENVZXJCdUI1VzNpYVptMVoxRmlodS9QQkNQTUxKckxEYVhUYzlJbllXa3E4djUxZi9KWDM2cUpSWVhQS01KTVhHNFd6cHpKbVV3WFZMajBrb0pQY1QvcjA3WlhiclFvdHRERkV0c1pmalh5RW0rMTVjTnh6dmFtcjJjcjllRzV2OWFIZUxsdzIyWkUyU1NPK0xoRXZIV1JJMnRFV1V1WGFodG5NNE9IRXRxdmV4V1N2QVBlQTJxTjE4TE9pTGY0MFdSNTBXUmxJU3dKSVVGU1g5ajlpQ0ExMVNkMDBJcUpUQU11K05JenQvV2diQVJzNmtVbjBnVzNoNXhaTGltTUI4ZHprd3NBYWp6UnN1RlBzZUN5bFNVQmJPNktvb2VkOWQzUnZ1ZVEzUG85L2gxNENHcXphY28vQjEwbml5aXZ5ajMxTGNrTFlVb0VuMjRQRGtKQ0lhVVBBcmpqMVg5MFBwZ3A3ViswbXZwL3Y1MFFVNGs1THRQZm5UbHlrZFA4a2NmTEp4NE1BY0lXcFU4cXF1Y0VUUVdxRGhURHZOeW9TMlJhQ3VrKy92djhuTVBUaXc4T01wclp4VUZHTGlGSHFFdk1BOHhXQVF6eEdCWnE0dUJlZlFJdDBJVkFNZEpIRVVRRkUyalIrVWtXbnZqNnRVMzV1OGN2M094STJhTWRlemVLMHV5TEFtQ1pLSVlkUnRhbTlkM1hieHpmR3ZXdy91b3VQbDJ6cXlnWXJrT2tQSWFib2RKZkYvdG5YVkhJN2hvbE9PaVVkemV5TEtONmsrTmtVTno4QkMvRGlZQXV5Q0lCSEhhWjdwaDhxRzVlODg5ZDArdEJ6blJJL1FWTllkZENsRU1Xa1BPK1hrQStDOEFBQUQvL3dFQUFQLy8rS0Nsb3dBQUFRQUFBQUlMaFlSbjFKMWZEenoxQUFFRDZBQUFBQURZWGFDRUFBQUFBTjFtTHpiK04vN0VDRzBEOFFBQkFBTUFBZ0FBQUFBQUFBQUJBQUFEMlA3dkFBQUltUDQzL2pjSWJRQUJBQUFBQUFBQUFBQUFBQUFBQUFBQU1IaWNOTXF4U3NOZ0dJWGg5enNCVVF6NkMxR1RKVU9JQ1BvYjNCUk1obThSaHdSY2hIZ3RIWG9IdlpNdVhYc0QzWHNyM1Z0U3lIQTR2UEJvd3k4NzBEZU5GZ3oyeHFCSW9WdGUxT0cycDFiSHN5Nm83WTljRDFUNndpM2pRelZ1Slo3ODQycHh2WjZ0VDk1V3VHMjV0eVYzK3FUVk5XbHlTUzV4b3l0U0JaNFVLQlY0dEVobmtXWitGZlIySUxXUkh4dDVWNkNhWnhrT3g3VkYrcWxQQUFBQS8vOEJBQUQvLzNOM0ZhUUFBQUFzQUN3QVdBQjhBSWdBbWdEU0FRUUJNQUZpQVpZQnZBSWtBa1lDVWdKcUFvWUN1QUxhQXdZRE5nTnFBNG9EeGdQc0JBNEVLZ1JpQkk0RXZnVHFCUllGU0FWZUJYNEZpZ1dXQmFJRnJnWElCZUlGN2dZRUJob0dKZ1k4Qmt3R1dnQUFBQUVBQUFBd0FKQUFEQUJqQUFjQUFRQUFBQUFBQUFBQUFBQUFBQUFFQUFONG5KeVV6MjRiVlJUR2YwNXMwd3JCQWtWVnVvbnVna1dSNk5oVVNkVTJLNGZVaWtVVUI0OExRa0pJRTgvNGp6S2VHWGttRHVFSldQTVd2RVZYUEFUUGdWaWorWHpzMkFYUkpvcVNmSGZ1K2ZPZGM3NXpnUjMrWnB0SzlTSHdSejB4WEdHdmZtNTRpd2YxRThQYnRPdGJocXM4cWYxcHVFWllteHV1ODNtdFovZ2ozbFovTS95QS9lcFBoaCt5VzIwYi9waG4xUjNEbjJ3Ny9qTDhLZnU4WGVBS3ZPQlh3eFYyeVF4dnNjT1BocmQ1aE1Xc1ZIbEUwM0NOejlnelhHY1A2RE9oSUdaQ3dnakhrQWtqcnBnUmtlTVRNV1BDa0lnUVI0Y1dNWVcrSmdSQ2p0Ri9mZzN3S1pnUktPS1lBa2VNVDB4QXp0Z2kvaUt2bEhObEhPbzBzN3NXQldNQ0x1UnhTVUNDSTJWRVNrTEVwZUlVRkdTOG9rR0RuSUg0WmhUa2VPUk1pUEZJbVRHaVFaYzJwL1FaTXlISDBWYWtrcGxQeXBDQ2F3TGxkMlpSZG1aQVJFSnVySzVJQ01YVGlWOGs3dzZuT0xwa3NsMlBmTG9SNFVzYzM4bTc1SmJLOWlzOC9ibzFacHQ1bDJ3QzV1cG5ySzdFdXJuV0JNZTZMZk8yK0ZhNDRCWHVYdjNaWlBMK0hvWDZYeWp5QlZlYWY2aEpKV0tTNE53dUxYd3B5SGVQY1J6cDNNRlhSNzZuUTU4VHVyeWhyM09MSGoxYW5OR253MnY1ZHVuaCtKb3VaeHpMb3lPOHVHdExNV2Y4Z09NYk9ySXBZMGZXbjhYRUluNG1NM1huNGpoVEhWTXk5YnhrN3FuV1NCWGVmY0xsRHFVYjZzamxNOUFlbFpaTzgwdTBad0VqVTBVbWhsUDFjcW1OM1BvWG1pS21xcVdjN2UxOXVRMXoyNzNsRnQrUWFvZEx0UzQ0bFpOYk1IcmZWTDEzTkhPdEg0K0FrSlFMV1F4SW1kS2c0RWE4endtNElzWnhyTzZkYUVzS1dpdWZNcytOVkJJeEZZTU9pZUxNeVBRM01OMzR4bjJ3b1h0bmIwa28vNUxwNWFxcSsyUng2dFh0ak42b2U4czczN29jclUyZ1lWTk4xOVEwRU5mRXRCOXBwOWI1Ky9MTjlicWxQT1dJbEpqd1h5L0FNenlhN0hQQUlXTmxHT2htYnE5RFV5OUVrNWNjcXZwTElsa05wZWZJSWh6Zzhad0REbmpKODNmNnVHVGlqSXRiY1ZuUDNlS1lJN29jZmxBVkMvc3VSN3hlZmZ2L3JMK0xhVk8xT0o2dVRpL3VQY1VuZDFEckY5cXoyL2V5cDRtVms1aGJ0TnV0T0NOZ1duSnh1K3MxdWNkNC93QUFBUC8vQVFBQS8vLzB0MDlSZUp4aVlHWUFnLy9uR0l3WXNBQUFBQUFBLy84QkFBRC8veThCQWdNQUFBQT0iKTsKfQouZDItMjgzNDI0NDUxNCAudGV4dC1pdGFsaWMgewoJZm9udC1mYW1pbHk6ICJkMi0yODM0MjQ0NTE0LWZvbnQtaXRhbGljIiwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsKfQpAZm9udC1mYWNlIHsKCWZvbnQtZmFtaWx5OiBkMi0yODM0MjQ0NTE0LWZvbnQtaXRhbGljOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQkJvQUFvQUFBQUFHWHdBQVJoUkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1cxU1ZlR050WVhBQUFBRlVBQUFBdWdBQUFRd0ZTUVliWjJ4NVpnQUFBaEFBQUFsNUFBQU5jQTRubFRsb1pXRmtBQUFMakFBQUFEWUFBQUEyRzdVcjJtaG9aV0VBQUF2RUFBQUFKQUFBQUNRTGVBalVhRzEwZUFBQUMrZ0FBQUMwQUFBQXdFK2ZCYmxzYjJOaEFBQU1uQUFBQUdJQUFBQmlYVnBhRUcxaGVIQUFBQTBBQUFBQUlBQUFBQ0FBU0FEMmJtRnRaUUFBRFNBQUFBTW1BQUFJTWdudFZ6TndiM04wQUFBUVNBQUFBQ0FBQUFBZy84WUFNZ0FEQWVFQmtBQUZBQUFDaWdKWS8vRUFTd0tLQWxnQVJBRmVBRElCSXdBQUFnc0ZBd01FQXdrQ0JDQUFBSGNBQUFBREFBQUFBQUFBQUFCQlJFSlBBQUVBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWk1BQUFBQUFlWUNsQUFBQUNBQUEzaWNqTTY3TGdNQUFJWGhyMXAxcS92OVhrVzFpSWpFNHJhdzJPMWlGRS9nZlhnQXM4SG9PWXhDdTBpc1J6UWRqTTV5bG0vNFVWQlVRRVhwOTlSVmxaUlYxVFR0MnJQdndLRmpKMDZkdVhEcHlyVmI5d2tkMS9qampycnV2T3R1M0NWNVUwenluYSswMDhwSDN0UE9aMXA1eVhPZThwckhQSFFxL3JPQ1RWc2FhdGFzV0ZXMWJzTzJwaDA5aWtwNjFaWDE2VGRnMEpDS1lTTkdqUmszWWRLVWFUTm16Wm0zWU5HU1pYNEFBQUQvL3dFQUFQLy96eUl3U1FBQWVKeDhWbXR3RytYVlB1ZVZ2T3VMZkpGV1dsbUtKVmxhYWRlV1Z4ZHJMYTF2a2l6TEY5bVc0bHZzT0JkZlFpQ0U0QThNK2ZKeGlmT1JRaWRKTXlWMVp5Z3pNTFNocFZ3S2Y1alE2VXhiQm1Zb016VUo2WlJPcGtNTFRBY0twazNLQUI2WEtVeXQ3ZXpLRnprLyttZG5aM2ZmYzg3em5QTThlNkFFdkFEa0x2SVk2S0FNcXNFRUZnQ0pjZXQwa2l4elZwMGtDQnhOeXdMRDBONkhjZm5oSi9YcC9aODBQUDIxNk5MM2YrdG5RLytZZTRrOHRqNlBwNmNmZWloLzROeHR0KzI5Y1NQdnh6L2VBQUJBYUZQV1NJQThCUzZBRWcvUFIxc1NSSXF3VnBybk9VOFZzWmhaVm9yRVpDdEZvV2ZvYUN5OC8xUzJkYlEyeHNUNDl0bHVyMmV3b3lGZHozbW5EZW43ZCtjZXU2OWY5amZXQy9GYjcrL3NtSTdXNzRxNEFnQkFnQU1nTWJJRVpjQ29sVXNSMW1LbUtFNlFJckZZdElYbk9PNlJCNy96Nk1URnV5Y25KeGJUdHgrT2thV3pEOXozODl1NjlqeCthUHFPUXAwY0FLeVJKZEJwRVhUY0k3c2ZJVXZyQzlxN2FRQVNKVXRBcSs4NDJVMXp1dWRPdkZhSlZ5cGZQMEZ5NmZUNks2RFZJU2hyK0M5Y0JiTWF6ZXJaQWl2SmtvNlRPWW9TSWpGWjNrTCtTbGRXSEp5UmhMaFJ6eVFPSlV2MTNKU0pIL2FLbGtpZE54MTFOUnNPVFBROWNGQnFjTWZ6OW93djFCVU0vWW4zK0FlbUk4bDRJWjlMV2NNdnlESlkxQTVhUGJ6QTBSd2owYlFVaTJrY1ZCRWhraUFxQXg2S3BsbjJ1aEEzNnN6SkN6bUJKZDQ5QVMxOTFKdU9Pc09ObmxFdWFKWU1EZTQ0V1g1dHp0RzBmMUpOM2VVZm1KWVNjYi92VTk0RENENWxEUy9oS3RUdFFLZTFrcUlzNXMxT3ZqdDhxNWc3RkJVNzJRRERPOEtUc2JiMitoanJzZWNNUjZaN2prK0VQTGF3MWRLemtPN3VzeHNqWnQ4V2QwUW93ckxOM1g4bnI5MmtxK0Z6U3h2czdmYmR6SjVRUC92YWV1dk45QkVOeSt1NENuYndGZWRUSjRkMlUxdFRxWk8wRVZJUmZqeDVSMkRvWUZoT09RMGwrVGZMNnROK1I1dlY2Umg5UWlFNlV5TVhuVEVjTzlTN01DWUdSeUoxVWxWeXhHY3pTaFlYK2lwcUsrdWFYUk9BMEFTQWo1SnJZTlhtS0VtME5tM3dSOU1TemVtYUpwSVZxWnJxM1hHNzM3U3JmSmZSM1ZocXZNVndlQUpmYUNzWkhSeXZySkRwOGtqVGVDSS9wWEtHaWhkWGNSVmNFQ3owWHk3VUxWTVV0M1A2S0VxM2c3MlhtaWM1YjExdlEyS3d5c2J2Q2NWSG1nWU9Odk1KbzQ1SkhtR090M0dqbmlhMnVZNUxTYzdRKzd3amF2Vmt1NDd5NHVSRStuLzNSZFI1MU0wZVFYZVQvL2U4cDdGdkt0elJVZENRQ3dEZkpjdGcwelMwUFllMGptTlVHbFdZT3RlRlhMaEczemdtSnFLbGlXeW5YcCtweXdSN3lmS05PQmRLdGJxOCtjc29tbXNyaC96Qi9BdUtvc2FFYjhnbHdvTUlBQlFFTXR1NVBpUExZQ2pvVmMzSGNBSk51eTdrNXNqWFUyK2MyRDI5WUNmTGVRZmlsZndubjkxN0VoQkVaUTIrSWN0Z1V0bUt0c2lNU296RnZOSHEvMGxSSjNPbkVJMDZpc1p5MXBBMDJzaWQ2OStueTNRbUpCMTYvVlplY2gxWHdWL0FXSUJvM1FCSzdVQmFEUHBRa3RiejQzeDdjMGxveWhlUDZmV0pYRnl2Nzdka3hGNlZnejQyMDlTTEt3UGVacmxCbEZLdFJxZTVtSWZ0dTIyZWNSVnFpMnU0bVdZMVkrTlljQWZMV29hYlNkNzJydmR3RmFyQlVheUhnb2tVYkxRZzhtdkRNK0xnVEdSNFZoeWE4UWRHcFZoRXZSaU9IdWc5UGhFc1hMdTZGM3E2KzlNTFBkMTlhbXpsSzBYQ0wzQzFvRzI2cU9JcXdtbXVSVE03ZktyOGZKTFMrU2FDbXNRamZDZERUSzVuaTMzcUtubWx5eFhZRUxqcjZFWEVEYVBpLytaemIrS1JOQy9XY3BiSXFvSGNwSW1kaWtDMzIwbDhVOEZpVHo1L3NkaFFybDY4anc5dFdmSjZEbkduSVJmNnNvaXJVRlBVRnl2TmIvYWpRdS9JQm15V1hUVjJiOVlWeDVWcE1WN1dVNXJzeUY4RlZQNnRyT0VwWEFXaFdNblJGbDVRLzVuRlJtRXhzMWJOcHFobm1xZHRZV3NYNzQ4M3RnYmJ4QUV4T0ZnWFpDUTMzeHlyVDdTRXh3d3REYnlySWNqWkJaYzkwZGlVOG5tZERXWjd3T1hrVFo1T01kRGpVMnZ1Vk5ad2lzeHZlWHBNVnAxSjB0eW95Tk4vMmRXaXg3YitpcXczdGV1azRWU2JyczVUWmE4dzFvUU15VUMxdlJKTmJTVm56aVR5MTAwbXA3TzhSS2FyMWRpdHlocCtqaXVxSDJ6RzNsWWNzMkhyTDIycEllUG9GM3V6Nm8rd1lZK2hXemE2R0l6bHJ6RTJkVXh4S204ZjVLU0NCanNBOEVOY2dVb0FWZmtzYTVWaWFrQjh1RC9yMVZONnZkSExmQytYWDhlVi9LZmNFT2NkOEtJdGJ5K2M3UU1ndjhVVmNOOTBkdnRPeCtsNFh1QW9pdGJkd1dWckVGRmZ2YXZtOUpDUkVOUlgyV3NleW53d1c2VTlkVlQvSDY3a1AvTDBlRHc5SG5RVzNkbXhuTXQ0dlJrdS94V2djZzBBLzFEZ2dXTUV5YnFSU3Bab0t5ZHM1S0xGUHgvWTdTK3RvdlhWOWRVVDQ4dUhoOFZTWTdtK3hzUE1JUGw0bmhVczVrYkwvRCsvdkpjTnNxeG9QUTZBeWh0S0NQK0tLMkFIb0xXWjBjeC9CeU5WaENxdnI3S1pUTDZVelRTZTVVdEtkWHFqei9UZGJQNGpXMGZtSFpwdUs0dEhPUHcwLzdrN3gzRlpEeHJYdnd6bHhJS0cvTW9hL282Y0I2UEtsblY3ZTl1NVdtanlXWTcwKy93RGM5RkluN2R4WUxaWlNMYzR4S0IyTmJRZVR1ejc4V0ovKytIRS9xZFA5c1Y3N2puWGs5N2JlOCs1bnU2OWdNcFhBUGdtT2E5aTRPU0Vic01FaEMyRG9OMTBlZW5jaFptUUZLMVBlUVJ4YjNoc3lqKzJPSTVtUTNEMDVDMzdnbUtuMnhYbUcvZjFSR2ZtRmpMZGFvOUI5VEx5LzFCZnJLWFlabWpHVFhQMHBtRlRyNlptSEJFMjFlclBpTWtXbDFqdkhzR215ciszR1AyMnpHejZMa015ME9odThlZWtSR2VOMFk2QjdsZExEUlBqMmJzTGVyY3FhM0FPNXFGaWM3NExNZnRZbTFESDF2b01kYXhkZExBMlVlM1ZoOHBCV0lKNTFSdFVkREpYZE1CY0VXcWpDZXZrSFBhNi9UOE5tanE5ZHRZbWVKMEQ2dnFwS0ZxZVpmeUFDT0NHTHJ3SEtMVWZpcUxGM1BuY28zMS9HbC9FeDhsRjROVzlBR2dJd3JOcXZjcjd5cmZ4WmVVWDZvNUx5MjdhVzRGdmxTOUdJaHFXbERLQ2U4bDdVQTFnTFZpT2JLVzAvZHo2WUsxYlBqb1lPRFpmWnE1NnVldVpzUk52L1hyYWRpYi9seDhGajh6eGF0eHJ5Z2hjM3pncnhFenF2cVNTcnRLTGdXTjNscG1xSTJxSWwrMW4wUDNEMEpGWm51bjZ5ZGlKeTc5U2F3M0RiL0F5dmtONENNRXhvQ0FFUDlEcUNjSlp2RXlxb0F6QTU0djZMRFJ0c1ZyeGN2NVdmT3JLcVZOWHpqN1gvbnhxSkt4dkhnYUVNSnpGdHd2ZnlsRlpqZ3BDdE1RU2ZudHg4VzE4Nm16M2NMTStQSko2dm4zci93MVhjV1Z6ejNjZHl0MkNLNW81SVBTVEliaEVMcW45WklyYWN6L2o1S3htQjBlR3JLek5YY3ZhNmdGVmp1RkxjaEZLQUJoVnlmUnBhL1VRNDhjWG56aDQ4QW0xSmd6aVpieGR6Y05FM1pZd1BvbkJ0allBK0E4QUFBRC8vd0VBQVAvL1UvREtCQUFBQUFBQkFBQUFBUmhSQzhuWitWOFBQUFVBQVFQb0FBQUFBTmhkb013QUFBQUEzV1l2Ti82OS90MElIUVBKQUFJQUF3QUNBQUFBQUFBQUFBRUFBQVBZL3U4QUFBaEEvcjM5dkFnZEErZ0F3di9SQUFBQUFBQUFBQUFBQUFBd2VKdzB6U0ZPeEZBVWhlSC8zRXBDUW9Jb1lLNG9wUWtRZ29TQVFRQVdoV01YTEtCcndMQUtGQnRvd0xDQXlvclhvTWRVTkNPYXVaTW5SbjA1NHVTM2QwNzVBenZqMWw2b1dLaTA0YzJPYWV3STF6ZTFsVFFhcVhYQ2hSMGkyOE5aNFJwdzFsd1dqdHMrYmdXTmxUSG5yMTV4ZmNTaVIrN3RnQnQxM05rdlQvcUtYbDM4S0hHdUZMTVNNRkV5eGJoVG43VDZqMEVWRDZxalYrSmFpYXRzN2dMUFRMUjVid0VBQVAvL0FRQUEvLyswVmpKOEFBQUFMZ0F1QUdBQWdnQ1FBS1FBM0FFVUFVSUJlZ0cwQWR3Q0pBSk9BbG9DZEFLV0F0Z0RBZ013QTJvRHBBUENBLzRFTEFSWUJIWUVzQVRjQlF3RlBnVm9CWndGc2dYUUJkd0Y2QVgwQmdJR0lBWStCa29HWUFaMkJvUUdtZ2FxQnJnQUFBQUJBQUFBTUFDTUFBd0FaZ0FIQUFFQUFBQUFBQUFBQUFBQUFBQUFCQUFEZUp5Y2xOdE9HMWNVaGo4SDIyMTZ1cWhRUkc3UXZreWxaRXlqRUNYaHlwU2dqSXB3Nm5GNmtLcEtnejAraVBITXlET1lraWZvZGQraWI1R3JQa2Fmb3VwMXRYOHZneDFGUVNBRS9IdjJPdnhyclg5dFlKUC8yS0JXdnd2ODNad2JyckhkL05ud0hiNW9IaG5lWUwvNW1lRTZEeHYvR0c0d2FMdzEzT1JCbzJ2NEU5N1YvelQ4S1UvcXZ4bSt5MWI5MFBEblBLNXZHdjV5dy9HdjRhOTR3cnNGcnNFei9qQmNZNHZDOEIwMitkWHdCdmV3bUxVNjk5Z3gzT0JydGcwMzJRWjZUS2hJbVpBeHdqRmt3b2d6WmlTVVJDVE1tREFrWVlBanBFMUtwYThac1pCajlNR3ZNUkVWTTJKRkhGUGhTSWxJaVNrWlc4UzM4c3A1cll4RG5XWjIxNlppVE15SlBFNkp5WERrak1qSlNEaFZuSXFLZ2hlMGFGSFNGOStDaXBLQWtna3BBVGt6UnJUb2NNZ1JQY1pNS0hFY0twSm5GcEV6cE9LY1dQbWRXZmpPOUVuSUtJM1ZHUmtEOFhUaWw4Zzc1QWhIaDBLMnE1R1AxaUk4eFBHanZEMjNYTGJmRXVqWHJUQmJ6N3RrRXpOWFAxTjFKZFhOdVNZNDFxM1AyK1lINFlvWHVGdjFaNTNKOVQwYTZIK2x5Q2VjYWY0RFRTb1Rrd3pudG1nVFNVR1J1NDlqWCtlUVNCMzVpWkFlcitqd2hwN09iYnAwYVhOTWo1Q1g4dTNReGZFZEhZNDVrRWNvdkxnN2xHS08rUVhIOTRTeThiRVQ2ODlpWWdtL1U1aTZTM0djcVk0cGhYcnVtUWVxTlZHRk41K3czNkY4VFIybGZQcmFJMi9wTkw5TWV4WXpNbFVVWWpoVkw1ZmFLSzEvQTFQRVZMWDQyVjdkKzIyWTIrNHR0L2lDWER2czFicmc1Q2UzWUhUZFZJUDNOSE91bjRDWUFUa25zdWlUTTZWRnhZVjR2eWJtakJUSGdicjNTbHRTMGI3MDhYa3VwSktFcVJpRVpJb3pvOURmMkhRVEdmZittdTZkdlNVRCtYdW1wNWRWM1NhTFU2K3VadlJHM1Z2ZVJkYmxaR1VDTFp0cXZxS212cmhtcHYxRU83WEtQNUp2cWRjdDV4R2g0aTUyKzBPdndBN1AyV1dQc2JMMGRUTy92UE92aExmWVV3ZE9TV1ExbEtaOURZOEoyQ1hnS2J2czhweW43L1Z5eWNZWkg3ZkdaelYvbXdQMjZiQjNiVFVMMnc3N3ZGeUw5dkhNZjRudGp1cHhQTG84UGJ2MU5CL2NRTFhmYU4rdTNzMnVKdWVuTWJkb1Y5dHhUTXpVYzNGYnF6VzUrd1QvQXdBQS8vOEJBQUQvLzNLaFVVQUFBQUFEQUFELzlRQUEvODRBTWdBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQSIpOwp9XV0+PC9zdHlsZT48c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWy5zaGFwZSB7CiAgc2hhcGUtcmVuZGVyaW5nOiBnZW9tZXRyaWNQcmVjaXNpb247CiAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKfQouY29ubmVjdGlvbiB7CiAgc3Ryb2tlLWxpbmVjYXA6IHJvdW5kOwogIHN0cm9rZS1saW5lam9pbjogcm91bmQ7Cn0KLmJsZW5kIHsKICBtaXgtYmxlbmQtbW9kZTogbXVsdGlwbHk7CiAgb3BhY2l0eTogMC41Owp9CgoJCS5kMi0yODM0MjQ0NTE0IC5maWxsLU4xe2ZpbGw6IzBBMEYyNTt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtTjJ7ZmlsbDojNjc2QzdFO30KCQkuZDItMjgzNDI0NDUxNCAuZmlsbC1OM3tmaWxsOiM5NDk5QUI7fQoJCS5kMi0yODM0MjQ0NTE0IC5maWxsLU40e2ZpbGw6I0NGRDJERDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtTjV7ZmlsbDojREVFMUVCO30KCQkuZDItMjgzNDI0NDUxNCAuZmlsbC1ONntmaWxsOiNFRUYxRjg7fQoJCS5kMi0yODM0MjQ0NTE0IC5maWxsLU43e2ZpbGw6I0ZGRkZGRjt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQjF7ZmlsbDojMEQzMkIyO30KCQkuZDItMjgzNDI0NDUxNCAuZmlsbC1CMntmaWxsOiMwRDMyQjI7fQoJCS5kMi0yODM0MjQ0NTE0IC5maWxsLUIze2ZpbGw6I0UzRTlGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQjR7ZmlsbDojRTNFOUZEO30KCQkuZDItMjgzNDI0NDUxNCAuZmlsbC1CNXtmaWxsOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5maWxsLUI2e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQUEye2ZpbGw6IzRBNkZGMzt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQUE0e2ZpbGw6I0VERjBGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQUE1e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQUI0e2ZpbGw6I0VERjBGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmZpbGwtQUI1e2ZpbGw6I0Y3RjhGRTt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1OMXtzdHJva2U6IzBBMEYyNTt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1OMntzdHJva2U6IzY3NkM3RTt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1OM3tzdHJva2U6Izk0OTlBQjt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1ONHtzdHJva2U6I0NGRDJERDt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1ONXtzdHJva2U6I0RFRTFFQjt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1ONntzdHJva2U6I0VFRjFGODt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1ON3tzdHJva2U6I0ZGRkZGRjt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CMXtzdHJva2U6IzBEMzJCMjt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CMntzdHJva2U6IzBEMzJCMjt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CM3tzdHJva2U6I0UzRTlGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CNHtzdHJva2U6I0UzRTlGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CNXtzdHJva2U6I0VERjBGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1CNntzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1BQTJ7c3Ryb2tlOiM0QTZGRjM7fQoJCS5kMi0yODM0MjQ0NTE0IC5zdHJva2UtQUE0e3N0cm9rZTojRURGMEZEO30KCQkuZDItMjgzNDI0NDUxNCAuc3Ryb2tlLUFBNXtzdHJva2U6I0Y3RjhGRTt9CgkJLmQyLTI4MzQyNDQ1MTQgLnN0cm9rZS1BQjR7c3Ryb2tlOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5zdHJva2UtQUI1e3N0cm9rZTojRjdGOEZFO30KCQkuZDItMjgzNDI0NDUxNCAuYmFja2dyb3VuZC1jb2xvci1OMXtiYWNrZ3JvdW5kLWNvbG9yOiMwQTBGMjU7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLU4ye2JhY2tncm91bmQtY29sb3I6IzY3NkM3RTt9CgkJLmQyLTI4MzQyNDQ1MTQgLmJhY2tncm91bmQtY29sb3ItTjN7YmFja2dyb3VuZC1jb2xvcjojOTQ5OUFCO30KCQkuZDItMjgzNDI0NDUxNCAuYmFja2dyb3VuZC1jb2xvci1ONHtiYWNrZ3JvdW5kLWNvbG9yOiNDRkQyREQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLU41e2JhY2tncm91bmQtY29sb3I6I0RFRTFFQjt9CgkJLmQyLTI4MzQyNDQ1MTQgLmJhY2tncm91bmQtY29sb3ItTjZ7YmFja2dyb3VuZC1jb2xvcjojRUVGMUY4O30KCQkuZDItMjgzNDI0NDUxNCAuYmFja2dyb3VuZC1jb2xvci1ON3tiYWNrZ3JvdW5kLWNvbG9yOiNGRkZGRkY7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUIxe2JhY2tncm91bmQtY29sb3I6IzBEMzJCMjt9CgkJLmQyLTI4MzQyNDQ1MTQgLmJhY2tncm91bmQtY29sb3ItQjJ7YmFja2dyb3VuZC1jb2xvcjojMEQzMkIyO30KCQkuZDItMjgzNDI0NDUxNCAuYmFja2dyb3VuZC1jb2xvci1CM3tiYWNrZ3JvdW5kLWNvbG9yOiNFM0U5RkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUI0e2JhY2tncm91bmQtY29sb3I6I0UzRTlGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmJhY2tncm91bmQtY29sb3ItQjV7YmFja2dyb3VuZC1jb2xvcjojRURGMEZEO30KCQkuZDItMjgzNDI0NDUxNCAuYmFja2dyb3VuZC1jb2xvci1CNntiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUFBMntiYWNrZ3JvdW5kLWNvbG9yOiM0QTZGRjM7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUFBNHtiYWNrZ3JvdW5kLWNvbG9yOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUFBNXtiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUFCNHtiYWNrZ3JvdW5kLWNvbG9yOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5iYWNrZ3JvdW5kLWNvbG9yLUFCNXtiYWNrZ3JvdW5kLWNvbG9yOiNGN0Y4RkU7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1OMXtjb2xvcjojMEEwRjI1O30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItTjJ7Y29sb3I6IzY3NkM3RTt9CgkJLmQyLTI4MzQyNDQ1MTQgLmNvbG9yLU4ze2NvbG9yOiM5NDk5QUI7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1ONHtjb2xvcjojQ0ZEMkREO30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItTjV7Y29sb3I6I0RFRTFFQjt9CgkJLmQyLTI4MzQyNDQ1MTQgLmNvbG9yLU42e2NvbG9yOiNFRUYxRjg7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1ON3tjb2xvcjojRkZGRkZGO30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItQjF7Y29sb3I6IzBEMzJCMjt9CgkJLmQyLTI4MzQyNDQ1MTQgLmNvbG9yLUIye2NvbG9yOiMwRDMyQjI7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1CM3tjb2xvcjojRTNFOUZEO30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItQjR7Y29sb3I6I0UzRTlGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmNvbG9yLUI1e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1CNntjb2xvcjojRjdGOEZFO30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItQUEye2NvbG9yOiM0QTZGRjM7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1BQTR7Y29sb3I6I0VERjBGRDt9CgkJLmQyLTI4MzQyNDQ1MTQgLmNvbG9yLUFBNXtjb2xvcjojRjdGOEZFO30KCQkuZDItMjgzNDI0NDUxNCAuY29sb3ItQUI0e2NvbG9yOiNFREYwRkQ7fQoJCS5kMi0yODM0MjQ0NTE0IC5jb2xvci1BQjV7Y29sb3I6I0Y3RjhGRTt9LmFwcGVuZGl4IHRleHQudGV4dHtmaWxsOiMwQTBGMjV9Lm1key0tY29sb3ItZmctZGVmYXVsdDojMEEwRjI1Oy0tY29sb3ItZmctbXV0ZWQ6IzY3NkM3RTstLWNvbG9yLWZnLXN1YnRsZTojOTQ5OUFCOy0tY29sb3ItY2FudmFzLWRlZmF1bHQ6I0ZGRkZGRjstLWNvbG9yLWNhbnZhcy1zdWJ0bGU6I0VFRjFGODstLWNvbG9yLWJvcmRlci1kZWZhdWx0OiMwRDMyQjI7LS1jb2xvci1ib3JkZXItbXV0ZWQ6IzBEMzJCMjstLWNvbG9yLW5ldXRyYWwtbXV0ZWQ6I0VFRjFGODstLWNvbG9yLWFjY2VudC1mZzojMEQzMkIyOy0tY29sb3ItYWNjZW50LWVtcGhhc2lzOiMwRDMyQjI7LS1jb2xvci1hdHRlbnRpb24tc3VidGxlOiM2NzZDN0U7LS1jb2xvci1kYW5nZXItZmc6cmVkO30uc2tldGNoLW92ZXJsYXktQjF7ZmlsbDp1cmwoI3N0cmVha3MtZGFya2VyLWQyLTI4MzQyNDQ1MTQpO21peC1ibGVuZC1tb2RlOmxpZ2h0ZW59LnNrZXRjaC1vdmVybGF5LUIye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmtlci1kMi0yODM0MjQ0NTE0KTttaXgtYmxlbmQtbW9kZTpsaWdodGVufS5za2V0Y2gtb3ZlcmxheS1CM3tmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNHtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1CNntmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQTJ7ZmlsbDp1cmwoI3N0cmVha3MtZGFyay1kMi0yODM0MjQ0NTE0KTttaXgtYmxlbmQtbW9kZTpvdmVybGF5fS5za2V0Y2gtb3ZlcmxheS1BQTR7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI4MzQyNDQ1MTQpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUE1e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yODM0MjQ0NTE0KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFCNHtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQjV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI4MzQyNDQ1MTQpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktTjF7ZmlsbDp1cmwoI3N0cmVha3MtZGFya2VyLWQyLTI4MzQyNDQ1MTQpO21peC1ibGVuZC1tb2RlOmxpZ2h0ZW59LnNrZXRjaC1vdmVybGF5LU4ye2ZpbGw6dXJsKCNzdHJlYWtzLWRhcmstZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6b3ZlcmxheX0uc2tldGNoLW92ZXJsYXktTjN7ZmlsbDp1cmwoI3N0cmVha3Mtbm9ybWFsLWQyLTI4MzQyNDQ1MTQpO21peC1ibGVuZC1tb2RlOmNvbG9yLWJ1cm59LnNrZXRjaC1vdmVybGF5LU40e2ZpbGw6dXJsKCNzdHJlYWtzLW5vcm1hbC1kMi0yODM0MjQ0NTE0KTttaXgtYmxlbmQtbW9kZTpjb2xvci1idXJufS5za2V0Y2gtb3ZlcmxheS1ONXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1ONntmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1ON3tmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjgzNDI0NDUxNCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5saWdodC1jb2Rle2Rpc3BsYXk6IGJsb2NrfS5kYXJrLWNvZGV7ZGlzcGxheTogbm9uZX1dXT48L3N0eWxlPjxnIGNsYXNzPSJibTlrWlE9PSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iNDEuMDAwMDAwIiB5PSIxMi4wMDAwMDAiIHdpZHRoPSIzMzguMDAwMDAwIiBoZWlnaHQ9Ijk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRjdGOEZFIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI2IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSIyMTAuMDAwMDAwIiB5PSI1MC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjIxMC4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+RGV2aWNlIHNpZGU6IGEgbm9kZSBpbiB0aGUgZGV2aWNlIHRyZWU8L3RzcGFuPjx0c3BhbiB4PSIyMTAuMDAwMDAwIiBkeT0iMTcuNjY2NjY3Ij4gPC90c3Bhbj48dHNwYW4geD0iMjEwLjAwMDAwMCIgZHk9IjE3LjY2NjY2NyI+Y29tcGF0aWJsZSA9ICYjMzQ7dG95LHNlbnNvciYjMzQ7OyAgcmVnID0gJmx0OzB4NTAmZ3Q7OzwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iWTJ4cFpXNTAiPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjEyLjAwMDAwMCIgeT0iMTgwLjAwMDAwMCIgd2lkdGg9IjM5Ni4wMDAwMDAiIGhlaWdodD0iODIuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjIxMC4wMDAwMDAiIHk9IjIxOC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjIxMC4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+VGhlIEkyQyBhZGFwdGVyIHByb2JlcyBhdCBib290LjwvdHNwYW4+PHRzcGFuIHg9IjIxMC4wMDAwMDAiIGR5PSIxOC41MDAwMDAiPlRoZSBJMkMgY29yZSBjcmVhdGVzIG9uZSBpMmNfY2xpZW50IHBlciBjaGlsZCBub2RlLjwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iWm1sc1pRPT0iPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjQyMC4wMDAwMDAiIHk9IjEyLjAwMDAwMCIgd2lkdGg9IjM5My4wMDAwMDAiIGhlaWdodD0iOTguMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjYxNi41MDAwMDAiIHk9IjUwLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNjE2LjUwMDAwMCIgZHk9IjAuMDAwMDAwIj5Ecml2ZXIgc2lkZTogYSBtb2R1bGUgZmlsZTwvdHNwYW4+PHRzcGFuIHg9IjYxNi41MDAwMDAiIGR5PSIxNy42NjY2NjciPiA8L3RzcGFuPjx0c3BhbiB4PSI2MTYuNTAwMDAwIiBkeT0iMTcuNjY2NjY3Ij50b3lfaTJjLmtvLCB3aXRoIGFuIGkyY19kcml2ZXIgYW5kIGl0cyBtYXRjaCB0YWJsZTwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iWkhKcGRtVnkiPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjQyNy4wMDAwMDAiIHk9IjE4MC4wMDAwMDAiIHdpZHRoPSIzNzguMDAwMDAwIiBoZWlnaHQ9IjgyLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRjdGOEZFIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI2IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI2MTYuMDAwMDAwIiB5PSIyMTguNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSI2MTYuMDAwMDAwIiBkeT0iMC4wMDAwMDAiPlRoZSBtb2R1bGUgbG9hZHM6IGluc21vZCwgbW9kcHJvYmUsIG9yIHVkZXYuPC90c3Bhbj48dHNwYW4geD0iNjE2LjAwMDAwMCIgZHk9IjE4LjUwMDAwMCI+aTJjX2FkZF9kcml2ZXIoKSByZWdpc3RlcnMgdGhlIGRyaXZlci48L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImJXRjBZMmc9Ij48ZyBjbGFzcz0ic2hhcGUiID48cGF0aCBkPSJNIDQxMyA1NTcgQyA0MTAgNTU3IDQwOSA1NTcgNDA3IDU1NyBMIDc5IDQ5NiBDIDc1IDQ5NSA3NSA0OTQgNzkgNDk0IEwgNDA3IDQzMyBDIDQxMSA0MzIgNDE2IDQzMiA0MTkgNDMzIEwgNzQ3IDQ5MyBDIDc1MSA0OTQgNzUxIDQ5NSA3NDcgNDk1IEwgNDE5IDU1NyBDIDQxNyA1NTcgNDE2IDU1NyA0MTMgNTU3IFoiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0NGRDJERCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1ONCIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNDEzLjAwMDAwMCIgeT0iNDkyLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDEzLjAwMDAwMCIgZHk9IjAuMDAwMDAwIj5UaGUgSTJDIGNvcmUgY29tcGFyZXMgdGhlIGNvbXBhdGlibGUgc3RyaW5nczwvdHNwYW4+PHRzcGFuIHg9IjQxMy4wMDAwMDAiIGR5PSIxOC41MDAwMDAiPndoZW4gdGhlIHNlY29uZCBzaWRlIGFycml2ZXM8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImNISnZZbVU9Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIxODAuMDAwMDAwIiB5PSI3MjguMDAwMDAwIiB3aWR0aD0iMjEzLjAwMDAwMCIgaGVpZ2h0PSI2Ni4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0Y3RjhGRSIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNiIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iMjg2LjUwMDAwMCIgeT0iNzY2LjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5iaW5kLCB0aGVuIHByb2JlKGNsaWVudCk8L3RleHQ+PC9nPjxnIGNsYXNzPSJibTl1WlE9PSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iNDEzLjAwMDAwMCIgeT0iNzI4LjAwMDAwMCIgd2lkdGg9IjI1Mi4wMDAwMDAiIGhlaWdodD0iNjYuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNGN0Y4RkUiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjYiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjUzOS4wMDAwMDAiIHk9Ijc2Ni41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+bm90aGluZzogbm8gcHJvYmUsIG5vIGxvZyBsaW5lPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0c1dlpHVWdMU1puZERzZ1kyeHBaVzUwS1Zzd1hRPT0iPjxtYXJrZXIgaWQ9Im1rLWQyLTI4MzQyNDQ1MTQtMzQ4ODM3ODEzNCIgbWFya2VyV2lkdGg9IjEwLjAwMDAwMCIgbWFya2VySGVpZ2h0PSIxMi4wMDAwMDAiIHJlZlg9IjcuMDAwMDAwIiByZWZZPSI2LjAwMDAwMCIgdmlld0JveD0iMC4wMDAwMDAgMC4wMDAwMDAgMTAuMDAwMDAwIDEyLjAwMDAwMCIgb3JpZW50PSJhdXRvIiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiPiA8cG9seWdvbiBwb2ludHM9IjAuMDAwMDAwLDAuMDAwMDAwIDEwLjAwMDAwMCw2LjAwMDAwMCAwLjAwMDAwMCwxMi4wMDAwMDAiIGZpbGw9IiMwRDMyQjIiIGNsYXNzPSJjb25uZWN0aW9uIGZpbGwtQjEiIHN0cm9rZS13aWR0aD0iMiIgLz4gPC9tYXJrZXI+PHBhdGggZD0iTSAyMTAuMDAwMDAwIDExMi4wMDAwMDAgTCAyMTAuMDAwMDAwIDE3Ni4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI4MzQyNDQ1MTQtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjgzNDI0NDUxNCkiIC8+PC9nPjxnIGNsYXNzPSJLR1pwYkdVZ0xTWm5kRHNnWkhKcGRtVnlLVnN3WFE9PSI+PHBhdGggZD0iTSA2MTcuMDAwMDAwIDExMi4wMDAwMDAgTCA2MTcuMDAwMDAwIDE3Ni4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI4MzQyNDQ1MTQtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjgzNDI0NDUxNCkiIC8+PC9nPjxnIGNsYXNzPSJLR05zYVdWdWRDQXRKbWQwT3lCdFlYUmphQ2xiTUYwPSI+PHBhdGggZD0iTSAzMDEuMTY0MjQ3IDI2My45OTk5OTkgTCAzMDEuMDAzNDc2IDQ0OS4wMDAwMDIiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI4MzQyNDQ1MTQtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjgzNDI0NDUxNCkiIC8+PHRleHQgeD0iMzAxLjAwMDAwMCIgeT0iMzYzLjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPmEgZGV2aWNlPC90ZXh0PjwvZz48ZyBjbGFzcz0iS0dSeWFYWmxjaUF0Sm1kME95QnRZWFJqYUNsYk1GMD0iPjxwYXRoIGQ9Ik0gNTI1LjgzNDc1NiAyNjMuOTk5OTk5IEwgNTI1Ljk5NjUwMyA0NDkuMDAwMDAyIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yODM0MjQ0NTE0LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI4MzQyNDQ1MTQpIiAvPjx0ZXh0IHg9IjUyNi4wMDAwMDAiIHk9IjM2My4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5hIGRyaXZlcjwvdGV4dD48L2c+PGcgY2xhc3M9IktHMWhkR05vSUMwbVozUTdJSEJ5YjJKbEtWc3dYUT09Ij48cGF0aCBkPSJNIDI4Ny4wMDI1OTEgNTM2Ljk5OTk5OCBMIDI4Ny4yNDQ4MTkgNzI0LjAwMDAwMyIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjgzNDI0NDUxNC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yODM0MjQ0NTE0KSIgLz48dGV4dCB4PSIyODcuMDAwMDAwIiB5PSI2MzcuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+ZXF1YWw8L3RleHQ+PC9nPjxnIGNsYXNzPSJLRzFoZEdOb0lDMG1aM1E3SUc1dmJtVXBXekJkIj48cGF0aCBkPSJNIDUzOS45OTc0MjMgNTM1Ljk5OTk5OCBMIDUzOS43NTUxNTUgNzI0LjAwMDAwMyIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjgzNDI0NDUxNC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yODM0MjQ0NTE0KSIgLz48dGV4dCB4PSI1MzkuNTAwMDAwIiB5PSI2MzcuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+ZGlmZmVyZW50PC90ZXh0PjwvZz48bWFzayBpZD0iZDItMjgzNDI0NDUxNCIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTEzIiB5PSItMTMiIHdpZHRoPSI4NTEiIGhlaWdodD0iODMyIj4KPHJlY3QgeD0iLTEzIiB5PSItMTMiIHdpZHRoPSI4NTEiIGhlaWdodD0iODMyIiBmaWxsPSJ3aGl0ZSI+PC9yZWN0Pgo8cmVjdCB4PSIyNzIuMDAwMDAwIiB5PSIzNDcuMDAwMDAwIiB3aWR0aD0iNTgiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjQ5OC4wMDAwMDAiIHk9IjM0Ny4wMDAwMDAiIHdpZHRoPSI1NiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMjY2LjAwMDAwMCIgeT0iNjIxLjAwMDAwMCIgd2lkdGg9IjQyIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI1MDkuMDAwMDAwIiB5PSI2MjEuMDAwMDAwIiB3aWR0aD0iNjEiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjwvbWFzaz48L3N2Zz48L3N2Zz4KCjwhLS0gZDItc291cmNlLXNoYTI1NjogMzY0M2M0NmRiZmU4NTI0MTBlMTU1NWQwMzUzNTIzZTM3MDRmYTI3ZGQ3N2YzNDgwNzcxYWU0OWU2ZTU3MTgxZCAtLT4K" alt="How a device and a driver meet. The device-tree node becomes an i2c_client when the adapter probes. The module registers an i2c_driver when it loads. The I2C core compares the compatible strings when the second side arrives."><div class="cap">How a device and a driver meet. The device-tree node becomes an i2c_client when the adapter probes. The module registers an i2c_driver when it loads. The I2C core compares the compatible strings when the second side arrives.</div></div>
+<p>The diagram is also a method. A driver that does not probe has one broken link in this chain, and debugging starts by finding that link.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong><code>modprobe</code> returns success, and <code>dmesg</code> has no line from the driver.</strong></p>
+<ul>
+<li>Cause: no match happened. Either the compatible strings differ, or the device-tree node does not exist.</li>
+<li>Fix: look under <code>/sys/bus/i2c/devices/</code>. If no entry with the expected bus and address exists, the device half is missing. If the entry exists and has no <code>driver</code> link, the strings differ.</li>
+</ul>
+</div>
+<h3 id="the-same-two-halves-in-the-camera-drivers">The same two halves in the camera drivers</h3>
+<p class="board jetson"><strong>Jetson</strong> the table of virtcam, and its node in the overlay of this repository:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 32–36</span></div><pre><code>static const struct of_device_id virtcam_of_match[] = {
+    { .compatible = &quot;course,virtcam&quot;, },
+    { },
+};
+MODULE_DEVICE_TABLE(of, virtcam_of_match);</code></pre></div>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay.dts</span><span>lines 114–116</span></div><pre><code>                        virtcam_a: virtcam@1a {
+                            compatible = &quot;course,virtcam&quot;;
+                            reg = &lt;0x1a&gt;;</code></pre></div>
+<p class="board pi"><strong>Raspberry Pi 5</strong> the table of the imx477 driver, and the node in the overlay of the Raspberry Pi kernel:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 2106–2110</span></div><pre><code>static const struct of_device_id imx477_dt_ids[] = {
+    { .compatible = &quot;sony,imx477&quot;, .data = &amp;imx477_compatible },
+    { .compatible = &quot;sony,imx378&quot;, .data = &amp;imx378_compatible },
+    { /* sentinel */ }
+};</code></pre></div>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">arch/arm/boot/dts/overlays/imx477_378.dtsi</span><span>lines 1–2</span></div><pre><code>cam_node: imx477@1a {
+    reg = &lt;0x1a&gt;;</code></pre></div>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">arch/arm/boot/dts/overlays/imx477-overlay.dts</span><span>lines 8–10</span></div><pre><code>&amp;cam_node {
+    compatible = &quot;sony,imx477&quot;;
+};</code></pre></div>
+<p>Both nodes have the address 0x1a, because both describe the same camera. The strings differ, because each string names a driver model and not only a chip. The Raspberry Pi table also has a second entry: one driver serves two sensors, and <code>.data</code> gives it the differences.</p>
+<h3 id="autoloading-uses-the-same-tables">Autoloading uses the same tables</h3>
+<p><code>MODULE_DEVICE_TABLE()</code> does not take part in the match. It copies the table into the module file, as aliases:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> modinfo -F alias toy_i2c.ko</span>
+<span class="out">of:N*T*Ctoy,sensorC*</span>
+<span class="out">of:N*T*Ctoy,sensor</span>
+<span class="out">i2c:toy-sensor</span></code></pre></div>
+<p>The first two aliases come from the device-tree table, and the third comes from the name table. <code>depmod</code> collects the aliases of every installed module in <code>modules.alias</code>. When the kernel creates a device, it sends an event with the alias of that device to userspace. udev answers with a <code>modprobe</code> of the module that claims the alias. That is how a sensor driver loads at boot without a command.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A driver probes after a manual <code>insmod</code>, and after a reboot it is absent with no error.</strong></p>
+<ul>
+<li>Cause: <code>MODULE_DEVICE_TABLE()</code> is missing. A second cause is a new file that was copied to the board without <code>depmod -a</code>.</li>
+<li>Fix: add the macro, and run <code>depmod -a</code> after every install.</li>
+</ul>
+</div>
+<h3 id="side-by-side-3" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Compatible of the course's sensor node</td>
+<td><code>course,virtcam</code></td>
+<td><code>sony,imx477</code></td>
+</tr>
+<tr>
+<td>Compatible of the stock IMX477 driver</td>
+<td><code>ridgerun,imx477</code></td>
+<td><code>sony,imx477</code></td>
+</tr>
+<tr>
+<td>Address of the camera</td>
+<td>0x1a</td>
+<td>0x1a</td>
+</tr>
+<tr>
+<td>Source of the node</td>
+<td>An overlay that the bootloader applies</td>
+<td>An overlay that the firmware applies</td>
+</tr>
+</tbody>
+</table></div>
+<p>The second row holds a fact that returns in later lessons. The two stock drivers for the same sensor claim different strings. So the device-tree node of one board does not match the driver of the other.</p>
+<h2 id="5-three-structs-bus-device-private-state-framework-device">5. Three structs: bus device, private state, framework device</h2>
+<p>The toy driver has two structs: the <code>i2c_client</code> that the bus core made, and its own <code>struct toy</code>. It is not useful yet, because no program can reach it. A useful driver joins a kernel framework, the layer that gives a class of devices one interface to userspace. That adds a third struct, and the three together are the pattern of this lesson.</p>
+<h3 id="an-input-driver-as-the-first-example">An input driver as the first example</h3>
+<p>The SparkFun Qwiic joystick driver of the kernel shows the pattern in 146 lines. It reads a joystick over I2C and reports it through the input framework, the layer behind <code>/dev/input/event*</code>. Its private struct holds one pointer to each of the other two structs:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/input/joystick/qwiic-joystick.c</span><span>lines 28–32</span></div><pre><code>struct qwiic_jsk {
+    char phys[32];
+    struct input_dev *dev;
+    struct i2c_client *client;
+};</code></pre></div>
+<p>Its probe allocates the private struct, links the three objects, and registers later:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/input/joystick/qwiic-joystick.c</span><span>lines 78–94</span></div><pre><code>    priv = devm_kzalloc(&amp;client-&gt;dev, sizeof(*priv), GFP_KERNEL);
+    if (!priv)
+        return -ENOMEM;
+
+    priv-&gt;client = client;
+    snprintf(priv-&gt;phys, sizeof(priv-&gt;phys),
+         &quot;i2c/%s&quot;, dev_name(&amp;client-&gt;dev));
+    i2c_set_clientdata(client, priv);
+
+    priv-&gt;dev = devm_input_allocate_device(&amp;client-&gt;dev);
+    if (!priv-&gt;dev)
+        return -ENOMEM;
+
+    priv-&gt;dev-&gt;id.bustype = BUS_I2C;
+    priv-&gt;dev-&gt;name = &quot;SparkFun Qwiic Joystick&quot;;
+    priv-&gt;dev-&gt;phys = priv-&gt;phys;
+    input_set_drvdata(priv-&gt;dev, priv);</code></pre></div>
+<p>The first lines repeat the toy driver: an allocation, a pointer to the client, and <code>i2c_set_clientdata()</code>. Then <code>devm_input_allocate_device()</code> asks the framework for its object, the <code>struct input_dev</code>. The last line, <code>input_set_drvdata()</code>, stores the private struct on that object.</p>
+<p>The links run in both directions for a reason. A callback receives only one of the three objects, and it must reach the others. The polling callback, for example, receives the input device:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/input/joystick/qwiic-joystick.c</span><span>lines 45–47</span></div><pre><code>static void qwiic_poll(struct input_dev *input)
+{
+    struct qwiic_jsk *priv = input_get_drvdata(input);</code></pre></div>
+<h3 id="the-three-roles">The three roles</h3>
+<ul>
+<li>The <strong>bus device</strong> is the kernel's handle to the device on its bus: <code>struct i2c_client</code>. The bus core creates it, and a driver never allocates one.</li>
+<li>The <strong>private state</strong> belongs to the driver. Probe allocates it. It holds the way to the other two structs, and everything that the driver must keep between calls.</li>
+<li>The <strong>framework device</strong> makes the hardware a member of a framework: an input device for the joystick, a V4L2 subdevice for a camera sensor.</li>
+</ul>
+<h3 id="one-driver-file-for-both-kernels">One driver file for both kernels</h3>
+<p>The joystick driver is part of both kernel trees. A comparison shows how much it changed between 6.8 and 6.18:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> diff /build/work-l4t-r39.2.1/Linux_for_Tegra/source/kernel/kernel-noble/drivers/input/joystick/qwiic-joystick.c /build/work-rpi-6.18/linux/drivers/input/joystick/qwiic-joystick.c</span>
+<span class="out">129,130c129,130</span>
+<span class="out">&lt;   { KBUILD_MODNAME, 0 },</span>
+<span class="out">&lt;   { },</span>
+<span class="out">---</span>
+<span class="out">&gt;   { KBUILD_MODNAME },</span>
+<span class="out">&gt;   { }</span></code></pre></div>
+<p>Two lines of the name table changed their style, and no line of logic changed. A driver that uses only the interfaces of the kernel tree stays valid across kernels in this way. Section 6 shows a driver that does not have that property.</p>
+<details class="more">
+<summary><b>More detail</b>: why the joystick driver has no remove()</summary>
+
+<p>The private struct is allocated with <code>devm_kzalloc()</code>, and the input device with <code>devm_input_allocate_device()</code>. Section 8 explains the <code>devm_</code> prefix. The input core documents the effect:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">kernel/kernel-noble/drivers/input/input.c</span><span>lines 2063–2065</span></div><pre><code> * Managed input devices do not need to be explicitly unregistered or
+ * freed as it will be done automatically when owner device unbinds from
+ * its driver (or binding fails). Once managed input device is allocated,</code></pre></div>
+</details>
+
+<h3 id="side-by-side-4" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qwiic-joystick.c</code></td>
+<td>In <code>kernel-noble</code>, 146 lines</td>
+<td>In the Raspberry Pi tree, 146 lines, two lines of style differ</td>
+</tr>
+<tr>
+<td>Its framework</td>
+<td>The input core of the kernel</td>
+<td>The same</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="6-the-same-pattern-in-two-camera-sensor-drivers">6. The same pattern in two camera sensor drivers</h2>
+<p>A camera sensor driver has the three roles of section 5. Its framework is V4L2, and its framework device is a <code>struct v4l2_subdev</code>, a <a href="../glossary.html#v4l2_subdev">subdevice</a>. The two boards differ in how the driver reaches V4L2, and that changes where the structs are.</p>
+<h3 id="where-each-driver-keeps-its-subdevice">Where each driver keeps its subdevice</h3>
+<p>One search in each driver shows the difference:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">host$</span> grep -n -m1 &#x27;struct v4l2_subdev&#x27; virtcam/virtcam.c</span>
+<span class="out">47: struct v4l2_subdev  *subdev;</span>
+<span class="cmd"><span class="prompt">container$</span> grep -n -m1 &#x27;struct v4l2_subdev&#x27; /build/work-rpi-6.18/linux/drivers/media/i2c/imx477.c</span>
+<span class="out">1023:   struct v4l2_subdev sd;</span></code></pre></div>
+<p>The Jetson driver holds a pointer to a subdevice. The Raspberry Pi driver holds the subdevice itself, by value. The two private structs show why.</p>
+<p class="board jetson"><strong>Jetson</strong> the private struct of virtcam is four pointers and no data:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 45–50</span></div><pre><code>struct virtcam {
+    struct i2c_client   *i2c_client;
+    struct v4l2_subdev  *subdev;
+    struct camera_common_data *s_data;
+    struct tegracam_device  *tc_dev;
+};</code></pre></div>
+<p class="board pi"><strong>Raspberry Pi 5</strong> the private struct of imx477 starts with the subdevice, and its state follows:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 1022–1030</span></div><pre><code>struct imx477 {
+    struct v4l2_subdev sd;
+    struct media_pad pad[NUM_PADS];
+    struct regmap *regmap;
+
+    unsigned int fmt_code;
+
+    struct clk *xclk;
+    u32 xclk_freq;</code></pre></div>
+<details class="more">
+<summary><b>Source</b>: the whole of <code>struct imx477</code></summary>
+
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 1022–1071</span></div><pre><code>struct imx477 {
+    struct v4l2_subdev sd;
+    struct media_pad pad[NUM_PADS];
+    struct regmap *regmap;
+
+    unsigned int fmt_code;
+
+    struct clk *xclk;
+    u32 xclk_freq;
+
+    struct gpio_desc *reset_gpio;
+    struct regulator_bulk_data supplies[IMX477_NUM_SUPPLIES];
+
+    struct v4l2_ctrl_handler ctrl_handler;
+    /* V4L2 Controls */
+    struct v4l2_ctrl *pixel_rate;
+    struct v4l2_ctrl *link_freq;
+    struct v4l2_ctrl *exposure;
+    struct v4l2_ctrl *vflip;
+    struct v4l2_ctrl *hflip;
+    struct v4l2_ctrl *vblank;
+    struct v4l2_ctrl *hblank;
+
+    u64 link_freq_value;
+    u16 iop_pll_mpy;
+
+    /* Current mode */
+    const struct imx477_mode *mode;
+
+    /* Trigger mode */
+    int trigger_mode_of;
+
+    /*
+     * Mutex for serialized access:
+     * Protect sensor module set pad format and start/stop streaming safely.
+     */
+    struct mutex mutex;
+
+    /* Streaming on/off */
+    bool streaming;
+
+    /* Rewrite common registers on stream on? */
+    bool common_regs_written;
+
+    /* Current long exposure factor in use. Set through V4L2_CID_VBLANK */
+    unsigned int long_exp_shift;
+
+    /* Any extra information related to different compatible sensors */
+    const struct imx477_compatible_data *compatible_data;
+};</code></pre></div>
+<ul>
+<li>The members after the subdevice are the state of a complete sensor driver. They are the clock, the regulators, the reset line, the controls, the current mode and a lock.</li>
+<li>virtcam has none of them, because a userspace program configures its sensor.</li>
+</ul>
+</details>
+
+<p>On the Raspberry Pi, the sensor driver calls V4L2 directly. It owns the subdevice, so it embeds it.</p>
+<p>On the Jetson, a sensor driver does not call V4L2 directly. It calls <strong><a href="../glossary.html#tegracam">tegracam</a></strong>, NVIDIA's framework for sensor drivers, and tegracam calls V4L2. tegracam adds two objects of its own: a handle, <code>struct tegracam_device</code>, and a context for each sensor, <code>struct camera_common_data</code>. The subdevice is embedded in that context. So the driver can only point at it.</p>
+<div class="fig"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIGRhdGEtZDItdmVyc2lvbj0iMC43LjEiIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaW5ZTWluIG1lZXQiIHZpZXdCb3g9IjAgMCAxMDkzIDE0MzQiPjxzdmcgY2xhc3M9ImQyLTI2ODc2NjY2MzggZDItc3ZnIiB3aWR0aD0iMTA5MyIgaGVpZ2h0PSIxNDM0IiB2aWV3Qm94PSItMjUgLTI1IDEwOTMgMTQzNCI+PHJlY3QgeD0iLTI1LjAwMDAwMCIgeT0iLTI1LjAwMDAwMCIgd2lkdGg9IjEwOTMuMDAwMDAwIiBoZWlnaHQ9IjE0MzQuMDAwMDAwIiByeD0iMC4wMDAwMDAiIGZpbGw9IiNGRkZGRkYiIGNsYXNzPSIgZmlsbC1ONyIgc3Ryb2tlLXdpZHRoPSIwIiAvPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+PCFbQ0RBVEFbCi5kMi0yNjg3NjY2NjM4IC50ZXh0IHsKCWZvbnQtZmFtaWx5OiAiZDItMjY4NzY2NjYzOC1mb250LXJlZ3VsYXIiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTI2ODc2NjY2MzgtZm9udC1yZWd1bGFyOwoJc3JjOiB1cmwoImRhdGE6YXBwbGljYXRpb24vZm9udC13b2ZmO2Jhc2U2NCxkMDlHUmdBQkFBQUFBQkRRQUFvQUFBQUFHWHdBQWd1RkFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQlBVeTh5QUFBQTlBQUFBR0FBQUFCZ1hkL1ZvMk50WVhBQUFBRlVBQUFBcmdBQUFPd0V1d1VMWjJ4NVpnQUFBZ1FBQUFuM0FBQU5zSWNOZDJOb1pXRmtBQUFML0FBQUFEWUFBQUEyRzRVZTMyaG9aV0VBQUF3MEFBQUFKQUFBQUNRS2hBWHlhRzEwZUFBQURGZ0FBQUN2QUFBQXdGTHBDTHRzYjJOaEFBQU5DQUFBQUdJQUFBQmlXVnBXV20xaGVIQUFBQTFzQUFBQUlBQUFBQ0FBU0FEMmJtRnRaUUFBRFl3QUFBTWpBQUFJRkFiRFZVMXdiM04wQUFBUXNBQUFBQjBBQUFBZy85RUFNZ0FEQWdrQmtBQUZBQUFDaWdKWUFBQUFTd0tLQWxnQUFBRmVBRElCSXdBQUFnc0ZBd01FQXdJQ0JHQUFBdmNBQUFBREFBQUFBQUFBQUFCQlJFSlBBRUFBSVAvL0F1Ny9CZ0FBQTlnQkVTQUFBWjhBQUFBQUFlWUNsQUFBQUNBQUEzaWNmTTI3TGtNQkFJZnhYM3ZxWGxYM2V4MzNGcE1RaWRWRU9vakJLaDdESTVrbEVoYTdwK0FGWEdiRFgzSmk5cTIvNFVOTm9ZYW1oamQwdEJWYVNqMEhEaDA3Y2VyTWhiNHIxMjdjSlNoMUt6LzY4M045bDVYZkpubFh6MCsrODVYUGZPUWx6M25LWXg3eW12dnE5bDgxZS9idDJyUmwyNDZ1dWtMRGdFRkRobzNvR1RXbWFWekxoTFpKVTZiTm1EVm4zb0pGUzVhdFdOV3hwclJ1ZzE4QUFBRC8vd0VBQVAvL216Y25zQUFBZUp4MFYzMXNHK1VaZjk3WEYxOVMyMGt1OXZuc3hJNTlkNG5QY1Q2YytHeGZFanZuSm5ZY043RVR4MDZhT0duVHI3VHAxeW9hQmwwcEt4dVVsazBheXdZU2FDQkFnbWxpR3FJTUNhalFOSzFzSTl2NEdJanhvVkhFTmlsVXdCOGp5ejRreUhtNnMvT2xhWCs5a2ZPK3o4ZnYrZjErancwVlVBREFJZndnNktBS2FxQU9hQUNSWXFsbVZoQjRVaElsaVdkMGtvQW9zb0ErVkpZUTJoTWt3bUdpYStDemdmTjMzWVdtTCtJSDEwLzNYbHBZK00zY3VYUEs5MVp1S2dIMHhrMUFFQ3l1NFFiOEtEZ0JLamlQSnhRTWg4V0FsU0U5SHA3VDYybUwxU29Hd2hLajE2TmM3dHNqNlV2NTZENUhlLzJBVDk0dkJtWmwvN0NyUXpoc0hILzQxTW1IYzEzdXNJUHJ2ejJYT3ovZzVZTHRBUUJBTUFNQXorQWwwS24xaXRSTUhpK3Qzd0lJWE1VMTlCMjhCRFVBRENkSVdwb1FKVklXdmY2ZEM3MVJhemNmQ2s0MFo0MG5mQUxmUDRKZVZicTY1NlJTUFBRYVhvS0tVanlXbnNrakYxNWFmM0VJQUFDci84Y0d2QVFHc0dnM0FsWXJiZEh6UEVXcENZSWVucDk1ZWZpTWZQbjA2Y043ODFONzUvQlMwMlJxWVY3NUNxWDZrME9TRmlOWW5NVzM0a2ZCQkQ2QTVrQlllOGRwWUZSd0hxRURsMUZTSSt2SkxZVFNrYW5PazlQVEp6dW5rVzcyRHVmUTZlalFYYm44eFZUdjhTUXpHYkp5cHRxYVFFLzh3c1FkOTk5L3g4U0YrRWVGK0s3cEh4NDg4ZEQ0K0VNbjVwWUt4dGEyQ21LM3ZtcXpEemRlZ21wZ3R2VkJtbm5kOWxaZWp4K1BaQk0vbVh2czNKbE1McGM1ZzVmNDhVUjZQNlg4RmRIS1o2Z1EyOTBmQkcwT2FsQWRYZ0lUZ0tnVHpWWXJJNGJEa2xuVXZmMTI0VVJkZzVtb2MxQW5KditJbDVUSGVvLzI5aDd0UllmWGI5R3dXRVBQb1ZXb2h5WjFVaXBCcEtCR0RsTFFRS0FwWHVEMWVpRVFsa0lhWWE3M2pYLy9FYXJWNnh0MnVya2p2WVZzZ3RSeDQxWmU1czhmQ2hqMzlHY25LVmMzNzdiMFdGdStOcXU4Mit2d0RYQ3VLelZSZjBzellNZ1YxOUNYZUJuTTROWVlLZkFrVDRrMFdjcGwwUktWeGtIU1ZpdHE0ZmE0ZGVSQURyTmozZ09ISXdlUzBiSElvR3MzNzQ0WldXY0FMMStmZGdxWHorWnZsd2NYWnJKSE9IZlJ3WlR3NkNpdW9XZlJLamorSCs4M2hscTMrM2kwLzVUY09XajMwWDVuMjZDUWozTzkxaVkyYTR3dVpuT0xVWTRKbTIzK3llNzhndE1pT1ZsMWR2N2lHdnBnbzRjU1pscHdJU1J1Z0NXRk5oUDlaL1pNNUpEa2s5MUVQa0hxSEduNzdxaXJwMUdJZVpMR2U4K1AzU28zMXVkZlh1L3VjYlFNeGhVSDQ4OTNUeDBCck5YL2U3UUtObkR0NkVBbENidEpTUjJyUVlXWS9wTnliRjdhZnhSaDVhV0txU1FmYVhDNnh2NkFpRmlQT0c3c1d4ekxMc3AzSGpmWnF6TDdhQ3BzYVVTZTRjeVlobE1qQUlyaGQwcCt3NGVrVUxDTUU4L1J0RWp6MU1HQmdjRTlqSysycnNHUldGaEFUOG9WbWVHcEtqSm1uTXZFbGYwQW9JUDJvaHQ5amxhaEMvb2dzOG1pa0dmYm9RVVZhYjZrS1o0VFNqTW96MXdYMkpLZ3VjeDl6bE82ODYvQ0xSNjJ6czZaYlVKZ29zdlNaSHA2bm1JNnN3R0JNOVUxZDgxTlRrYlBwSDE5MGRiV2FGODRPU0g2SjZyWjJucmJ5TWVKbUt2SFNoaThEbGVIaWJBa1drT2pQcklpVmh0eUJkTXRsS0hCd2pSS2ZlMXBQM291RmdwRm82RlFUTG12ejhQVkU0VFpSd3NkR2pZNUFQUWVYaTQ3elFaSEtaNHE4WlBLNVhSOEpwQVp5clYxTmtlYThmTDFlZFovYUwveUdtcEp5SjVtNVFrb0ZtRVFBSjdITDJBUHRBR0FIdHJ2QklCaXNmaCtVWUNmYTU5M2xENi9BSnM1Vi9BeUdFditKNXBGMHN3TEpKMGIxNzA1KytTMW1mdG44YkxTaU9BVjVjYW5KNzlWZmxOY2cvZnhjc2xyUFpyTGJoRGs2WTZXWEhVVlFaS0dTcXV4SjRTUHJUOW9waENTQ2FLVUMzK0JWb0hWY3FtR29VNXBSNWZrNXBsTGtEcDN1clU3VnVNWmJSdlprMnZyQ0NkeWJmNXdBcTBrZVg5WFcwdHdvL1VSNVlueXNZRWhXaTFqV002eEhjTUVxZU5ITjBIVWd1M0FzS3lGdjZOVnFJR0dIVnJZNlJlMHhZcHFJZ3V4MkVJa2Vpd1dPeGFOWlRJeGVYUzByT1BvWWk2N0dFMHM1Q2VPSDUvSUw0RG1SU0w2RXEyV2RieFZuY1pRajhEUTV1MWVwRmJLanJYT0hZNGM2T2JpSEQ2bldWR3NpWlZmeDg5M083eFh6dVp1bHh2cko1OUMraDFlcFBxRmlEN1l5Rk1Sa3JUd202S1FSRXEzM1MvUVpjSTU0aXVaeG00V1Z3Njh1V2tZcno4ejdmQnFwdUYwZHF4bmtIN0xNVGE0TTRkV2dkcUdkZG54U2tEYlV5MU9wdFpvcVhIRjdXaGx1aU84SzBVUUFWbFpMdkhJVVZ4RDk2QlZkU3N5bkdkamFRYzk1Wlc0NVovcXBtUWFzUXJVVzhFNXZzV2RhTzNzWk1VR2JzQlhHR3NmZFhqdFlYZEhhMk5uQTU5b2J4a3pDZzdKenJhNzdCeXp5OFNHV2lKamJpWm90dmtjakpNMm1GaXBReGp3YXZsdHhUVTBpTStvRzFIak1SK1NKRkV6b1UwK2Z6YmFsMHJ2R3J6bkh0Wm5halRXV3Z6R21SUXl5UlgzM1JkWFZ0dTdxZ2laTkdpeFJvcHI2QTIwb3ZKdWh5YW9za1YvbkVubFd6czlFVTdGaFVzYkQrMUhRZVc5aEN5MG9vSlNuL1oyQWxJMWlGNUZLLys3VTE5K2RuS2ZnVEVRQm1iWHZ2R2ZvUlhsODZZVXo2ZWFrRVdwVi9zQXdDK2dGVTFYMjk5dGk4RHJQQjYxREZMMytKV0pWR1UxU1ZUV1ZvMWswMVZVSlZGWlF3Nk4zajJmcktxcElpcHJkeVhRaXZJSkYrZTRPSWZzMi82cVJ4Vjhvcmw1a0ZlK0FnVFZBT2dxV2dFN2dDZ0pJbE5PSllra3d3dmxYR1QxNHc4VStnMDJFMkd3R2lKN0gzaXNNR1NxcnlaTU51T0Fjdk9VMldleCtNeW52dmpuV1dzYlRiY3laelVjalVXL2hrSERkazVJMGc0NHF2Rk1yZE5ZVzJtcGFnblhHRjZaUEdLd0d3aURaZGRVOWtYS1AvaVdudWpIRlpIMkp2U0o4ZzlYaW1OVGJtUmFYKzFNdDZ2eG13RFFyL0YzMWZoaVNNWmx1UW1iUWxSTlY2UzlCeThubzMzZWhNUHZuWlVMeCtLM3BldTc3ZGU2RHY3Z05sRkt0cnY5YmFHRnllaUZLMk9ZR0FLczhoLzlDVitFS25YNmtxaHVJYlY5YzRnTklkWEllZnI0TW9FSVkzMjFxUHdGVWZ1bXBsYXYxYWZzVEJ1akJLK0cwY1BLMXdldXFyWFppMnZvVi9oaWVjdHY2VUdyME16U1BMbGxRNSttNTFtdk05MGRHUitXV2IrempVYXhmMU5NaDFNcWhQc09HOE5zMk5FK0ZoOFl0cGdkU0J6NmhiRzZkWHB3OEZDZ3BMczJsV2Y0b3NZekdVdHNpS1dyZGVSemVpRVRVNjZqUjNwU1hndnhqVjgrUFRVa3B1Njk4cVA5Mmh0L2NTLzhGaGFoRG9BUndtRkJ6NVU4cFFSYjNOTGFpYkFlMi9nbXU3czUrZE5PYzh5TG5JNEdWN0I5OXlGMS8wQi9jUTFlUW4vR0F2Z0IwQW5RcTZjMjc3dlJ6ZUkxOWZzOEUySnBJL3J3b2lScE95YUxxdkNIYW8xTWFiRXptbHN4NzhySnBDejI5dlQwWGoxNjQ5S2xqK1p0QjI0c0x0NDRBQWc4eFN6Y0tMOFJ0Ry9aS29hMFJWL1E3b3R5TW5tMWZOczIvOUdsU3pkS0hnWlBvWldOM3hPNUhGcFJOVlg4SFI0R0NiOEFCZ0JxVzZNMmw4dG1jN253c05OdWEyeTAyWjBBU051dFAwWXI1WDI0NDhlSDI5cHNvcXBzcGlaYkx2cEJaWVdzcXhEYnNIUDliOFBUZ0VxWXdLS2FnOW1XNDV0Mm5yZmJlTjdJTnpoNTN0bkF3MzhCQUFELy93RUFBUC8vRFVIalZ3QUFBUUFBQUFJTGhSLzF1N3RmRHp6MUFBTUQ2QUFBQUFEWVhhQ2hBQUFBQU4xbUx6YitPdjdiQ0c4RHlBQUFBQU1BQWdBQUFBQUFBQUFCQUFBRDJQN3ZBQUFJbVA0Ni9qb0lid0FCQUFBQUFBQUFBQUFBQUFBQUFBQUFNSGljSEkweFM4TlFHRVhQL1RLNEJNRXRnc1NBUVJBMWJ3bUNpSU9Eazl1MytmeE43dTcrRCtlNHVMaDA3TlMxZlZEU1pFcEp0Z3YzSEk1OThrNEg5a1NyRTZMV1hHcER0QWVpZmRIYUk5RXkwRUJyTjdnNkdyc2xhRWVqbWxJRDkxYmg5THh5bUZiYTRreDQ5b3piRlc3bHd2dmlmT0Q2NWtKT1lSVnYraWUzUHdyOWNEcHZKV29senBRNFYrS09rY0RJaS9ia0NyZ0MxL1E0VEw5emEvNk9BQUFBLy84QkFBRC8vM2kxS3RZQUFBQUFMQUFzQUZ3QWFBQ0VBSlFBdGdENEFTQUJQQUYwQWFnQjFnSUlBandDWGdMS0F1d0MrQU1FQXg0RE9nTnNBNDREdWdQdUJDSUVRZ1NDQktnRXlnVG1CU0FGVEFWOEJhWUZ5Z1grQmhnR09BWkVCbEFHYWdhRUJwQUdwZ2JDQnRnQUFBQUJBQUFBTUFDTUFBd0FaZ0FIQUFFQUFBQUFBQUFBQUFBQUFBQUFCQUFEZUp5Y2xOMU9HMWNVaFQ4SDIyMVVOUmNWaXNnTk9wZHRsWXpkQ0tJRXJrd0ppbFdFVTQvVEg2bXFOSGpHUDJJOE0vSU1VS28rUUsvN0ZuMkxYUFU1K2hCVnI2dXp2QTAycWhTQkVMRE9uTDMzV1dldnRRK3d5YjlzVUtzL0JQNXEvbUM0eG5aenovQURIaldmR3Q3Z3VQRzM0ZnBLVElPNDhadmhKbDgyK29ZLzRuMzlEOE1mczFQLzJmQkR0dXBIaGovaGVYM1Q4S2Niam44TVAyS0g5d3RjZzVmOGJyakdGb1hoQjJ6eWsrRU5IbU0xYTNVZTB6YmM0RE8yRFRmWkJnWk1xVWlaa2pIR01XTEttSFBtSkpTRUpNeVpNaUloeHRHbFEwcWxyeG1Sa0dQOHYxOGpRaXJtUktvNG9jS1JFcElTVVRLeGlyOHFLK2V0VGh4cE5iZTlEaFVUSWs2VmNVWkVoaU5uVEU1R3dwbnFWRlFVN05HaVJjbFFmQXNxU2dKS3BxUUU1TXdaMDZMSEVjY01tRENseEhHa1NwNVpTTTZJaWtzaW5lOHN3bmRtU0VKR2Fhek95WWpGMDRsZm91d3V4emg2RklwZHJYeThWdUVwanUrVTdibmxpdjJLUUw5dWhkbjZ1VXMyRVJmcVo2cXVwTnE1bElJVDdmcHpPM3dyWExHSHUxZC8xcGw4dUVleC9sZXFmTXE1OUkrbFZDWW1HYzV0MFNHVWcwTDNCTWVCMWwxQ2RlUjd1Z3g0UTQ5M0RMVHUwS2RQaHhNR2RIbXQzQjU5SEYvVDQ0UkRaWFNGRjN0SGNzd0pQK0w0aHE1aWZPM0Urck5RTE9FWENuTjNLWTV6M1dOR29aNTc1b0h1bXVpR2QxZll6MUMrNW81U09VUE5rWTkwMGkvVG5FV016UldGR003VXk2VTNTdXRmYkk2WTZTNWUyNXQ5UHcwWE5udkxLYjRpMXd4N3R5NDRlZVVXakQ2a2FuRExNNWY2Q1lpSXlUbFZ4SkNjR1MwcXJzVDdMUkhucERnTzFiMDNtcEtLem5XT1ArZEtMa21ZaVVHWFRIWG1GUG9ibVc5QzR6NWM4NzJ6dHlSV3ZtZDZkbjJyKzV6aTFLc2JqZDZwZTh1OTBMcWNyQ2pRTWxYekZUY054VFV6N3llYXFWWCtvWEpMdlc0NXoraVRTUFZVTjdqOURqd25vTTBPdSt3ejBUbEQ3VnpZRzlIV085SG1GZnZxd1JtSm9rWnlkV0lWZGdsNHdTNjd2T0xGV3MwT2h4elFZLzhPSEJkWlBRNTRmV3RuWGFkbEZXZDEvaFNidHZnNm5sMnZYdDVicjgvdjRNc3ZORkUzTDJOZjJ2aHVYMWkxRy8rZkVESHpYTnpXNnAzY0U0TC9BQUFBLy84QkFBRC8vd2RiVERBQWVKeGlZR1lBZy8vbkdJd1lzQUFBQUFBQS8vOEJBQUQvL3k4QkFnTUFBQUE9Iik7Cn0KLmQyLTI2ODc2NjY2MzggLnRleHQtYm9sZCB7Cglmb250LWZhbWlseTogImQyLTI2ODc2NjY2MzgtZm9udC1ib2xkIiwgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZjsKfQpAZm9udC1mYWNlIHsKCWZvbnQtZmFtaWx5OiBkMi0yNjg3NjY2NjM4LWZvbnQtYm9sZDsKCXNyYzogdXJsKCJkYXRhOmFwcGxpY2F0aW9uL2ZvbnQtd29mZjtiYXNlNjQsZDA5R1JnQUJBQUFBQUJEWUFBb0FBQUFBR1dRQUFndUZBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUJQVXk4eUFBQUE5QUFBQUdBQUFBQmdYeEhYcm1OdFlYQUFBQUZVQUFBQXJnQUFBT3dFdXdVTFoyeDVaZ0FBQWdRQUFBbjNBQUFOZ0xEZUJiOW9aV0ZrQUFBTC9BQUFBRFlBQUFBMkczOGUxR2hvWldFQUFBdzBBQUFBSkFBQUFDUUtmd1h2YUcxMGVBQUFERmdBQUFDeUFBQUF3RmpqQnc1c2IyTmhBQUFOREFBQUFHSUFBQUJpVjc1VXhtMWhlSEFBQUExd0FBQUFJQUFBQUNBQVNBRDNibUZ0WlFBQURaQUFBQU1vQUFBSUtnandWa0Z3YjNOMEFBQVF1QUFBQUIwQUFBQWcvOUVBTWdBREFpb0N2QUFGQUFBQ2lnSllBQUFBU3dLS0FsZ0FBQUZlQURJQktRQUFBZ3NIQXdNRUF3SUNCR0FBQXZjQUFBQURBQUFBQUFBQUFBQkJSRUpQQUNBQUlQLy9BdTcvQmdBQUE5Z0JFU0FBQVo4QUFBQUFBZkFDbEFBQUFDQUFBM2ljZk0yN0xrTUJBSWZ4WDN2cVhsWDNleDMzRnBNUWlkVkVPb2pCS2g3REk1a2xFaGE3cCtBRlhHYkRYM0ppOXEyLzRVTk5vWWFtaGpkMHRCVmFTajBIRGgwN2Nlck1oYjRyMTI3Y0pTaDFLei82ODNOOWw1WGZKbmxYejArKzg1WFBmT1FsejNuS1l4N3ltdnZxOWw4MWUvYnQyclJsMjQ2dXVrTERnRUZEaG8zb0dUV21hVnpMaExaSlU2Yk5tRFZuM29KRlM1YXRXTld4cHJSdWcxOEFBQUQvL3dFQUFQLy9temNuc0FBQWVKeHNWMzFzRytVWmY5N1g5bDNqWEpQWTUvUFpUdng1OFoyZER5ZjIrWHo1ZHAwNEgwM3RmSzVwMmlZTmpVb2JtamJ0MnBRRzJvNUpGTFl4VjdDNXNJSTJRTk1RVEN0SXFKdkVtTUkweE1jUVRKcFVXUC9ob3dOVU1kQTJnNktOYWNuZGRHY25UZEQrU0Y3cGZPL3pQTy92K2YxK3ozdGdnaEVBUElzdmd3SEtvQktzd0FDSUZyOGxLQW9DUjhxaUxIT3NRUmFRaFJ6QlZ1V1pYd2hoWXpoc3JQTmQ4ZDQ3TTRPeUIvRGx0V1A3czdPei81cHBiMWVlL08zTHlpVjArbVVBQkJGMUJUZmpLMUFOWUFyd3ZCUlBKTVNZblNWNW5nc1FCR096aTdHRXpCSm9ldXloOGQyWHhwS0gvRU5PbVd2WVdUOHhFRW82aHNhb3pLUEhqejArS2dZT3NPN1lnZTVESjJ1ZFUzY0FnaXdBM01RNU1HaDFpcFpzSHVmV0ZnRkJsYnFDcnVFY1ZBR3dBVjZRN1ZvQ3lTSmFiQVR4OGVEaHdDRnJzek1VempkTVUrM3RnMzVmTklXZVZiTEp1UzRveGtRZjR4eVlpakg5VERhUE1NNnRGYzREQUdEdGQ5eU1jMENCVFg4alpyY3pOb0xnT01ZaXhxUTR6M0habXdObit2b1dlMGNIbG5aMHBIRk9tQnJPekRaOWdNYm14THBpaklnNmlKL0dWNkFjZUlCZ0xLRnRDMmc0b0FBdmJPQ2p4U1h0Sld3SU5ORXpOTlRUTXpTRVhFY2U0ZVl1N0hwZ2N2S0JYU2RuMk9Fd0U2eHdXZHVQblptYlhWaVluVHVqZkhobnh2N0NRL09QRGc4L2R2VCtYMVVIUEtSeHZteDdxZlp4bklNS1lEZlZUdEtjb0ZlZktKYi9SZStwZEZLNi9NeUYwVXhiWjJkYkJ1ZUNrME1EMDZ6eTN5KytRSGRFbTV0NUFLVCtCd0NMT0FmYkFVU0RTTnZ0ckpoSXlMUm9lT1gxbnc1VnNwWEdDa2RGOXJIWGNFNzVzM1E0a1Rnc29lYTFSY0JRcDY2Z2Q5RXFPSUhUdXlQRkU3TE9BMUxRVDgxWU9JRWpDRG1Xa0NXZEc2K2tSeTdtTVJmMjdxaVZtdWJiWmc0dm1ZM2UvbTNPSUQzVTRhWDJKSWNtSy8yQ2d6bm9ybDA0cFh3cTFuQ25XSHFQdWQ3dFlIV3NVK29LdHVObHNJRlhaNS9Ba1p4RlpNZ05pQWxCT3pnWElCbTdIZlg2ZTl4RzZuVGU2RTRIT2lhYk9tWW0rY1JFUTlnV292dytDUzlmemJqY1hkL083TDRudWRTWGViRHhiV3NGYUp5cFZWZlFNbG9GMXpmNVhlenFlZ2VkdlNkU0EzZW5JLzAxdlp4UFNpYWJIUkc2TFRoQmRaNFpHMS9zOUxBejdreHFSNWFwdk1OWFhlU0pvSzZnVmJ3TU5QaldzZElEQzVLNENTVytsT2FycVJQdE0vRndpNVBJTDVtTnJqN3NFS3gwdlkxTE5GRS92R2YwVEZlTkkvUEx0WjZvaTF1eU9kKzJWdlQwNyt3RnJOZitWN1FLamhJK1c5am4xK2luMVc0UWRZb2liLytwN3A1ajdmM1RUVWFzM0REM1JhVkVsRC93eERXaElaQ2d1aGJIUmhlVHlmazBIU3hMaVA2OUxnOXFDMHROb0dQa0FFQ0wrQzF0RlMyY0pHODFBWVlSR2M2eXI3dTdkcVRIRzYrcTN1NmlxajE3OTZJTHgwM1Ywa1NjSW82WlRIN2VjMXE1SDhBQUFiVVJrMmdWbXFBZEJuVmtlQ211QWFHUlNWby9BaXN5WEVtY0FVSHZnMFl2RzBFWU5pbU9MckUrd091dmZOVjJvS1dmcnZZNVhPRzJBMUtEL3pmRFpGbDhVblo3cllId3lOVEI5UGxCdHlDNDNZSVFqdTBRZ3FMVFQxVjNYbmUxTkhTRWpOdEQzdXBZbGRHYXJ1OFlEbEh6NVFGYjYyQ3R1ZEpPVzl0N3hORUllcXN1TElSRG9YQ2RrcTkxc2xVR2c4Tlo0eTVpazlLYXJYTlVVMldKbTR5RnMraFZrcFpVbnF6WkZSdmRtWGY3YWtJT3ZIeDFyN04rZmxwNUIva1RJU2VydkFpcUNqSUFmSUN2WXg0YUFJQ0VSbmdJUUZYVlA2a2Q4SkgrUEZKNm50dkk2Y0hMUUJWOVRwUkZ6UWRJSnZXdzhXZFB2L0M3cDA0bThiS3k4UG83eXZ0LzZMOVhlMTlkUVZhOERKVkZKbXBtdWs3c1AyYmE4NVl5RTBsWXFTQzFmeGZtMW02d1ZvU09tOGhpSG9NYnJZSmZ6Nk9aaE5iMUxTY2tOOWFVcHUyK3FKU2kvWVBSa1YxNXR5L1lyUDFyUW9VZDNzYjZVQ0M2ZnV4bTVjWFNzbzRmV2kzaFY4cXhHYjhsczlHWDNRQVFGWktleGkzNEZYV2djNnJ5RzFQcXRrV3NlN1E5ZVNLZFBwRk1McVRUQzhuR1NLUXgwdGhZMG5EbjR2alltYzZ6MlIycGpDYmxvdjhNWUR0YUJSbzhBT3p0Nm5SYThnTEwwTGZ0UjZ2VHZWUFlOOWN4ay9CMXVFekRmR0tpdnM0V2Vnay9GM1Z4UHppOWV5bFo3UnorRWFyZE1CL05Jd2JRcWg3ZkIyQ1NaRDNzdXJoRVdiUVlObnNFdW90d2RnZUtSdEdsT2Qybkd5Yngwazh5RHE5dUZHNWZkRzBTMWQ1MmlSSmYwTU5vRmF4YitsaFVieEhoNmd6UDFKZ2QyNTFWTlowMlZOZ1RpNXBNOXhtTjRaaHlFeEF3NmdwNkNxMkNzR1VteDNsZWlHQXBmanNZWTdPekhzellpT3ZSSTN4M0lPbjFlOXdSbDZjOWROZnUxajNlYmxmYzFkcksrenJEY3hUdm5YSldzN1RGVHB1cDJ0Wnc3NFRnbUxUWkJZZXpvcHhyamZSTUY3VmxVVmZRQWw3VUpwNHB3RXNTSjhteXFMbk5KbU9HcWVGMHhuTHYyYk9jbTNLYVdWcW1qazY4ZFp5NGVQSDBtM1ZCd2poUFVNVllIZW9LK2hvVk5KNXQwWUNsWk1kL0dkMlo5L2hxZUh0K3FkemdIYVRtcDFGYytVZ0t1OXhvUUtucURUWUEwdlNHVkZRb3pVMjJORGRsMFhEdDJjczd6TFRaV0VhYlU1ZCtqZ3FmQjdPQ2tBMStybFN0K3ljdW9JS3VvODM3TmtYZ0JKN1h5aURKeStkLzNFeVlDU081dlV5K3I2V3NralNTWldUVDk4OWViU1MzazBheW5HeEFoVnZCQVo0ZjVHN3A2MER3bGxMMUJ0Y1hDdlZ4YitqNUtnRFFDaXFBRTBDa2hVMXBTUFoybm9vckR6L1pZTGFiamR1czJ3SlhIbm44eVdhS3BZeGx0aklCNFgrTU1QVU1VOCtNcUYrT01RME1VMjhmMCtKU2FoZGFRd1ZOWmJkNUlNdGJvS2pBUzNaL3BZdTBiZ3VHek9UdkwvZVhXODNHYlpheWprdFgyWmJoVndualNXU3FkYnZRSis4RitvSmNQL2VlVXQ2MXU2N1lJdzhBK2hSL0Qyb0FSS2tMRjJWYnVsdm9xdFBjVldTQ294ZjZvdUdBN0JocG1rMG5EMGp0VTNGSGgvMjczOHBldUt1eEtTcTRobU5pYkgrbmRPSkV3bUE2cittTUJrQmY0M05RcG5XZkZyVkpvMEZBUzM2SjFreWJZNTUrMElTTWxLc2lwdno5czEvdjNJbTJIZkdPZWx5SmFtWGh5cDNvTzhxbGsxZTArbGgxQmQzRTU3UnB1MFVIZXBXMG4rSElqVXIvUFhTTTczYW5ROUcybG9hYW9MdmJpdWIrVnU3bjVmMHRxYU5VUERqdENzYWl6YkVLYXgxS25UOWJXYmNuM1hjb3JtUFFBSUJ1NFhNNng3cXc3SmY4VElXQmZJb0k5SFVvbjZDWDVaNWdsZkhvYzArTW45L1hjL2U1UjZhaGVFZnZRZ0RQYS9wbWhVUkNDQVNLUGxMMHFveW5wUTFoSStZU0NUNFduM3AxeUpZSzFvZjR5R0JxYkFtME9RT2Q2Z3I4RTMySkJXZ0NRR2tndEZYdjl5TDZUSDFUdTZPemtwK2gwUHU1OFhGQU1LQm1VUWgvcE5YSUZnYzNxMS8zMkhlU3ZiM0pLVGtXazY4ZCtmRGl4UStQOEFkdnpCKzlNUXNJbXRVc3FpcnRFUklhYWhwK2pJM0lUYlhFWWkxVHlkN2VhL3pzamFQek53N3krdDZpYjhHN3FMRCtqWkRLbzRKU0JVaDlIcmZDT0w0TzVRQ1dUUWNOUmlMQllDU0NXK3M0cms3NzArU3F6ZEQzVU9IL2ZrL1Vlc09WTGpOdGRyTjVYL2ExYmNReGcxRUlveThWT3JGUDFzNnY0d0xQYTNuWVRYa2U0MFdSNTBXUmtvU1FKSVVFQ2Y0SEFBRC8vd0VBQVAvL2J3M1pTQUFBQVFBQUFBSUxoYnp3b1BOZkR6ejFBQUVENkFBQUFBRFlYYUNFQUFBQUFOMW1MemIrTi83RUNHMEQ4UUFCQUFNQUFnQUFBQUFBQUFBQkFBQUQyUDd2QUFBSW1QNDMvamNJYlFBQkFBQUFBQUFBQUFBQUFBQUFBQUFBTUhpY0hJMHhTc1JRR0Fibit4WVd4YUJQWE5kVUtTUWc2RFBZS1pnVWZ5TTJEeXdVNGdFOGh6ZndKTnJZZWdFYks2OWlZeUdSYkQwempOKzU0eE44UTZkeml2NUlYbEo4VC9Fcm5aOG96dE92OXpqMVFPaWIxZ01uWHRMcWdkcHJqbjFOYU1XbDF0T1hXMElOc1hnazNCTSsyL2d4TjNvaDlNR2hudG4zRmIxM3FCWmIxRGE3M3FaeW9uSGl3SWtqSjdJeW5US0RmcWcwY3F1UkM2MEltTjdtMTh6K0FRQUEvLzhCQUFELy93d3NIRFlBQUFBQUFDd0FMQUJZQUdRQWdnQ1NBTFFBOEFFV0FUSUJhZ0djQWNnQitnSXVBbFFDdkFMZUF1b0M5Z01PQXlvRFhBTitBNm9EMmdRT0JDNEVhZ1NRQkxJRXpnVUdCVElGWWdXT0JiSUY1QVgrQmg0R0tnWTJCbEFHYWdaMkJvd0dxZ2JBQUFBQUFRQUFBREFBa0FBTUFHTUFCd0FCQUFBQUFBQUFBQUFBQUFBQUFBUUFBM2ljbkpUUGJodFZGTVovVG16VENzRUNSVlc2aWU2Q1JaSG8yRlJKMVRZcmg5U0tSUlFIand0Q1FrZ1R6L2lQTXA0WmVTWU80UWxZOHhhOFJWYzhCTStCV0tQNWZPellCZEVtaXBKOGQrNzU4NTF6dm5PQkhmNW1tMHIxSWZCSFBURmNZYTkrYm5pTEIvVVR3OXUwNjF1R3F6eXAvV200UmxpYkc2N3plYTFuK0NQZVZuOHovSUQ5NmsrR0g3SmJiUnYrbUdmVkhjT2ZiRHYrTXZ3cCs3eGQ0QXE4NEZmREZYYkpERyt4dzQrR3QzbUV4YXhVZVVUVGNJM1AyRE5jWncvb002RWdaa0xDQ01lUUNTT3VtQkdSNHhNeFk4S1FpQkJIaHhZeGhiNG1CRUtPMFg5K0RmQXBtQkVvNHBnQ1I0eFBURURPMkNMK0lxK1VjMlVjNmpTenV4WUZZd0l1NUhGSlFJSWpaVVJLUXNTbDRoUVVaTHlpUVlPY2dmaG1GT1I0NUV5SThVaVpNYUpCbHphbjlCa3pJY2ZSVnFTU21VL0trSUpyQXVWM1psRjJaa0JFUW02c3JrZ0l4ZE9KWHlUdkRxYzR1bVN5WFk5OHVoSGhTeHpmeWJ2a2xzcjJLeno5dWpWbW0zbVhiQUxtNm1lc3JzUzZ1ZFlFeDdvdDg3YjRWcmpnRmU1ZS9kbGs4djRlaGZwZktQSUZWNXAvcUVrbFlwTGczQzR0ZkNuSWQ0OXhIT25jd1ZkSHZxZERueE82dktHdmM0c2VQVnFjMGFmRGEvbDI2ZUg0bWk1bkhNdWpJN3k0YTBzeFoveUE0eHM2c2lsalI5YWZ4Y1FpZmlZemRlZmlPRk1kVXpMMXZHVHVxZFpJRmQ1OXd1VU9wUnZxeU9VejBCNlZsazd6UzdSbkFTTlRSU2FHVS9WeXFZM2MraGVhSXFhcXBaenQ3WDI1RFhQYnZlVVczNUJxaDB1MUxqaVZrMXN3ZXQ5VXZYYzBjNjBmajRDUWxBdFpERWlaMHFEZ1JyelBDYmdpeG5HczdwMW9Td3BhSzU4eXo0MVVFakVWZ3c2SjRzekk5RGN3M2ZqR2ZiQ2hlMmR2U1NqL2t1bmxxcXI3WkhIcTFlMk0zcWg3eXp2ZnVoeXRUYUJoVTAzWDFEUVExOFMwSDJtbjF2bjc4czMxdXFVODVZaVVtUEJmTDhBelBKcnNjOEFoWTJVWTZHWnVyME5UTDBTVGx4eXEra3NpV1EybDU4Z2lIT0R4bkFNT2VNbnpkL3E0Wk9LTWkxdHhXYy9kNHBnanVoeCtVQlVMK3k1SHZGNTkrLytzdjR0cFU3VTRucTVPTCs0OXhTZDNVT3NYMnJQYjk3S25pWldUbUZ1MDI2MDRJMkJhY25HNzZ6VzV4M2ovQUFBQS8vOEJBQUQvLy9TM1QxRjRuR0pnWmdDRC8rY1lqQml3QUFBQUFBRC8vd0VBQVAvL0x3RUNBd0FBQUE9PSIpOwp9Ci5kMi0yNjg3NjY2NjM4IC50ZXh0LWl0YWxpYyB7Cglmb250LWZhbWlseTogImQyLTI2ODc2NjY2MzgtZm9udC1pdGFsaWMiLCBIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmOwp9CkBmb250LWZhY2UgewoJZm9udC1mYW1pbHk6IGQyLTI2ODc2NjY2MzgtZm9udC1pdGFsaWM7CglzcmM6IHVybCgiZGF0YTphcHBsaWNhdGlvbi9mb250LXdvZmY7YmFzZTY0LGQwOUdSZ0FCQUFBQUFCRDRBQW9BQUFBQUdqd0FBUmhSQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFCUFV5OHlBQUFBOUFBQUFHQUFBQUJnVzFTVmVHTnRZWEFBQUFGVUFBQUFyZ0FBQU93RXV3VUxaMng1WmdBQUFnUUFBQW9VQUFBT1VHQ1pZNmxvWldGa0FBQU1HQUFBQURZQUFBQTJHN1VyMm1ob1pXRUFBQXhRQUFBQUpBQUFBQ1FMZUFqVWFHMTBlQUFBREhRQUFBQzFBQUFBd0ZCa0ErVnNiMk5oQUFBTkxBQUFBR0lBQUFCaVhRaFp6RzFoZUhBQUFBMlFBQUFBSUFBQUFDQUFTQUQyYm1GdFpRQUFEYkFBQUFNbUFBQUlNZ250VnpOd2IzTjBBQUFRMkFBQUFDQUFBQUFnLzhZQU1nQURBZUVCa0FBRkFBQUNpZ0pZLy9FQVN3S0tBbGdBUkFGZUFESUJJd0FBQWdzRkF3TUVBd2tDQkNBQUFIY0FBQUFEQUFBQUFBQUFBQUJCUkVKUEFBRUFJUC8vQXU3L0JnQUFBOWdCRVNBQUFaTUFBQUFBQWVZQ2xBQUFBQ0FBQTNpY2ZNMjdMa01CQUlmeFgzdnFYbFgzZXgzM0ZwTVFpZFZFT29qQktoN0RJNWtsRWhhN3ArQUZYR2JEWDNKaTlxMi80VU5Ob1lhbWhqZDB0QlZhU2owSERoMDdjZXJNaGI0cjEyN2NKU2gxS3ovNjgzTjlsNVhmSm5sWHowKys4NVhQZk9RbHozbktZeDd5bXZ2cTlsODFlL2J0MnJSbDI0NnV1a0xEZ0VGRGhvM29HVFdtYVZ6TGhMWkpVNmJObURWbjNvSkZTNWF0V05XeHByUnVnMThBQUFELy93RUFBUC8vbXpjbnNBQUFlSng4bDMxTUcvZjl4ei9mNzVrN01NWmduMzNHQm1QT1o5K0JmYmJCWi90Q3dBYnphTUFtZ0FPaFNZQThOUGtsS1VsbzhrdWEvdEwwS1ZWVVZXM0tiOG8vcTdwbFdqZXBWVFVwU3JkSjNicE9xcnFWZHNxMFRkSFdycTJtUHRFMVdkVVdzVDVwM0UxM05tQ1l0SDlPcDdQdjgvRDZmdDd2NzMyaERId0ErQVMrQWdSVVFEVll3UTRnMFN4QlNMTE1PUWhKRURpS2tnV2FwbndQbzhXSG56TDA3UDZvNlFmZmlCN0R3RVBQRGY5ajMvUDR5dW9jZW5ENmdRZVVQWThlT3JUcjltMGxnUDU4R3dBQVFadTZna1A0YWZBQWxIbDVQaDVMWVNuS09DaWU1N3htYkxjeGpCUk55QTZTUk43aEk0bVczUmV5MjhacUUzU0MzejdiN2ZNT3RUZjFOSEsrYVZQUHVaSGNsWHNHNUVCem81Qzg4MXhIKzNTOHNTN3FDZWs1T0FCWXdRdEFhSFZMQkhkeDVDSmVXSjNYZmxNVmRRVXQ0Z1dvQm5CNGVVRXU1S01sZ2lTdmJoKzNTK2EyNW1pcWF1L0lUTTBoa3h3TytwcUgwK2lHMGpSeHNoQVhmUWN2UUZraExrdHhGMGZPSWxzVlhsaTkzZzFZK3gySDhBSlVnazMvUjVTeDIwaVM0d2hhaWliaU1aN2p1SXN2N2owMTlORE9vN0gwN0tGajJjd2h2REEwT2ZvL3JjclhhR0IwUjV1a01jTFFvYzdnR2Z3MFZJTUk0SSttc1BadWdZNVc4em8xeG00elkycU5HT0xpdTFMZW9SSHRPdmhWL2w1bmZsZDQ4a3ovMEtGWWNPUjR0MlVpVmwxWFZjYkcydytlM2I3L1RQdUJNOXNQblAxTGRwUis4cTdoaFROOXZlZnptY2RQRFpMQm9JRklWaFo3RWZBQ1ZBR3owUXRGYzhTbWJuNjY5KzRUK2RQNXVWTnk3OEdaTzRjeisvQkNmMzdQQ1l2eUFXS1VXMmhpdkQ4UkthejdPQUJPNi9GQUlpU2FZUnhTUXVPT25tamZVVmRXVGhpY2NkZlBkaXJQNFFYbFN2eDRJbjR5aHViMEpRTU1ncnFDdmtiTFlOT3FjbmpYaDBhU0pZS1RPWklVb2dsWlhwK2dGN3F5NHRDTUpDUXRCanExdjdQY3dFMVorUjArMFI2dDkvWEVQYTJtUFJQOTkrNlZtdGlrNHNyNEkxM2h5RnU4TnpBNEhlMU1Gdko1MUJYME9WNEV1NllFalRoSGNiUkVVVklpb1hNd1kyRnRVVWlLWXBoYlF0SkMyRG92NXdRRyszYUc5UFJ4WDArOG9hWFpPOGFGYlpLcGlVM2l4WmYzdVlPN0o3WFVYWUhCYVNtVkRQZy81cjJBd0srdW9PdG9HZW8zZGFkTGdpVHR0alZGdkxualRqRzNQeTUyTUNHYWQ3ZE1KdHEyTnlZWXJ5dG5PanpkZTNvaTRuVzJPT3k5OHozZC9TNUwxT1pmWjRlRmtsNDIyUDEzZU51dFJBMmZXeWpTRy9GdnBTYzB6cjY4dW0wclBxejM4bXUwREM3d2wrYlRwNGNsMTlWTlNBbHRoclFPUDV3OEdocmUyeUtuRzB4bHlxc1ZqVDBCZDV1andUMzJYUlVUMW1ZdVBtTTZ0cjl2Zmx3TWowYnJKWFBucU45cGtld2U1SytzcmFwdjlVd0FnaUFBZWdMZkJJYzJxVnduMXBlcHlJK2lKSW9qZ2hPZGxlbWE2cEdrSzJDdE05WloyT1p5eXdIVHdRbjBiRnZaMkZDK3FsS21qTkZnUHFWTWFjeVE2a1BMYUJrOEVON2tFakpKY3B1bmp5U0pUZlNlYjUza2ZQVjlUYWtoczVQZkdVbU9CZ2YzdHZJcEMwRjNIcVpQdDNGajNpRFRXcytscFliSU83dzc3dkJtdTQ3dzR1UkV6Ly9lRWRYbWtaZzlqTmhnNEErOHQ3bC9xcVc5dmFBZER3QjZFeStDVTFmaXhoeFNCRWRyR0xVMkNjL2xYRXVOb1hsY1RNWExVOWtPZ3lGVG53bjM0Y1hiU1M2UzN1YnhLVzhnMFZaYk5Sd0lLOCtxcWhZVHZzWFhNYTk1REpBUXlnQ0FxcXFQcUFKOHBUOFBGNTczYmRUd0tWNEVVOEg3dERwb1RxQW96K1hjUHZ6TjFDdG5ScWJuWFhoUmNTUDBPK1dqVDArZEJ3U2l1Z0xmNGtXd2FoVGpzWUxMMm0zRkVUaWVKcy9uTGlCa0lVZ0tHUmxUcDhXSjcxcjlmNnFDc0NMY2JqQ3M1OFczMERJRUNyMFhXbmNVQVpDYkNKVEMyTjlKR2ZnOHY3MjFMRExsVHlZTWhsUXVhVEFNMkROaW44YW1uOGtFKzlEU29LOVZiaEtsOURaTGc2MlV6OGJkQm4rMERMV2xOV3pGcjJWc0hnOXZvcTluMkFwL3c5UGVSc3RRRGU1U25SVE1SZGRHVWZ3M2Q4eUlRelBSSGJQaThFd2dOQ1lsb3RyRmRHUlAzK21KY09IYTFUM2YyejNRTTkvYjNhL0ZWcjlVSmZRNVdpNW9uaXFwMkl3NTNjMG9lcE4vR1IvckpBbi9SRmlYZnBUdm9MSFY4K05TLzdxQlgranloSXJDOXh5NWlsRFJ3UGkvKzltMWZpVGRvL1djWmJKbUxGdTBzbGtwaUdVYnNIOHFYT3JWajEwdE5ab2JWKy9oSSt0V3ZacERhTE5SRjlibFByUU1OU1hyNHFENHRmV29OTGl6SWFlOXJzYmx5M3FTYUdsYVRGYjBsbmUyS3pjQXFmOVNWOUFGdEF4Q3FjTGpzY0x1V21vZzJxYXIyeGY1VE91MHM4WFJ4UWVTemR2Q2JlS2dHQjZxRDlNU3k3Y21HbE94bG5GVHJJbjNOSVU1bCtCeHBacURhYit2b2NubUNua2FlS3UzUXd6MStyV2FPOVFWTklYbjFyMCtJV3VPSmVrdVZlTDFMM2JGREtodG9ETHJTOWVkTjExb0krcTlabGVscFNaaTZneFZ1NnFRdGEzczBxV1Vjc3RxYldnd2xzbFV0Ulo3bTdxQ1BrTkxtaytzeGQ1UUhGMjArK2ZYMVpCeEQ0aDlXVzJEYk5wcDZwWXRIaG9sbEp1MFV4dFROS1c0aGppcG9NRjJBUFFlV3ZyUHZmdmhnYXpQUUJvTUZoLzlaRTVaUlV2S3g5d3c1eHYwSWFmaUtyemJENEJmUTB2QWJubDM0NDdnQ0o0WE9KS2tpS05jdGdZaFpLaXVxM2x3MklJeE1waGROUTlrM3AwMTYwL2QxV2ZSa3ZLK3Q5ZnI3ZldpaHBJN0Z6SnlHWjh2d3lsZkFsSnZBcUEvRlRod3RDQTVpcWxraVhKd1FqRVhKZjUxejBpZzNFd1pxaHVySi9LTEIzZUk1UmFqb2NaTHp5RDg0UndqMkczTjlybC9mbkdLQ1RPTTZEaXRmVHUrb2tiUUIyZ0pYQUNVUGpQNnByQ0ppQm1UeGthejAycjFwNTNXZkpiWHZtd3NmdXZqV2VWOVozdm1qeFRWVnBHTWN1aGo1VE0yeDNGWkw3S3NmaEhKaVRvcjlVc0E5Q3ArVEl2UHlTbWlLRkJoWGJ3VVN4bkw5MTJlaVVqeHhyUlhFSGUxakU4Rnh1L0xJNXNwUEhiK3dCMWhzWVAxdFBETmQvVEdaL2JOWjdvMVhXcURjUVBmRDBidG01VGxaRlpHRWlGUm5GK1NFd2x0SGlnMG5PR1VUeXJRek03UnZDbXZxTC9oU1N0bHNEWFpyc1hRVThwOEt2VXJkNXF0ajlVVzFoTTAzOEwzUTJPcGJoSnJwZElzeFZGcjVreStsSjV4UjVuMHRrQkc3SXg1eEVaMkZBV3JQb2xaQXM3TWJNOEpVMmVvbVkwRmNsS3FvOGJpUXFIdWw4cE5FL25zeVlLMmp3TGdNbnkvdnQra3NNektMR1hHMURuMzBNa3g1UTB6dW13OGVMYkhjZTYxbjR4MlI2ZGYrdTF4bmQ5NzZsNVlnRG5ORHpScXNtNUF4V0pzbFpFMkNqTU5uTnRWdi90SFlXdUh6OFU0QlYvRDRMeSs3NEZEWFlGRjlDNFdJQUpkNkc0Z0lhTEhmRWQ5QkYxVGY2NmRKU2lacFh5VjZIWGpmZEdvWG1OYUhVVzc4TnY2V2FKZ0c3S0QxTTh3anYrclplVWpRNkZqY3hVMjg3V3VaOGJQdlA3TGFlY2w1Vy9mRHgvZXgydHhiNnFqY0t2NHJwQ3dhdDlDR2t3Tkd3b2R1NnZDV2gzVlFseHpYVUxzOXlLSFozbTY2NGZqWjk3NFJkSDM0QVphV2p2ZmVQYm5EcUFsWFhBSUJ2QXdYTWZYb1JLQUxtbi9ITjNBT1d4dURnODdHQ2RieXpnYkFlbDcvZS9Sa2xZRHRlVXMxT3JnTEU2anJhYWVOWjdNblRUM3ZHV3NhQ09wMWlEMnJiN2JQd2xJNS9Vb3pHbDVIQ1Y1K2htblVNL1UrazMxakV0ME0wNFIvZzBBQVAvL0FRQUEvLytSZVByakFBRUFBQUFCR0ZGbkhEMkpYdzg4OVFBQkErZ0FBQUFBMkYyZ3pBQUFBQURkWmk4My9yMyszUWdkQThrQUFnQURBQUlBQUFBQUFBQUFBUUFBQTlqKzd3QUFDRUQrdmYyOENCMEQ2QURDLzlFQUFBQUFBQUFBQUFBQUFEQjRuQnpOSVU3RVVCUkc0ZlBma1lSQWdpaGdybmgwS29ZRlFLaEJBQjdCSHZBWVBDdGdIeWcyMElDcFFsVld2QVlOSVJVTm91R1NqajQ1K2V5QkUxcXdOZWZNSkxYeHB3K1NyVW4yU0cwYmtuNjR0U01xTzhUMVNta0ZsUVpLSGJPeEEyUTdPRjg0My9Ha0h1ZVgwNVhqdG92YmlzcUttSlpmZDdpZVk5WVZ0ZTF6cG9ZTGUrZGFMOUdwaVRmbG1KVFpVd1psN2hsallLVFFaL1JLWEtxTWJ1dkF6V0l0N1I4QUFQLy9BUUFBLy85Tm1qTnJBQUFBQUFBQUxnQXVBR0FBYmdDTUFKd0F3QUVDQVNvQlNBR0FBYmdCNWdJZUFsZ0NnQUxJQXZJQy9nTUtBeVFEUmdPSUE3SUQ0QVFhQkZRRWNnU3VCTndGQ0FVbUJXQUZqQVc4QmVZR0RnWkNCbHdHZWdhR0JwUUdzZ2JRQnQ0RzlBY1NCeWdBQUFBQkFBQUFNQUNNQUF3QVpnQUhBQUVBQUFBQUFBQUFBQUFBQUFBQUJBQURlSnljbE50T0cxY1VoajhIMjIxNnVxaFFSRzdRdmt5bFpFeWpFQ1hoeXBTZ2pJcHc2bkY2a0twS2d6MCtpUEhNeURPWWtpZm9kZCtpYjVHclBrYWZvdXAxdFg4dmd4MUZRU0FFL0h2Mk92eHJyWDl0WUpQLzJLQld2d3Y4M1p3YnJySGQvTm53SGI1b0hobmVZTC81bWVFNkR4di9HRzR3YUx3MTNPUkJvMnY0RTk3Vi96VDhLVS9xdnhtK3kxYjkwUERuUEs1dkd2NXl3L0d2NGE5NHdyc0Zyc0V6L2pCY1k0dkM4QjAyK2RYd0J2ZXdtTFU2OTlneDNPQnJ0ZzAzMlFaNlRLaEltWkF4d2pGa3dvZ3paaVNVUkNUTW1EQWtZWUFqcEUxS3BhOFpzWkJqOU1Hdk1SRVZNMkpGSEZQaFNJbElpU2taVzhTMzhzcDVyWXhEbldaMjE2WmlUTXlKUEU2SnlYRGtqTWpKU0RoVm5JcUtnaGUwYUZIU0Y5K0NpcEtBa2drcEFUa3pSclRvY01nUlBjWk1LSEVjS3BKbkZwRXpwT0tjV1BtZFdmak85RW5JS0kzVkdSa0Q4WFRpbDhnNzVBaEhoMEsycTVHUDFpSTh4UEdqdkQyM1hMYmZFdWpYclRCYno3dGtFek5YUDFOMUpkWE51U1k0MXEzUDIrWUg0WW9YdUZ2MVo1M0o5VDBhNkgrbHlDZWNhZjREVFNvVGt3em50bWdUU1VHUnU0OWpYK2VRU0IzNWlaQWVyK2p3aHA3T2JicDBhWE5NajVDWDh1M1F4ZkVkSFk0NWtFY292TGc3bEdLTytRWEg5NFN5OGJFVDY4OWlZZ20vVTVpNlMzR2NxWTRwaFhydW1RZXFOVkdGTjUrdzM2RjhUUjJsZlByYUkyL3BOTDlNZXhZek1sVVVZamhWTDVmYUtLMS9BMVBFVkxYNDJWN2QrMjJZMis0dHQvaUNYRHZzMWJyZzVDZTNZSFRkVklQM05IT3VuNENZQVRrbnN1aVRNNlZGeFlWNHZ5Ym1qQlRIZ2JyM1NsdFMwYjcwOFhrdXBKS0VxUmlFWklvem85RGYySFFUR2ZmK211NmR2U1VEK1h1bXA1ZFYzU2FMVTYrdVp2UkczVnZlUmRibFpHVUNMWnRxdnFLbXZyaG1wdjFFTzdYS1A1SnZxZGN0NXhHaDRpNTIrME92d0E3UDJXV1BzYkwwZFRPL3ZQT3ZoTGZZVXdkT1NXUTFsS1o5RFk4SjJDWGdLYnZzOHB5bjcvVnl5Y1laSDdmR1p6Vi9td1AyNmJCM2JUVUwydzc3dkZ5TDl2SE1mNG50anVweFBMbzhQYnYxTkIvY1FMWGZhTit1M3MydUp1ZW5NYmRvVjl0eFRNelVjM0ZicXpXNSt3VC9Bd0FBLy84QkFBRC8vM0toVVVBQUFBQURBQUQvOVFBQS84NEFNZ0FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBIik7Cn1dXT48L3N0eWxlPjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+PCFbQ0RBVEFbLnNoYXBlIHsKICBzaGFwZS1yZW5kZXJpbmc6IGdlb21ldHJpY1ByZWNpc2lvbjsKICBzdHJva2UtbGluZWpvaW46IHJvdW5kOwp9Ci5jb25uZWN0aW9uIHsKICBzdHJva2UtbGluZWNhcDogcm91bmQ7CiAgc3Ryb2tlLWxpbmVqb2luOiByb3VuZDsKfQouYmxlbmQgewogIG1peC1ibGVuZC1tb2RlOiBtdWx0aXBseTsKICBvcGFjaXR5OiAwLjU7Cn0KCgkJLmQyLTI2ODc2NjY2MzggLmZpbGwtTjF7ZmlsbDojMEEwRjI1O30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1OMntmaWxsOiM2NzZDN0U7fQoJCS5kMi0yNjg3NjY2NjM4IC5maWxsLU4ze2ZpbGw6Izk0OTlBQjt9CgkJLmQyLTI2ODc2NjY2MzggLmZpbGwtTjR7ZmlsbDojQ0ZEMkREO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1ONXtmaWxsOiNERUUxRUI7fQoJCS5kMi0yNjg3NjY2NjM4IC5maWxsLU42e2ZpbGw6I0VFRjFGODt9CgkJLmQyLTI2ODc2NjY2MzggLmZpbGwtTjd7ZmlsbDojRkZGRkZGO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1CMXtmaWxsOiMwRDMyQjI7fQoJCS5kMi0yNjg3NjY2NjM4IC5maWxsLUIye2ZpbGw6IzBEMzJCMjt9CgkJLmQyLTI2ODc2NjY2MzggLmZpbGwtQjN7ZmlsbDojRTNFOUZEO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1CNHtmaWxsOiNFM0U5RkQ7fQoJCS5kMi0yNjg3NjY2NjM4IC5maWxsLUI1e2ZpbGw6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmZpbGwtQjZ7ZmlsbDojRjdGOEZFO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1BQTJ7ZmlsbDojNEE2RkYzO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1BQTR7ZmlsbDojRURGMEZEO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1BQTV7ZmlsbDojRjdGOEZFO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1BQjR7ZmlsbDojRURGMEZEO30KCQkuZDItMjY4NzY2NjYzOCAuZmlsbC1BQjV7ZmlsbDojRjdGOEZFO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU4xe3N0cm9rZTojMEEwRjI1O30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU4ye3N0cm9rZTojNjc2QzdFO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU4ze3N0cm9rZTojOTQ5OUFCO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU40e3N0cm9rZTojQ0ZEMkREO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU41e3N0cm9rZTojREVFMUVCO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU42e3N0cm9rZTojRUVGMUY4O30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLU43e3N0cm9rZTojRkZGRkZGO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUIxe3N0cm9rZTojMEQzMkIyO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUIye3N0cm9rZTojMEQzMkIyO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUIze3N0cm9rZTojRTNFOUZEO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUI0e3N0cm9rZTojRTNFOUZEO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUI1e3N0cm9rZTojRURGMEZEO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUI2e3N0cm9rZTojRjdGOEZFO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUFBMntzdHJva2U6IzRBNkZGMzt9CgkJLmQyLTI2ODc2NjY2MzggLnN0cm9rZS1BQTR7c3Ryb2tlOiNFREYwRkQ7fQoJCS5kMi0yNjg3NjY2NjM4IC5zdHJva2UtQUE1e3N0cm9rZTojRjdGOEZFO30KCQkuZDItMjY4NzY2NjYzOCAuc3Ryb2tlLUFCNHtzdHJva2U6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLnN0cm9rZS1BQjV7c3Ryb2tlOiNGN0Y4RkU7fQoJCS5kMi0yNjg3NjY2NjM4IC5iYWNrZ3JvdW5kLWNvbG9yLU4xe2JhY2tncm91bmQtY29sb3I6IzBBMEYyNTt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItTjJ7YmFja2dyb3VuZC1jb2xvcjojNjc2QzdFO30KCQkuZDItMjY4NzY2NjYzOCAuYmFja2dyb3VuZC1jb2xvci1OM3tiYWNrZ3JvdW5kLWNvbG9yOiM5NDk5QUI7fQoJCS5kMi0yNjg3NjY2NjM4IC5iYWNrZ3JvdW5kLWNvbG9yLU40e2JhY2tncm91bmQtY29sb3I6I0NGRDJERDt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItTjV7YmFja2dyb3VuZC1jb2xvcjojREVFMUVCO30KCQkuZDItMjY4NzY2NjYzOCAuYmFja2dyb3VuZC1jb2xvci1ONntiYWNrZ3JvdW5kLWNvbG9yOiNFRUYxRjg7fQoJCS5kMi0yNjg3NjY2NjM4IC5iYWNrZ3JvdW5kLWNvbG9yLU43e2JhY2tncm91bmQtY29sb3I6I0ZGRkZGRjt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQjF7YmFja2dyb3VuZC1jb2xvcjojMEQzMkIyO30KCQkuZDItMjY4NzY2NjYzOCAuYmFja2dyb3VuZC1jb2xvci1CMntiYWNrZ3JvdW5kLWNvbG9yOiMwRDMyQjI7fQoJCS5kMi0yNjg3NjY2NjM4IC5iYWNrZ3JvdW5kLWNvbG9yLUIze2JhY2tncm91bmQtY29sb3I6I0UzRTlGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQjR7YmFja2dyb3VuZC1jb2xvcjojRTNFOUZEO30KCQkuZDItMjY4NzY2NjYzOCAuYmFja2dyb3VuZC1jb2xvci1CNXtiYWNrZ3JvdW5kLWNvbG9yOiNFREYwRkQ7fQoJCS5kMi0yNjg3NjY2NjM4IC5iYWNrZ3JvdW5kLWNvbG9yLUI2e2JhY2tncm91bmQtY29sb3I6I0Y3RjhGRTt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQUEye2JhY2tncm91bmQtY29sb3I6IzRBNkZGMzt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQUE0e2JhY2tncm91bmQtY29sb3I6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQUE1e2JhY2tncm91bmQtY29sb3I6I0Y3RjhGRTt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQUI0e2JhY2tncm91bmQtY29sb3I6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmJhY2tncm91bmQtY29sb3ItQUI1e2JhY2tncm91bmQtY29sb3I6I0Y3RjhGRTt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLU4xe2NvbG9yOiMwQTBGMjU7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1OMntjb2xvcjojNjc2QzdFO30KCQkuZDItMjY4NzY2NjYzOCAuY29sb3ItTjN7Y29sb3I6Izk0OTlBQjt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLU40e2NvbG9yOiNDRkQyREQ7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1ONXtjb2xvcjojREVFMUVCO30KCQkuZDItMjY4NzY2NjYzOCAuY29sb3ItTjZ7Y29sb3I6I0VFRjFGODt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLU43e2NvbG9yOiNGRkZGRkY7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1CMXtjb2xvcjojMEQzMkIyO30KCQkuZDItMjY4NzY2NjYzOCAuY29sb3ItQjJ7Y29sb3I6IzBEMzJCMjt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLUIze2NvbG9yOiNFM0U5RkQ7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1CNHtjb2xvcjojRTNFOUZEO30KCQkuZDItMjY4NzY2NjYzOCAuY29sb3ItQjV7Y29sb3I6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLUI2e2NvbG9yOiNGN0Y4RkU7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1BQTJ7Y29sb3I6IzRBNkZGMzt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLUFBNHtjb2xvcjojRURGMEZEO30KCQkuZDItMjY4NzY2NjYzOCAuY29sb3ItQUE1e2NvbG9yOiNGN0Y4RkU7fQoJCS5kMi0yNjg3NjY2NjM4IC5jb2xvci1BQjR7Y29sb3I6I0VERjBGRDt9CgkJLmQyLTI2ODc2NjY2MzggLmNvbG9yLUFCNXtjb2xvcjojRjdGOEZFO30uYXBwZW5kaXggdGV4dC50ZXh0e2ZpbGw6IzBBMEYyNX0ubWR7LS1jb2xvci1mZy1kZWZhdWx0OiMwQTBGMjU7LS1jb2xvci1mZy1tdXRlZDojNjc2QzdFOy0tY29sb3ItZmctc3VidGxlOiM5NDk5QUI7LS1jb2xvci1jYW52YXMtZGVmYXVsdDojRkZGRkZGOy0tY29sb3ItY2FudmFzLXN1YnRsZTojRUVGMUY4Oy0tY29sb3ItYm9yZGVyLWRlZmF1bHQ6IzBEMzJCMjstLWNvbG9yLWJvcmRlci1tdXRlZDojMEQzMkIyOy0tY29sb3ItbmV1dHJhbC1tdXRlZDojRUVGMUY4Oy0tY29sb3ItYWNjZW50LWZnOiMwRDMyQjI7LS1jb2xvci1hY2NlbnQtZW1waGFzaXM6IzBEMzJCMjstLWNvbG9yLWF0dGVudGlvbi1zdWJ0bGU6IzY3NkM3RTstLWNvbG9yLWRhbmdlci1mZzpyZWQ7fS5za2V0Y2gtb3ZlcmxheS1CMXtmaWxsOnVybCgjc3RyZWFrcy1kYXJrZXItZDItMjY4NzY2NjYzOCk7bWl4LWJsZW5kLW1vZGU6bGlnaHRlbn0uc2tldGNoLW92ZXJsYXktQjJ7ZmlsbDp1cmwoI3N0cmVha3MtZGFya2VyLWQyLTI2ODc2NjY2MzgpO21peC1ibGVuZC1tb2RlOmxpZ2h0ZW59LnNrZXRjaC1vdmVybGF5LUIze2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUI0e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUI1e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUI2e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFBMntmaWxsOnVybCgjc3RyZWFrcy1kYXJrLWQyLTI2ODc2NjY2MzgpO21peC1ibGVuZC1tb2RlOm92ZXJsYXl9LnNrZXRjaC1vdmVybGF5LUFBNHtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjY4NzY2NjYzOCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1BQTV7ZmlsbDp1cmwoI3N0cmVha3MtYnJpZ2h0LWQyLTI2ODc2NjY2MzgpO21peC1ibGVuZC1tb2RlOmRhcmtlbn0uc2tldGNoLW92ZXJsYXktQUI0e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LUFCNXtmaWxsOnVybCgjc3RyZWFrcy1icmlnaHQtZDItMjY4NzY2NjYzOCk7bWl4LWJsZW5kLW1vZGU6ZGFya2VufS5za2V0Y2gtb3ZlcmxheS1OMXtmaWxsOnVybCgjc3RyZWFrcy1kYXJrZXItZDItMjY4NzY2NjYzOCk7bWl4LWJsZW5kLW1vZGU6bGlnaHRlbn0uc2tldGNoLW92ZXJsYXktTjJ7ZmlsbDp1cmwoI3N0cmVha3MtZGFyay1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpvdmVybGF5fS5za2V0Y2gtb3ZlcmxheS1OM3tmaWxsOnVybCgjc3RyZWFrcy1ub3JtYWwtZDItMjY4NzY2NjYzOCk7bWl4LWJsZW5kLW1vZGU6Y29sb3ItYnVybn0uc2tldGNoLW92ZXJsYXktTjR7ZmlsbDp1cmwoI3N0cmVha3Mtbm9ybWFsLWQyLTI2ODc2NjY2MzgpO21peC1ibGVuZC1tb2RlOmNvbG9yLWJ1cm59LnNrZXRjaC1vdmVybGF5LU41e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LU42e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LnNrZXRjaC1vdmVybGF5LU43e2ZpbGw6dXJsKCNzdHJlYWtzLWJyaWdodC1kMi0yNjg3NjY2NjM4KTttaXgtYmxlbmQtbW9kZTpkYXJrZW59LmxpZ2h0LWNvZGV7ZGlzcGxheTogYmxvY2t9LmRhcmstY29kZXtkaXNwbGF5OiBub25lfV1dPjwvc3R5bGU+PGcgY2xhc3M9ImFtOTUiPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjAuMDAwMDAwIiB5PSIwLjAwMDAwMCIgd2lkdGg9IjEwNDMuMDAwMDAwIiBoZWlnaHQ9IjIxNC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0UzRTlGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNCIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNTIxLjUwMDAwMCIgeT0iMzMuMDAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToyOHB4Ij5Rd2lpYyBqb3lzdGljazogaW5wdXQgc3Vic3lzdGVtLCBib3RoIGtlcm5lbHM8L3RleHQ+PC9nPjxnIGNsYXNzPSJjR2s9Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIwLjAwMDAwMCIgeT0iMjQyLjAwMDAwMCIgd2lkdGg9IjEwNDMuMDAwMDAwIiBoZWlnaHQ9IjIzMC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0UzRTlGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNCIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNTIxLjUwMDAwMCIgeT0iMjc1LjAwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MjhweCI+aW14NDc3IG9uIHRoZSBSYXNwYmVycnkgUGkgNTogcGxhaW4gVjRMMjwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIwLjAwMDAwMCIgeT0iNTAwLjAwMDAwMCIgd2lkdGg9IjEwNDMuMDAwMDAwIiBoZWlnaHQ9Ijg4NC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0UzRTlGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNCIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNTIxLjUwMDAwMCIgeT0iNTMzLjAwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MjhweCI+dmlydGNhbSBvbiB0aGUgSmV0c29uOiBWNEwyIHRocm91Z2ggdGVncmFjYW08L3RleHQ+PC9nPjxnIGNsYXNzPSJhbTk1TG1Oc2FXVnVkQT09Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI1MC4wMDAwMDAiIHk9IjUwLjAwMDAwMCIgd2lkdGg9IjE4Mi4wMDAwMDAiIGhlaWdodD0iMTE0LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSIxNDEuMDAwMDAwIiB5PSI4OC41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjE0MS4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+c3RydWN0IGkyY19jbGllbnQ8L3RzcGFuPjx0c3BhbiB4PSIxNDEuMDAwMDAwIiBkeT0iMTcuMjUwMDAwIj4gPC90c3Bhbj48dHNwYW4geD0iMTQxLjAwMDAwMCIgZHk9IjE3LjI1MDAwMCI+YnVzIGRldmljZSwgY3JlYXRlZDwvdHNwYW4+PHRzcGFuIHg9IjE0MS4wMDAwMDAiIGR5PSIxNy4yNTAwMDAiPmJ5IHRoZSBJMkMgY29yZTwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iYW05NUxuQnlhWFk9Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI0NTAuMDAwMDAwIiB5PSI1OC4wMDAwMDAiIHdpZHRoPSIxNTcuMDAwMDAwIiBoZWlnaHQ9Ijk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI1MjguNTAwMDAwIiB5PSI5Ni41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjUyOC41MDAwMDAiIGR5PSIwLjAwMDAwMCI+c3RydWN0IHF3aWljX2pzazwvdHNwYW4+PHRzcGFuIHg9IjUyOC41MDAwMDAiIGR5PSIxNy42NjY2NjciPiA8L3RzcGFuPjx0c3BhbiB4PSI1MjguNTAwMDAwIiBkeT0iMTcuNjY2NjY3Ij5wcml2YXRlIHN0YXRlPC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJhbTk1TG1aMyI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iODIwLjAwMDAwMCIgeT0iNTguMDAwMDAwIiB3aWR0aD0iMTczLjAwMDAwMCIgaGVpZ2h0PSI5OC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0VERjBGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iOTA2LjUwMDAwMCIgeT0iOTYuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSI5MDYuNTAwMDAwIiBkeT0iMC4wMDAwMDAiPnN0cnVjdCBpbnB1dF9kZXY8L3RzcGFuPjx0c3BhbiB4PSI5MDYuNTAwMDAwIiBkeT0iMTcuNjY2NjY3Ij4gPC90c3Bhbj48dHNwYW4geD0iOTA2LjUwMDAwMCIgZHk9IjE3LjY2NjY2NyI+ZnJhbWV3b3JrIGRldmljZTwvdHNwYW4+PC90ZXh0PjwvZz48ZyBjbGFzcz0iY0drdVkyeHBaVzUwIj48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI1MC4wMDAwMDAiIHk9IjMwOC4wMDAwMDAiIHdpZHRoPSIxNTkuMDAwMDAwIiBoZWlnaHQ9Ijk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSIxMjkuNTAwMDAwIiB5PSIzNDYuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSIxMjkuNTAwMDAwIiBkeT0iMC4wMDAwMDAiPnN0cnVjdCBpMmNfY2xpZW50PC90c3Bhbj48dHNwYW4geD0iMTI5LjUwMDAwMCIgZHk9IjE3LjY2NjY2NyI+IDwvdHNwYW4+PHRzcGFuIHg9IjEyOS41MDAwMDAiIGR5PSIxNy42NjY2NjciPmJ1cyBkZXZpY2U8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImNHa3VjSEpwZGc9PSI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iNDcwLjAwMDAwMCIgeT0iMjkyLjAwMDAwMCIgd2lkdGg9IjIyMy4wMDAwMDAiIGhlaWdodD0iMTMwLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI1ODEuNTAwMDAwIiB5PSIzMzAuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSI1ODEuNTAwMDAwIiBkeT0iMC4wMDAwMDAiPnN0cnVjdCBpbXg0Nzc8L3RzcGFuPjx0c3BhbiB4PSI1ODEuNTAwMDAwIiBkeT0iMTcuMDAwMDAwIj4gPC90c3Bhbj48dHNwYW4geD0iNTgxLjUwMDAwMCIgZHk9IjE3LjAwMDAwMCI+cHJpdmF0ZSBzdGF0ZSwgd2l0aCB0aGU8L3RzcGFuPjx0c3BhbiB4PSI1ODEuNTAwMDAwIiBkeT0iMTcuMDAwMDAwIj5mcmFtZXdvcmsgZGV2aWNlIGluc2lkZTo8L3RzcGFuPjx0c3BhbiB4PSI1ODEuNTAwMDAwIiBkeT0iMTcuMDAwMDAwIj5zdHJ1Y3QgdjRsMl9zdWJkZXYgc2Q8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1TG1Oc2FXVnVkQT09Ij48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSI1MC4wMDAwMDAiIHk9Ijg4NS4wMDAwMDAiIHdpZHRoPSIxNTkuMDAwMDAwIiBoZWlnaHQ9Ijk4LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSIxMjkuNTAwMDAwIiB5PSI5MjMuNTAwMDAwIiBmaWxsPSIjMEEwRjI1IiBjbGFzcz0idGV4dC1ib2xkIGZpbGwtTjEiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPjx0c3BhbiB4PSIxMjkuNTAwMDAwIiBkeT0iMC4wMDAwMDAiPnN0cnVjdCBpMmNfY2xpZW50PC90c3Bhbj48dHNwYW4geD0iMTI5LjUwMDAwMCIgZHk9IjE3LjY2NjY2NyI+IDwvdHNwYW4+PHRzcGFuIHg9IjEyOS41MDAwMDAiIGR5PSIxNy42NjY2NjciPmJ1cyBkZXZpY2U8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1TG5CeWFYWT0iPjxnIGNsYXNzPSJzaGFwZSIgPjxyZWN0IHg9IjMzNy4wMDAwMDAiIHk9IjU1MC4wMDAwMDAiIHdpZHRoPSIxNDUuMDAwMDAwIiBoZWlnaHQ9IjExNC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0iI0VERjBGRCIgY2xhc3M9IiBzdHJva2UtQjEgZmlsbC1CNSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgLz48L2c+PHRleHQgeD0iNDA5LjUwMDAwMCIgeT0iNTg4LjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDA5LjUwMDAwMCIgZHk9IjAuMDAwMDAwIj5zdHJ1Y3QgdmlydGNhbTwvdHNwYW4+PHRzcGFuIHg9IjQwOS41MDAwMDAiIGR5PSIxNy4yNTAwMDAiPiA8L3RzcGFuPjx0c3BhbiB4PSI0MDkuNTAwMDAwIiBkeT0iMTcuMjUwMDAwIj5wcml2YXRlIHN0YXRlOjwvdHNwYW4+PHRzcGFuIHg9IjQwOS41MDAwMDAiIGR5PSIxNy4yNTAwMDAiPmZvdXIgcG9pbnRlcnM8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1TG5SaiI+PGcgY2xhc3M9InNoYXBlIiA+PHJlY3QgeD0iMjI5LjAwMDAwMCIgeT0iODg1LjAwMDAwMCIgd2lkdGg9IjIxMi4wMDAwMDAiIGhlaWdodD0iOTguMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9IiNFREYwRkQiIGNsYXNzPSIgc3Ryb2tlLUIxIGZpbGwtQjUiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIC8+PC9nPjx0ZXh0IHg9IjMzNS4wMDAwMDAiIHk9IjkyMy41MDAwMDAiIGZpbGw9IiMwQTBGMjUiIGNsYXNzPSJ0ZXh0LWJvbGQgZmlsbC1OMSIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+PHRzcGFuIHg9IjMzNS4wMDAwMDAiIGR5PSIwLjAwMDAwMCI+c3RydWN0IHRlZ3JhY2FtX2RldmljZTwvdHNwYW4+PHRzcGFuIHg9IjMzNS4wMDAwMDAiIGR5PSIxNy42NjY2NjciPiA8L3RzcGFuPjx0c3BhbiB4PSIzMzUuMDAwMDAwIiBkeT0iMTcuNjY2NjY3Ij5mcmFtZXdvcmsgaGFuZGxlPC90c3Bhbj48L3RleHQ+PC9nPjxnIGNsYXNzPSJhbVYwYzI5dUxuTmtZWFJoIj48ZyBjbGFzcz0ic2hhcGUiID48cmVjdCB4PSIyODMuMDAwMDAwIiB5PSIxMjA0LjAwMDAwMCIgd2lkdGg9IjI1My4wMDAwMDAiIGhlaWdodD0iMTMwLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSIjRURGMEZEIiBjbGFzcz0iIHN0cm9rZS1CMSBmaWxsLUI1IiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiAvPjwvZz48dGV4dCB4PSI0MDkuNTAwMDAwIiB5PSIxMjQyLjUwMDAwMCIgZmlsbD0iIzBBMEYyNSIgY2xhc3M9InRleHQtYm9sZCBmaWxsLU4xIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij48dHNwYW4geD0iNDA5LjUwMDAwMCIgZHk9IjAuMDAwMDAwIj5zdHJ1Y3QgY2FtZXJhX2NvbW1vbl9kYXRhPC90c3Bhbj48dHNwYW4geD0iNDA5LjUwMDAwMCIgZHk9IjE3LjAwMDAwMCI+IDwvdHNwYW4+PHRzcGFuIHg9IjQwOS41MDAwMDAiIGR5PSIxNy4wMDAwMDAiPmZyYW1ld29yayBjb250ZXh0LCB3aXRoIHRoZTwvdHNwYW4+PHRzcGFuIHg9IjQwOS41MDAwMDAiIGR5PSIxNy4wMDAwMDAiPmZyYW1ld29yayBkZXZpY2UgaW5zaWRlOjwvdHNwYW4+PHRzcGFuIHg9IjQwOS41MDAwMDAiIGR5PSIxNy4wMDAwMDAiPnN0cnVjdCB2NGwyX3N1YmRldiBzdWJkZXY8L3RzcGFuPjwvdGV4dD48L2c+PGcgY2xhc3M9ImFtOTVMaWh3Y21sMklDMG1aM1E3SUdOc2FXVnVkQ2xiTUYwPSI+PG1hcmtlciBpZD0ibWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0IiBtYXJrZXJXaWR0aD0iMTAuMDAwMDAwIiBtYXJrZXJIZWlnaHQ9IjEyLjAwMDAwMCIgcmVmWD0iNy4wMDAwMDAiIHJlZlk9IjYuMDAwMDAwIiB2aWV3Qm94PSIwLjAwMDAwMCAwLjAwMDAwMCAxMC4wMDAwMDAgMTIuMDAwMDAwIiBvcmllbnQ9ImF1dG8iIG1hcmtlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+IDxwb2x5Z29uIHBvaW50cz0iMC4wMDAwMDAsMC4wMDAwMDAgMTAuMDAwMDAwLDYuMDAwMDAwIDAuMDAwMDAwLDEyLjAwMDAwMCIgZmlsbD0iIzBEMzJCMiIgY2xhc3M9ImNvbm5lY3Rpb24gZmlsbC1CMSIgc3Ryb2tlLXdpZHRoPSIyIiAvPiA8L21hcmtlcj48cGF0aCBkPSJNIDQ0OC4wMDAwMDAgMTI2LjAwMDAwMCBMIDIzNi4wMDAwMDAgMTI2LjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yNjg3NjY2NjM4KSIgLz48dGV4dCB4PSIzNDEuNTAwMDAwIiB5PSIxMzIuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+Y2xpZW50PC90ZXh0PjwvZz48ZyBjbGFzcz0iYW05NUxpaGpiR2xsYm5RZ0xTWm5kRHNnY0hKcGRpbGJNRjA9Ij48cGF0aCBkPSJNIDIzNC4wMDAwMDAgOTAuNjY2MDAwIEwgNDQ2LjAwMDAwMCA5MC42NjYwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI2ODc2NjY2MzgtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjY4NzY2NjYzOCkiIC8+PHRleHQgeD0iMzQxLjAwMDAwMCIgeT0iOTYuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+Y2xpZW50ZGF0YTwvdGV4dD48L2c+PGcgY2xhc3M9ImFtOTVMaWh3Y21sMklDMG1aM1E3SUdaM0tWc3dYUT09Ij48cGF0aCBkPSJNIDYwOS4wMDAwMDAgOTAuNTAwMDAwIEwgODE2LjAwMDAwMCA5MC41MDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI2ODc2NjY2MzgtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjY4NzY2NjYzOCkiIC8+PHRleHQgeD0iNzEzLjUwMDAwMCIgeT0iOTYuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+ZGV2PC90ZXh0PjwvZz48ZyBjbGFzcz0iYW05NUxpaG1keUF0Sm1kME95QndjbWwyS1Zzd1hRPT0iPjxwYXRoIGQ9Ik0gODE4LjAwMDAwMCAxMjMuNTAwMDAwIEwgNjExLjAwMDAwMCAxMjMuNTAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yNjg3NjY2NjM4LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI2ODc2NjY2MzgpIiAvPjx0ZXh0IHg9IjcxMy41MDAwMDAiIHk9IjEyOS4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5kcnZkYXRhPC90ZXh0PjwvZz48ZyBjbGFzcz0iY0drdUtHTnNhV1Z1ZENBdEptZDBPeUJ3Y21sMktWc3dYUT09Ij48cGF0aCBkPSJNIDIxMS4wMDAwMDAgMzM1LjMzMzAwOCBMIDQ2Ni4wMDAwMDAgMzM1LjMzMzAwOCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yNjg3NjY2NjM4KSIgLz48dGV4dCB4PSIzMzkuNTAwMDAwIiB5PSIzNDEuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+Y2xpZW50ZGF0YSAoYXQgc2QpPC90ZXh0PjwvZz48ZyBjbGFzcz0iY0drdUtIQnlhWFlnTFNabmREc2dZMnhwWlc1MEtWc3dYUT09Ij48cGF0aCBkPSJNIDQ2OC4wMDAwMDAgMzczLjMzMzAwOCBMIDIxMy4wMDAwMDAgMzczLjMzMzAwOCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yNjg3NjY2NjM4KSIgLz48dGV4dCB4PSIzNDAuMDAwMDAwIiB5PSIzNzkuMDAwMDAwIiBmaWxsPSIjNjc2QzdFIiBjbGFzcz0idGV4dC1pdGFsaWMgZmlsbC1OMiIgc3R5bGU9InRleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6MTZweCI+c3ViZGV2ZGF0YTwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1TGlod2NtbDJJQzBtWjNRN0lHTnNhV1Z1ZENsYk1GMD0iPjxwYXRoIGQ9Ik0gMzY2LjI1MDAwMCA2NjYuMDAwMDAwIEwgMzY2LjI1MDAwMCA2OTQuMDAwMDAwIFMgMzY2LjI1MDAwMCA3MDQuMDAwMDAwIDM1Ni4yNTAwMDAgNzA0LjAwMDAwMCBMIDEzOS41MDAwMDAgNzA0LjAwMDAwMCBTIDEyOS41MDAwMDAgNzA0LjAwMDAwMCAxMjkuNTAwMDAwIDcxNC4wMDAwMDAgTCAxMjkuNTAwMDAwIDg4MS4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI2ODc2NjY2MzgtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjY4NzY2NjYzOCkiIC8+PHRleHQgeD0iMTc3LjUwMDAwMCIgeT0iNzEwLjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPmkyY19jbGllbnQ8L3RleHQ+PC9nPjxnIGNsYXNzPSJhbVYwYzI5dUxpaHdjbWwySUMwbVozUTdJSFJqS1Zzd1hRPT0iPjxwYXRoIGQ9Ik0gMzk1LjI1MDAwMCA2NjYuMDAwMDAwIEwgMzk1LjI1MDAwMCA4ODEuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yNjg3NjY2NjM4LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI2ODc2NjY2MzgpIiAvPjx0ZXh0IHg9IjM5NS41MDAwMDAiIHk9Ijc4MC4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij50Y19kZXY8L3RleHQ+PC9nPjxnIGNsYXNzPSJhbVYwYzI5dUxpaHdjbWwySUMwbVozUTdJSE5rWVhSaEtWc3dYUT09Ij48cGF0aCBkPSJNIDQyNC4yNTAwMDAgNjY2LjAwMDAwMCBMIDQyNC4yNTAwMDAgNzQ0LjAwMDAwMCBTIDQyNC4yNTAwMDAgNzU0LjAwMDAwMCA0MzQuMjUwMDAwIDc1NC4wMDAwMDAgTCA0NzQuNTAwMDAwIDc1NC4wMDAwMDAgUyA0ODQuNTAwMDAwIDc1NC4wMDAwMDAgNDg0LjUwMDAwMCA3NjQuMDAwMDAwIEwgNDg0LjUwMDAwMCAxMTA0LjAwMDAwMCBTIDQ4NC41MDAwMDAgMTExNC4wMDAwMDAgNDc0LjUwMDAwMCAxMTE0LjAwMDAwMCBMIDQ0NS4wNDk5ODggMTExNC4wMDAwMDAgUyA0MzUuMDQ5OTg4IDExMTQuMDAwMDAwIDQzNS4wNDk5ODggMTEyNC4wMDAwMDAgTCA0MzUuMDQ5OTg4IDEyMDAuMDAwMDAwIiBzdHJva2U9IiMwRDMyQjIiIGZpbGw9Im5vbmUiIGNsYXNzPSJjb25uZWN0aW9uIHN0cm9rZS1CMSIgc3R5bGU9InN0cm9rZS13aWR0aDoyOyIgbWFya2VyLWVuZD0idXJsKCNtay1kMi0yNjg3NjY2NjM4LTM0ODgzNzgxMzQpIiBtYXNrPSJ1cmwoI2QyLTI2ODc2NjY2MzgpIiAvPjx0ZXh0IHg9IjQ4NC41MDAwMDAiIHk9IjkzNC4wMDAwMDAiIGZpbGw9IiM2NzZDN0UiIGNsYXNzPSJ0ZXh0LWl0YWxpYyBmaWxsLU4yIiBzdHlsZT0idGV4dC1hbmNob3I6bWlkZGxlO2ZvbnQtc2l6ZToxNnB4Ij5zX2RhdGE8L3RleHQ+PC9nPjxnIGNsYXNzPSJhbVYwYzI5dUxpaDBZeUF0Sm1kME95QnpaR0YwWVNsYk1GMD0iPjxwYXRoIGQ9Ik0gMzg0LjQ1MDAxMiA5ODUuMDAwMDAwIEwgMzg0LjQ1MDAxMiAxMjAwLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yNjg3NjY2NjM4KSIgLz48dGV4dCB4PSIzODQuNTAwMDAwIiB5PSIxMDk5LjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnNfZGF0YTwvdGV4dD48L2c+PGcgY2xhc3M9ImFtVjBjMjl1TGloelpHRjBZU0F0Sm1kME95QndjbWwyS1Zzd1hRPT0iPjxwYXRoIGQ9Ik0gNDg1LjY0OTk5NCAxMjAyLjAwMDAwMCBMIDQ4NS42NDk5OTQgMTE3NC4wMDAwMDAgUyA0ODUuNjQ5OTk0IDExNjQuMDAwMDAwIDQ5NS42NDk5OTQgMTE2NC4wMDAwMDAgTCA1MjMuNzk5OTg4IDExNjQuMDAwMDAwIFMgNTMzLjc5OTk4OCAxMTY0LjAwMDAwMCA1MzMuNzk5OTg4IDExNTQuMDAwMDAwIEwgNTMzLjc5OTk4OCA3MTQuMDAwMDAwIFMgNTMzLjc5OTk4OCA3MDQuMDAwMDAwIDUyMy43OTk5ODggNzA0LjAwMDAwMCBMIDQ2My4yNTAwMDAgNzA0LjAwMDAwMCBTIDQ1My4yNTAwMDAgNzA0LjAwMDAwMCA0NTMuMjUwMDAwIDY5NC4wMDAwMDAgTCA0NTMuMjUwMDAwIDY2OC4wMDAwMDAiIHN0cm9rZT0iIzBEMzJCMiIgZmlsbD0ibm9uZSIgY2xhc3M9ImNvbm5lY3Rpb24gc3Ryb2tlLUIxIiBzdHlsZT0ic3Ryb2tlLXdpZHRoOjI7IiBtYXJrZXItZW5kPSJ1cmwoI21rLWQyLTI2ODc2NjY2MzgtMzQ4ODM3ODEzNCkiIG1hc2s9InVybCgjZDItMjY4NzY2NjYzOCkiIC8+PHRleHQgeD0iNTMzLjUwMDAwMCIgeT0iOTIzLjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPnByaXY8L3RleHQ+PC9nPjxnIGNsYXNzPSJhbVYwYzI5dUxpaGpiR2xsYm5RZ0xTWm5kRHNnYzJSaGRHRXBXekJkIj48cGF0aCBkPSJNIDEyOS41MDAwMDAgOTg1LjAwMDAwMCBMIDEyOS41MDAwMDAgMTE1NC4wMDAwMDAgUyAxMjkuNTAwMDAwIDExNjQuMDAwMDAwIDEzOS41MDAwMDAgMTE2NC4wMDAwMDAgTCAzMjMuODUwMDA2IDExNjQuMDAwMDAwIFMgMzMzLjg1MDAwNiAxMTY0LjAwMDAwMCAzMzMuODUwMDA2IDExNzQuMDAwMDAwIEwgMzMzLjg1MDAwNiAxMjAwLjAwMDAwMCIgc3Ryb2tlPSIjMEQzMkIyIiBmaWxsPSJub25lIiBjbGFzcz0iY29ubmVjdGlvbiBzdHJva2UtQjEiIHN0eWxlPSJzdHJva2Utd2lkdGg6MjsiIG1hcmtlci1lbmQ9InVybCgjbWstZDItMjY4NzY2NjYzOC0zNDg4Mzc4MTM0KSIgbWFzaz0idXJsKCNkMi0yNjg3NjY2NjM4KSIgLz48dGV4dCB4PSIxNjEuMDAwMDAwIiB5PSIxMTcwLjAwMDAwMCIgZmlsbD0iIzY3NkM3RSIgY2xhc3M9InRleHQtaXRhbGljIGZpbGwtTjIiIHN0eWxlPSJ0ZXh0LWFuY2hvcjptaWRkbGU7Zm9udC1zaXplOjE2cHgiPmRydmRhdGEgKGF0IHN1YmRldik8L3RleHQ+PC9nPjxtYXNrIGlkPSJkMi0yNjg3NjY2NjM4IiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSItMjUiIHk9Ii0yNSIgd2lkdGg9IjEwOTMiIGhlaWdodD0iMTQzNCI+CjxyZWN0IHg9Ii0yNSIgeT0iLTI1IiB3aWR0aD0iMTA5MyIgaGVpZ2h0PSIxNDM0IiBmaWxsPSJ3aGl0ZSI+PC9yZWN0Pgo8cmVjdCB4PSIzMjEuMDAwMDAwIiB5PSIxMTYuMDAwMDAwIiB3aWR0aD0iNDEiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjMwNS4wMDAwMDAiIHk9IjgwLjAwMDAwMCIgd2lkdGg9IjcyIiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI2OTkuMDAwMDAwIiB5PSI4MC4wMDAwMDAiIHdpZHRoPSIyOSIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iNjg1LjAwMDAwMCIgeT0iMTEzLjAwMDAwMCIgd2lkdGg9IjU3IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIyODIuMDAwMDAwIiB5PSIzMjUuMDAwMDAwIiB3aWR0aD0iMTE1IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSIyOTguMDAwMDAwIiB5PSIzNjMuMDAwMDAwIiB3aWR0aD0iODQiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjE0NC4wMDAwMDAiIHk9IjY5NC4wMDAwMDAiIHdpZHRoPSI2NyIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iMzcxLjAwMDAwMCIgeT0iNzY0LjAwMDAwMCIgd2lkdGg9IjQ5IiBoZWlnaHQ9IjIxIiBmaWxsPSJibGFjayI+PC9yZWN0Pgo8cmVjdCB4PSI0NTkuMDAwMDAwIiB5PSI5MTguMDAwMDAwIiB3aWR0aD0iNTEiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjM1OS4wMDAwMDAiIHk9IjEwODMuMDAwMDAwIiB3aWR0aD0iNTEiIGhlaWdodD0iMjEiIGZpbGw9ImJsYWNrIj48L3JlY3Q+CjxyZWN0IHg9IjUxOC4wMDAwMDAiIHk9IjkwNy4wMDAwMDAiIHdpZHRoPSIzMSIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPHJlY3QgeD0iOTUuMDAwMDAwIiB5PSIxMTU0LjAwMDAwMCIgd2lkdGg9IjEzMiIgaGVpZ2h0PSIyMSIgZmlsbD0iYmxhY2siPjwvcmVjdD4KPC9tYXNrPjwvc3ZnPjwvc3ZnPgoKPCEtLSBkMi1zb3VyY2Utc2hhMjU2OiBhOWM2OTBmYzYyN2I5ZjJhMTBhOWM5N2VhNjEyZGY5MTlmNmExMjI5NmZhMzRmNTEwNGUxMTZjOTllYjVlYzU1IC0tPgo=" alt="The three-struct pattern in three drivers. The joystick driver points at its input device. The Raspberry Pi imx477 driver has the subdevice inside its private struct. The Jetson virtcam driver points at a tegracam handle and at a tegracam context, which holds the subdevice."><div class="cap">The three-struct pattern in three drivers. The joystick driver points at its input device. The Raspberry Pi imx477 driver has the subdevice inside its private struct. The Jetson virtcam driver points at a tegracam handle and at a tegracam context, which holds the subdevice.</div></div>
+<h3 id="the-way-back-from-the-object-that-a-callback-receives">The way back from the object that a callback receives</h3>
+<p>Each driver needs the way from a framework object back to its private state. An embedded member gives that way without a stored pointer. <code>container_of()</code> computes the address of the enclosing struct from the address of a member:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 1073–1076</span></div><pre><code>static inline struct imx477 *to_imx477(struct v4l2_subdev *_sd)
+{
+    return container_of(_sd, struct imx477, sd);
+}</code></pre></div>
+<p class="board jetson"><strong>Jetson</strong> tegracam uses the same macro for its own context, and one stored pointer completes the way. From an <code>i2c_client</code>, this function gives the context:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/include/media/camera_common.h</span><span>lines 292–299</span></div><pre><code>static inline struct camera_common_data *to_camera_common_data(
+    const struct device *dev)
+{
+    if (sensor_common_parse_num_modes(dev))
+        return container_of(dev_get_drvdata(dev),
+            struct camera_common_data, subdev);
+    return NULL;
+}</code></pre></div>
+<p>From the context, the member <code>priv</code> gives <code>struct virtcam</code>. Section 7 shows the probe line that stores it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Qwiic joystick</th>
+<th>imx477, Raspberry Pi 5</th>
+<th>virtcam, Jetson</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bus device</td>
+<td><code>struct i2c_client</code></td>
+<td><code>struct i2c_client</code></td>
+<td><code>struct i2c_client</code></td>
+</tr>
+<tr>
+<td>Private state</td>
+<td><code>struct qwiic_jsk</code></td>
+<td><code>struct imx477</code></td>
+<td><code>struct virtcam</code></td>
+</tr>
+<tr>
+<td>Framework device</td>
+<td><code>struct input_dev</code>, behind a pointer</td>
+<td><code>struct v4l2_subdev</code>, inside the private struct</td>
+<td><code>struct v4l2_subdev</code>, inside <code>struct camera_common_data</code></td>
+</tr>
+<tr>
+<td>Framework handle</td>
+<td>None</td>
+<td>None</td>
+<td><code>struct tegracam_device</code></td>
+</tr>
+<tr>
+<td>Back to the private state</td>
+<td><code>input_get_drvdata()</code></td>
+<td><code>to_imx477()</code>, a <code>container_of()</code></td>
+<td><code>to_camera_common_data()</code>, then <code>-&gt;priv</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="five-role-tags-for-the-lines-of-a-probe">Five role tags for the lines of a probe</h3>
+<p>The course tags every line of a probe function with the role that it serves. Section 7 and the lab use these tags, and so do the lessons on driver anatomy:</p>
+<ul>
+<li><code>[client]</code>: the line uses the bus device: a transfer, an address, or a log line through it.</li>
+<li><code>[priv]</code>: the line allocates or links the private state.</li>
+<li><code>[framework]</code>: the line builds, configures or registers a framework object.</li>
+<li><code>[dt]</code>: the line reads the device tree.</li>
+<li><code>[power]</code>: the line acts on a clock, a regulator, a GPIO, or the power state.</li>
+</ul>
+<h3 id="side-by-side-5" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson</th>
+<th>Raspberry Pi 5</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The layer that a sensor driver calls</td>
+<td>tegracam, which calls V4L2</td>
+<td>V4L2</td>
+</tr>
+<tr>
+<td>Owner of the <code>v4l2_subdev</code></td>
+<td>tegracam: inside <code>struct camera_common_data</code></td>
+<td>The driver: inside its private struct</td>
+</tr>
+<tr>
+<td>Framework objects</td>
+<td>Three: handle, context, subdevice</td>
+<td>One: the subdevice</td>
+</tr>
+<tr>
+<td>The same driver source on a mainline kernel</td>
+<td>No. tegracam exists only in NVIDIA's tree</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table></div>
+<p>The last row is the difference that section 5 announced. A tegracam driver is valid only on a Jetson. Later lessons return to that fact each time a driver moves between the boards.</p>
+<h2 id="7-a-probe-function-line-by-line">7. A probe function, line by line</h2>
+<p><code>probe()</code> is the function that turns a matched device into a working one. This section reads the probe of virtcam whole, because it is short and has every step. Then it puts the probe of the Raspberry Pi driver beside it.</p>
+<h3 id="the-steps-of-virtcam_probe">The steps of virtcam_probe()</h3>
+<p>The function has 63 lines. One search lists the calls that structure it:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">host$</span> sed -n &#x27;285,347p&#x27; virtcam/virtcam.c | grep -n &#x27;devm_kzalloc\|_register(\|power_on_probe&#x27;</span>
+<span class="out">19: priv = devm_kzalloc(dev, sizeof(struct virtcam), GFP_KERNEL);</span>
+<span class="out">23: tc_dev = devm_kzalloc(dev, sizeof(struct tegracam_device), GFP_KERNEL);</span>
+<span class="out">35: err = tegracam_device_register(tc_dev);</span>
+<span class="out">46: err = tegracam_v4l2subdev_register(tc_dev, true);</span>
+<span class="out">53: err = virtcam_power_on_probe(priv);</span></code></pre></div>
+<p>So the function makes two allocations, two registrations and one power step, in that order. The text below follows that order.</p>
+<details class="more">
+<summary><b>Source</b>: the whole of <code>virtcam_probe()</code></summary>
+
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 285–347</span></div><pre><code>#if defined(NV_I2C_DRIVER_STRUCT_PROBE_WITHOUT_I2C_DEVICE_ID_ARG) /* Linux 6.3 */
+static int virtcam_probe(struct i2c_client *client)
+#else
+static int virtcam_probe(struct i2c_client *client,
+             const struct i2c_device_id *id)
+#endif
+{
+    struct device *dev = &amp;client-&gt;dev;
+    struct tegracam_device *tc_dev;
+    struct virtcam *priv;
+    int err;
+
+    dev_info(dev, &quot;probing virtual sensor assumed at addr 0x%02x\n&quot;,
+         client-&gt;addr);
+
+    if (!IS_ENABLED(CONFIG_OF) || !client-&gt;dev.of_node)
+        return -EINVAL;
+
+    priv = devm_kzalloc(dev, sizeof(struct virtcam), GFP_KERNEL);
+    if (!priv)
+        return -ENOMEM;
+
+    tc_dev = devm_kzalloc(dev, sizeof(struct tegracam_device), GFP_KERNEL);
+    if (!tc_dev)
+        return -ENOMEM;
+
+    priv-&gt;i2c_client = tc_dev-&gt;client = client;
+    tc_dev-&gt;dev = dev;
+    strscpy(tc_dev-&gt;name, &quot;virtcam&quot;, sizeof(tc_dev-&gt;name));
+    tc_dev-&gt;dev_regmap_config = &amp;virtcam_regmap_config;
+    tc_dev-&gt;sensor_ops = &amp;virtcam_common_ops;
+    tc_dev-&gt;v4l2sd_internal_ops = &amp;virtcam_subdev_internal_ops;
+    tc_dev-&gt;tcctrl_ops = &amp;virtcam_ctrl_ops;
+
+    err = tegracam_device_register(tc_dev);
+    if (err) {
+        dev_err(dev, &quot;tegra camera driver registration failed\n&quot;);
+        return err;
+    }
+
+    priv-&gt;tc_dev = tc_dev;
+    priv-&gt;s_data = tc_dev-&gt;s_data;
+    priv-&gt;subdev = &amp;tc_dev-&gt;s_data-&gt;subdev;
+    tegracam_set_privdata(tc_dev, (void *)priv);
+
+    err = tegracam_v4l2subdev_register(tc_dev, true);
+    if (err) {
+        dev_err(dev, &quot;tegra camera subdev registration failed\n&quot;);
+        tegracam_device_unregister(tc_dev);
+        return err;
+    }
+
+    err = virtcam_power_on_probe(priv);
+    if (err) {
+        tegracam_v4l2subdev_unregister(tc_dev);
+        tegracam_device_unregister(tc_dev);
+        return err;
+    }
+
+    dev_info(dev, &quot;virtcam sensor driver probed\n&quot;);
+
+    return 0;
+}</code></pre></div>
+<p>The <code>#if</code> block around the signature selects the form with one argument on both kernels of this course. Section 3 explains the other form.</p>
+</details>
+
+<p><strong>Entry.</strong> Everything starts from <code>client</code> <code>[client]</code>. The first log line goes through its device, which gives the line its prefix. Then the function refuses a device without a device-tree node <code>[dt]</code>:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 297–301</span></div><pre><code>    dev_info(dev, &quot;probing virtual sensor assumed at addr 0x%02x\n&quot;,
+         client-&gt;addr);
+
+    if (!IS_ENABLED(CONFIG_OF) || !client-&gt;dev.of_node)
+        return -EINVAL;</code></pre></div>
+<p>The words "assumed at" in the message are exact. This driver does not check that a sensor answers at the address.</p>
+<p><strong>Two allocations.</strong> The private state <code>[priv]</code> and the handle of tegracam <code>[framework]</code> are allocated against the device of the client:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 303–309</span></div><pre><code>    priv = devm_kzalloc(dev, sizeof(struct virtcam), GFP_KERNEL);
+    if (!priv)
+        return -ENOMEM;
+
+    tc_dev = devm_kzalloc(dev, sizeof(struct tegracam_device), GFP_KERNEL);
+    if (!tc_dev)
+        return -ENOMEM;</code></pre></div>
+<p><strong>Wiring.</strong> The next block stores pointers, and nothing else:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 311–317</span></div><pre><code>    priv-&gt;i2c_client = tc_dev-&gt;client = client;
+    tc_dev-&gt;dev = dev;
+    strscpy(tc_dev-&gt;name, &quot;virtcam&quot;, sizeof(tc_dev-&gt;name));
+    tc_dev-&gt;dev_regmap_config = &amp;virtcam_regmap_config;
+    tc_dev-&gt;sensor_ops = &amp;virtcam_common_ops;
+    tc_dev-&gt;v4l2sd_internal_ops = &amp;virtcam_subdev_internal_ops;
+    tc_dev-&gt;tcctrl_ops = &amp;virtcam_ctrl_ops;</code></pre></div>
+<p>Its first line is the three-struct pattern in one statement <code>[client]</code> <code>[priv]</code> <code>[framework]</code>. The last three lines give tegracam three tables of functions. The framework calls the driver through these tables for as long as the sensor exists.</p>
+<p><strong>First registration.</strong> <code>tegracam_device_register()</code> <code>[framework]</code> is the first call with an effect outside the driver:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 319–323</span></div><pre><code>    err = tegracam_device_register(tc_dev);
+    if (err) {
+        dev_err(dev, &quot;tegra camera driver registration failed\n&quot;);
+        return err;
+    }</code></pre></div>
+<p>Inside this call, tegracam calls back into the tables that the wiring block stored:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/tegracam_core.c</span><span>lines 121–123</span></div><pre><code>    s_data-&gt;pdata = tc_dev-&gt;sensor_ops-&gt;parse_dt(tc_dev);
+    if (PTR_ERR(s_data-&gt;pdata) == -EPROBE_DEFER)
+        return -EPROBE_DEFER;</code></pre></div>
+<p>So the <code>parse_dt</code> function of the driver <code>[dt]</code> runs inside the registration, before it returns. The driver's function that looks up the clock <code>[power]</code> runs there too. <code>-EPROBE_DEFER</code> is a routine result: if a resource is not ready yet, the whole probe stops, and the kernel calls it again later. On success, tegracam has built the context, <code>s_data</code>.</p>
+<p><strong>Back-pointers.</strong> Now the private state can store where the framework objects are <code>[priv]</code>:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 325–328</span></div><pre><code>    priv-&gt;tc_dev = tc_dev;
+    priv-&gt;s_data = tc_dev-&gt;s_data;
+    priv-&gt;subdev = &amp;tc_dev-&gt;s_data-&gt;subdev;
+    tegracam_set_privdata(tc_dev, (void *)priv);</code></pre></div>
+<p>The last line is the stored pointer of section 6: it puts <code>priv</code> into <code>s_data-&gt;priv</code>.</p>
+<p><strong>Second registration.</strong> <code>tegracam_v4l2subdev_register()</code> <code>[framework]</code> makes the sensor a V4L2 subdevice and adds it to the media graph, which Lesson 03 covers:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 330–335</span></div><pre><code>    err = tegracam_v4l2subdev_register(tc_dev, true);
+    if (err) {
+        dev_err(dev, &quot;tegra camera subdev registration failed\n&quot;);
+        tegracam_device_unregister(tc_dev);
+        return err;
+    }</code></pre></div>
+<p>Its error path calls <code>tegracam_device_unregister()</code>. A registration that succeeded must be undone by hand when a later step fails.</p>
+<p><strong>Power.</strong> The last step <code>[power]</code> is the only one that acts on hardware. It enables one clock:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 337–342</span></div><pre><code>    err = virtcam_power_on_probe(priv);
+    if (err) {
+        tegracam_v4l2subdev_unregister(tc_dev);
+        tegracam_device_unregister(tc_dev);
+        return err;
+    }</code></pre></div>
+<p>This error path undoes both registrations, in reverse order.</p>
+<details class="more">
+<summary><b>More detail</b>: small facts of this probe</summary>
+
+<ul>
+<li><code>strscpy()</code> in the wiring block is the bounded string copy of the kernel. The name that it copies appears later in the banner of tegracam.</li>
+<li><code>&amp;tc_dev-&gt;s_data-&gt;subdev</code> is a valid address because the subdevice is embedded in the context by value.</li>
+<li><code>tegracam_set_privdata()</code> consists of two assignments in <code>tegracam_core.c</code>.</li>
+<li>The driver table uses <code>of_match_ptr()</code>, which compiles to <code>NULL</code> without <code>CONFIG_OF</code>. The entry check of the probe covers that case too.</li>
+<li><code>virtcam_power_on_probe()</code> is above the probe in <code>virtcam.c</code>. It calls <code>clk_prepare_enable()</code> on the sensor clock and marks the power rail as on.</li>
+</ul>
+</details>
+
+<h3 id="the-same-steps-in-the-raspberry-pi-driver">The same steps in the Raspberry Pi driver</h3>
+<p><code>imx477_probe()</code> has 130 lines. Its steps have the same tags, in a different order:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Step of <code>imx477_probe()</code></th>
+<th>Line</th>
+<th>Tag</th>
+<th>The step of virtcam that it corresponds to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>devm_kzalloc()</code> of <code>struct imx477</code></td>
+<td>2120</td>
+<td><code>[priv]</code></td>
+<td>The first allocation. No second one, because the subdevice is inside</td>
+</tr>
+<tr>
+<td><code>v4l2_i2c_subdev_init()</code></td>
+<td>2124</td>
+<td><code>[framework]</code> <code>[client]</code></td>
+<td>Wiring: it links the subdevice and the client in both directions</td>
+</tr>
+<tr>
+<td><code>imx477_check_hwcfg()</code></td>
+<td>2140</td>
+<td><code>[dt]</code></td>
+<td><code>parse_dt</code>, called directly and not through a framework</td>
+</tr>
+<tr>
+<td>Clock, regulators, reset line</td>
+<td>2148–2169</td>
+<td><code>[power]</code></td>
+<td>The lookup of the clock inside the first registration</td>
+</tr>
+<tr>
+<td><code>imx477_power_on()</code></td>
+<td>2175</td>
+<td><code>[power]</code></td>
+<td>The power step, which comes before the registration here</td>
+</tr>
+<tr>
+<td><code>imx477_identify_module()</code></td>
+<td>2179</td>
+<td><code>[client]</code></td>
+<td>None</td>
+</tr>
+<tr>
+<td>Controls and pads</td>
+<td>2198–2212</td>
+<td><code>[framework]</code></td>
+<td>Done by tegracam inside the first registration</td>
+</tr>
+<tr>
+<td><code>v4l2_async_register_subdev_sensor()</code></td>
+<td>2218</td>
+<td><code>[framework]</code></td>
+<td>The second registration</td>
+</tr>
+</tbody>
+</table></div>
+<details class="more">
+<summary><b>Source</b>: the whole of <code>imx477_probe()</code></summary>
+
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 2112–2241</span></div><pre><code>static int imx477_probe(struct i2c_client *client)
+{
+    struct device *dev = &amp;client-&gt;dev;
+    struct imx477 *imx477;
+    const struct of_device_id *match;
+    int ret;
+    u32 tm_of;
+
+    imx477 = devm_kzalloc(&amp;client-&gt;dev, sizeof(*imx477), GFP_KERNEL);
+    if (!imx477)
+        return -ENOMEM;
+
+    v4l2_i2c_subdev_init(&amp;imx477-&gt;sd, client, &amp;imx477_subdev_ops);
+
+    imx477-&gt;regmap = devm_cci_regmap_init_i2c(client, 16);
+    if (IS_ERR(imx477-&gt;regmap)) {
+        ret = PTR_ERR(imx477-&gt;regmap);
+        dev_err(&amp;client-&gt;dev, &quot;failed to initialize CCI: %d\n&quot;, ret);
+        return ret;
+    }
+
+    match = of_match_device(imx477_dt_ids, dev);
+    if (!match)
+        return -ENODEV;
+    imx477-&gt;compatible_data =
+        (const struct imx477_compatible_data *)match-&gt;data;
+
+    /* Check the hardware configuration in device tree */
+    if (imx477_check_hwcfg(dev, imx477))
+        return -EINVAL;
+
+    /* Default the trigger mode from OF to -1, which means invalid */
+    ret = of_property_read_u32(dev-&gt;of_node, &quot;trigger-mode&quot;, &amp;tm_of);
+    imx477-&gt;trigger_mode_of = (ret == 0) ? tm_of : -1;
+
+    /* Get system clock (xclk) */
+    imx477-&gt;xclk = devm_clk_get(dev, NULL);
+    if (IS_ERR(imx477-&gt;xclk)) {
+        dev_err(dev, &quot;failed to get xclk\n&quot;);
+        return PTR_ERR(imx477-&gt;xclk);
+    }
+
+    imx477-&gt;xclk_freq = clk_get_rate(imx477-&gt;xclk);
+    if (imx477-&gt;xclk_freq != IMX477_XCLK_FREQ) {
+        dev_err(dev, &quot;xclk frequency not supported: %d Hz\n&quot;,
+            imx477-&gt;xclk_freq);
+        return -EINVAL;
+    }
+
+    ret = imx477_get_regulators(imx477);
+    if (ret) {
+        dev_err(dev, &quot;failed to get regulators\n&quot;);
+        return ret;
+    }
+
+    /* Request optional enable pin */
+    imx477-&gt;reset_gpio = devm_gpiod_get_optional(dev, &quot;reset&quot;,
+                             GPIOD_OUT_HIGH);
+
+    /*
+     * The sensor must be powered for imx477_identify_module()
+     * to be able to read the CHIP_ID register
+     */
+    ret = imx477_power_on(dev);
+    if (ret)
+        return ret;
+
+    ret = imx477_identify_module(imx477, imx477-&gt;compatible_data-&gt;chip_id);
+    if (ret)
+        goto error_power_off;
+
+    /* Initialize default format */
+    imx477_set_default_format(imx477);
+
+    /*
+     * Enable runtime PM with 5s autosuspend. As the device has been powered
+     * manually, mark it as active, and increase the usage count without
+     * resuming the device.
+     */
+    pm_runtime_set_active(dev);
+    pm_runtime_get_noresume(dev);
+    pm_runtime_enable(dev);
+    pm_runtime_set_autosuspend_delay(dev, 5000);
+    pm_runtime_use_autosuspend(dev);
+
+    /* This needs the pm runtime to be registered. */
+    ret = imx477_init_controls(imx477);
+    if (ret)
+        goto error_power_off;
+
+    /* Initialize subdev */
+    imx477-&gt;sd.internal_ops = &amp;imx477_internal_ops;
+    imx477-&gt;sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE |
+                V4L2_SUBDEV_FL_HAS_EVENTS;
+    imx477-&gt;sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+
+    /* Initialize source pads */
+    imx477-&gt;pad[IMAGE_PAD].flags = MEDIA_PAD_FL_SOURCE;
+    imx477-&gt;pad[METADATA_PAD].flags = MEDIA_PAD_FL_SOURCE;
+
+    ret = media_entity_pads_init(&amp;imx477-&gt;sd.entity, NUM_PADS, imx477-&gt;pad);
+    if (ret) {
+        dev_err(dev, &quot;failed to init entity pads: %d\n&quot;, ret);
+        goto error_handler_free;
+    }
+
+    ret = v4l2_async_register_subdev_sensor(&amp;imx477-&gt;sd);
+    if (ret &lt; 0) {
+        dev_err(dev, &quot;failed to register sensor sub-device: %d\n&quot;, ret);
+        goto error_media_entity;
+    }
+
+    pm_runtime_mark_last_busy(&amp;client-&gt;dev);
+    pm_runtime_put_autosuspend(&amp;client-&gt;dev);
+
+    return 0;
+
+error_media_entity:
+    media_entity_cleanup(&amp;imx477-&gt;sd.entity);
+
+error_handler_free:
+    imx477_free_controls(imx477);
+
+error_power_off:
+    pm_runtime_disable(&amp;client-&gt;dev);
+    pm_runtime_put_noidle(&amp;client-&gt;dev);
+    imx477_power_off(&amp;client-&gt;dev);
+
+    return ret;
+}</code></pre></div>
+</details>
+
+<p>One row has no counterpart. <code>imx477_identify_module()</code> is the first transfer on the bus. It reads the identity register of the sensor and compares it:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 1836–1847</span></div><pre><code>    ret = cci_read(imx477-&gt;regmap, IMX477_REG_CHIP_ID, &amp;val, NULL);
+    if (ret) {
+        dev_err(&amp;client-&gt;dev, &quot;failed to read chip id %x, with error %d\n&quot;,
+            expected_id, ret);
+        return ret;
+    }
+
+    if (val != expected_id) {
+        dev_err(&amp;client-&gt;dev, &quot;chip id mismatch: %x!=%llx\n&quot;,
+            expected_id, val);
+        return -EIO;
+    }</code></pre></div>
+<p>So the two drivers answer one question in opposite ways. With no camera connected, the Raspberry Pi driver fails its probe with <code>failed to read chip id</code>, and no device node appears. The virtcam probe succeeds with no camera, because it never asks. That also explains the position of the power step. The Raspberry Pi driver needs a powered sensor during probe, so it powers the sensor early. virtcam does not, so its power step comes last.</p>
+<h3 id="side-by-side-6" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson, virtcam</th>
+<th>Raspberry Pi 5, imx477</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allocations</td>
+<td>Two: private state and tegracam handle</td>
+<td>One: private state with the subdevice inside</td>
+</tr>
+<tr>
+<td>Device tree</td>
+<td>Read inside <code>tegracam_device_register()</code>, through a callback</td>
+<td>Read by a function that probe calls</td>
+</tr>
+<tr>
+<td>First bus transfer</td>
+<td>None in probe</td>
+<td>The identity register, in probe</td>
+</tr>
+<tr>
+<td>Probe with no camera connected</td>
+<td>Succeeds</td>
+<td>Fails with <code>failed to read chip id</code></td>
+</tr>
+<tr>
+<td>Registration</td>
+<td><code>tegracam_device_register()</code>, then <code>tegracam_v4l2subdev_register()</code></td>
+<td><code>v4l2_async_register_subdev_sensor()</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>NVIDIA's own driver for this sensor, <code>nv_imx477.c</code>, is a tegracam driver with the structure of virtcam. Lesson 07 reads it.</p>
+<h2 id="8-cleanup-and-the-log-that-a-probe-leaves">8. Cleanup, and the log that a probe leaves</h2>
+<p>A probe allocates memory and registers objects. Something must undo both when the driver unbinds or when probe fails halfway. The kernel undoes one kind by itself, and the driver undoes the other.</p>
+<h3 id="allocations-are-released-by-the-kernel-registrations-by-the-driver">Allocations are released by the kernel, registrations by the driver</h3>
+<p><code>devm_kzalloc()</code> attaches an allocation to a <code>struct device</code>. The driver core releases everything that is attached when the device loses its driver. That happens after <code>remove()</code> returns. It also happens when <code>probe()</code> fails, because the I2C core opens a group for these resources around the probe call. This mechanism is <strong>devres</strong>. It explains two properties of both sensor drivers: neither contains a <code>kfree()</code>, and an error path can return without freeing memory.</p>
+<p>A registration is different. <code>tegracam_device_register()</code> and <code>v4l2_async_register_subdev_sensor()</code> have no managed form in these drivers. So the driver calls the matching unregister function itself, in reverse order.</p>
+<p class="board jetson"><strong>Jetson</strong> the remove function of virtcam:</p>
+<div class="codeblock"><div class="src"><b>virtcam</b><span class="path">virtcam.c</span><span>lines 349–365</span></div><pre><code>#if defined(NV_I2C_DRIVER_STRUCT_REMOVE_RETURN_TYPE_INT) /* Linux 6.1 */
+static int virtcam_remove(struct i2c_client *client)
+#else
+static void virtcam_remove(struct i2c_client *client)
+#endif
+{
+    struct camera_common_data *s_data = to_camera_common_data(&amp;client-&gt;dev);
+    struct virtcam *priv = (struct virtcam *)s_data-&gt;priv;
+
+    tegracam_v4l2subdev_unregister(priv-&gt;tc_dev);
+    tegracam_device_unregister(priv-&gt;tc_dev);
+    /* Deliberate defect, second half: mclk enabled in probe is still on. */
+
+#if defined(NV_I2C_DRIVER_STRUCT_REMOVE_RETURN_TYPE_INT) /* Linux 6.1 */
+    return 0;
+#endif
+}</code></pre></div>
+<p><code>remove()</code> receives only the client. The first two lines walk the way of section 6: client, context, private state. Then the two registrations are undone, subdevice first.</p>
+<div class="callout important">
+<div class="title">
+<p>Important</p>
+</div>
+<p><code>virtcam_remove()</code> has a deliberate defect. Probe enables the sensor clock, and remove never disables it. So the clock keeps running after <code>rmmod</code> until a reboot. The lab of Lesson 08 demonstrates the defect and fixes it.</p>
+</div>
+<p class="board pi"><strong>Raspberry Pi 5</strong> the remove function of imx477:</p>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 2243–2256</span></div><pre><code>static void imx477_remove(struct i2c_client *client)
+{
+    struct v4l2_subdev *sd = i2c_get_clientdata(client);
+    struct imx477 *imx477 = to_imx477(sd);
+
+    v4l2_async_unregister_subdev(sd);
+    media_entity_cleanup(&amp;sd-&gt;entity);
+    imx477_free_controls(imx477);
+
+    pm_runtime_disable(&amp;client-&gt;dev);
+    if (!pm_runtime_status_suspended(&amp;client-&gt;dev))
+        imx477_power_off(&amp;client-&gt;dev);
+    pm_runtime_set_suspended(&amp;client-&gt;dev);
+}</code></pre></div>
+<p>It has the same structure, and it has the step that virtcam omits: <code>imx477_power_off()</code>. The rule behind both functions is short. <code>remove()</code> is <code>probe()</code> in reverse, and every error path inside <code>probe()</code> is the first part of <code>remove()</code>.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong><code>rmmod</code> reports nothing, and a crash follows seconds later.</strong></p>
+<ul>
+<li>Cause: devres frees the private state right after <code>remove()</code> returns. A timer, a work item or an interrupt handler that still uses it then reads freed memory.</li>
+<li>Fix: stop every such source in <code>remove()</code>.</li>
+<li>The joystick driver has no such source of its own. The input core owns its poller and stops it.</li>
+</ul>
+</div>
+<h3 id="the-name-of-a-device-in-a-log-line">The name of a device in a log line</h3>
+<p>The <code>dev_info()</code> family puts two names before every message: the name of the driver and the name of the device. For an I2C device, the device name is the bus number and the address. So <code>virtcam 9-001a</code> means the driver <code>virtcam</code>, on I2C bus 9, at address 0x1a.</p>
+<p>The address comes from the <code>reg</code> property of the node. The bus number is assigned at boot. Lesson 02, section 7, explains why it is 9 for a camera on the CAM0 connector of the Jetson. On a Raspberry Pi 5 the camera bus has another number, and the board shows it under <code>/sys/bus/i2c/devices/</code> <em>(verified-on-target: pending)</em>.</p>
+<h3 id="every-log-line-has-a-source-line">Every log line has a source line</h3>
+<p>A probe log can be predicted from the source, because every line of it is one call. The four <code>dev_info()</code> calls of virtcam are:</p>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">host$</span> grep -n &#x27;dev_info&#x27; virtcam/virtcam.c</span>
+<span class="out">272:    dev_info(dev, &quot;enabling mclk\n&quot;);</span>
+<span class="out">280:    dev_info(dev, &quot;powered on in probe\n&quot;);</span>
+<span class="out">297:    dev_info(dev, &quot;probing virtual sensor assumed at addr 0x%02x\n&quot;,</span>
+<span class="out">344:    dev_info(dev, &quot;virtcam sensor driver probed\n&quot;);</span></code></pre></div>
+<p>Lines 297 and 344 are the first and the last statement of probe. Lines 272 and 280 are inside <code>virtcam_power_on_probe()</code>, which probe calls last. Two more lines come from other code. tegracam prints a banner when the first registration ends, and the capture driver of the SoC prints a line when the subdevice joins its graph. Together they give the expected log of a successful probe:</p>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>virtcam 9-001a: probing virtual sensor assumed at addr 0x1a
+virtcam 9-001a: tegracam sensor driver:virtcam_v2.0.6
+tegra-camrtc-capture-vi tegra-capture-vi: subdev virtcam 9-001a bound
+virtcam 9-001a: enabling mclk
+virtcam 9-001a: powered on in probe
+virtcam 9-001a: virtcam sensor driver probed</code></pre></div>
+<p>The third line has another prefix, because another driver prints it through its own device. On a board, lines of other subsystems appear between these six.</p>
+<details class="more">
+<summary><b>Source</b>: the banner of tegracam and the line of the capture driver</summary>
+
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/tegracam_core.c</span><span>lines 178–180</span></div><pre><code>    dev_info(dev, &quot;tegracam sensor driver:%s_v%d.%d.%d\n&quot;,
+            tc_dev-&gt;name, TEGRACAM_MAJOR_VERSION,
+            TEGRACAM_MINOR_VERSION, TEGRACAM_PATCH_VERSION);</code></pre></div>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/vi/graph.c</span><span>lines 373</span></div><pre><code>        dev_info(chan-&gt;vi-&gt;dev, &quot;subdev %s bound\n&quot;, subdev-&gt;name);</code></pre></div>
+<ul>
+<li>The name in the banner is the string that the wiring block copied into the handle. The three numbers are macros of <code>tegracam_core.c</code>, which read 2, 0 and 6 in r39.2.1.</li>
+<li>No line appears between the first line and the banner. The device-tree callback ran in that interval, and it prints nothing on success. The banner is the only evidence that it ran.</li>
+</ul>
+</details>
+
+<p class="board pi"><strong>Raspberry Pi 5</strong> the same method gives the line of a successful imx477 probe. <code>imx477_identify_module()</code> ends with <code>dev_info(&amp;client-&gt;dev, "Device found is imx%llx\n", val)</code>. So the log has a line that ends with <code>Device found is imx477</code>, with the prefix <code>imx477</code> and the bus and address of the camera.</p>
+<p>The method also works in the other direction. A log line with no matching source line shows that the running module was built from other source.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p><strong>A <code>dev_dbg()</code> line is missing from the log, and a neighbouring <code>dev_info()</code> line is present.</strong></p>
+<ul>
+<li>Cause: <code>dev_dbg()</code> prints only when dynamic debug enables it. The code ran.</li>
+<li>Fix: use <code>dev_info()</code> while debugging. Conclude from a missing line only when its log level is visible.</li>
+</ul>
+</div>
+<h3 id="side-by-side-7" class="sbs-head">Side by side</h3><div class="table-wrap"><table class="sbs">
+<thead>
+<tr>
+<th></th>
+<th>Jetson, virtcam</th>
+<th>Raspberry Pi 5, imx477</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Memory</td>
+<td>devres</td>
+<td>devres</td>
+</tr>
+<tr>
+<td><code>remove()</code></td>
+<td>Two unregister calls, no power-off (the deliberate defect)</td>
+<td>Unregister, cleanup of the entity and the controls, power-off</td>
+</tr>
+<tr>
+<td>Error paths of probe</td>
+<td>Explicit calls before each <code>return</code></td>
+<td><code>goto</code> labels at the end of the function</td>
+</tr>
+<tr>
+<td>Line of a successful probe</td>
+<td><code>virtcam sensor driver probed</code></td>
+<td><code>Device found is imx477</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="caveats">Caveats</h2>
+<p>Every warning box of the sections, as one table:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>warning: the compiler differs from the one used to build the kernel</code></td>
+<td>the module and the tree were built by different compilers</td>
+<td><a href="#1-a-module-is-code-that-the-kernel-links-at-runtime">1</a></td>
+</tr>
+<tr>
+<td><code>insmod</code> fails with <code>Invalid module format</code></td>
+<td>the <code>vermagic</code> does not match the running kernel</td>
+<td><a href="#2-the-kernel-checks-a-module-before-it-runs-it">2</a></td>
+</tr>
+<tr>
+<td><code>MODPOST</code> reports <code>GPL-incompatible module ... uses GPL-only symbol</code></td>
+<td>the license string is not GPL-compatible</td>
+<td><a href="#2-the-kernel-checks-a-module-before-it-runs-it">2</a></td>
+</tr>
+<tr>
+<td><code>insmod</code> fails, and <code>dmesg</code> lists <code>Unknown symbol</code> lines</td>
+<td><code>insmod</code> loads no dependencies</td>
+<td><a href="#2-the-kernel-checks-a-module-before-it-runs-it">2</a></td>
+</tr>
+<tr>
+<td><code>modprobe</code> succeeds, and no line of the driver appears</td>
+<td>no match: the strings differ, or the node does not exist</td>
+<td><a href="#4-a-compatible-string-joins-a-node-to-a-driver">4</a></td>
+</tr>
+<tr>
+<td>A driver probes after <code>insmod</code> and is absent after a reboot</td>
+<td><code>MODULE_DEVICE_TABLE()</code> or <code>depmod -a</code> is missing</td>
+<td><a href="#4-a-compatible-string-joins-a-node-to-a-driver">4</a></td>
+</tr>
+<tr>
+<td><code>rmmod</code> reports nothing, and a crash follows</td>
+<td>asynchronous work that uses freed private state</td>
+<td><a href="#8-cleanup-and-the-log-that-a-probe-leaves">8</a></td>
+</tr>
+<tr>
+<td>A <code>dev_dbg()</code> line is missing</td>
+<td>dynamic debug is off</td>
+<td><a href="#8-cleanup-and-the-log-that-a-probe-leaves">8</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="self-check">Self-check</h2>
+<div class="quiz"><div class="q"><code>insmod hello.ko</code> fails on the board with <code>Invalid module format</code>. Which two strings must be compared, and what is the fix?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>The <code>vermagic</code> of the file, from <code>modinfo -F vermagic hello.ko</code>, and the <code>uname -r</code> of the board.</li>
+<li><code>dmesg</code> names both, in its <code>version magic '...' should be '...'</code> line.</li>
+<li>Fix: rebuild against the tree of the release that the board runs. Forcing the load is never the fix.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">The <code>hello.ko</code> of the 6.18 container build has the release <code>6.18.60-v8-16k</code>. A Raspberry Pi 5 runs a 6.18.60 kernel that its distribution installed. Does the file load?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>Only if <code>uname -r</code> on the board prints exactly <code>6.18.60-v8-16k</code>.</li>
+<li>The first field of the <code>vermagic</code> is the whole release string, not only the version numbers. A distribution kernel has its own suffix.</li>
+<li>The fix is a build on the board, against the headers of the running kernel.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q"><code>toy_i2c.ko</code> is loaded, and <code>dmesg</code> has no line from it. Is that an error?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>No. Loading the module registers a driver, and registration is not probing.</li>
+<li><code>toy_probe()</code> runs when a device that the driver claims exists. Until then nothing in the driver runs.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A board boots with a camera overlay applied. The sensor module is loaded with <code>modprobe</code> minutes later. When was the <code>i2c_client</code> created, and what started <code>probe()</code>?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>The client was created during boot, when the I2C adapter probed and the I2C core read its child nodes.</li>
+<li><code>probe()</code> ran at <code>modprobe</code> time. A bind needs both sides, and the driver arrived second.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q"><code>MODULE_DEVICE_TABLE(of, ...)</code> is deleted, and the module is rebuilt. <code>sudo insmod</code> still probes. What stopped working?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>Loading at boot.</li>
+<li>The module file has no alias now, so <code>modules.alias</code> does not list it. The <code>modprobe</code> that udev runs for the device finds no module.</li>
+<li>The match uses <code>.of_match_table</code>, which did not change.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q"><code>imx477_remove()</code> and <code>virtcam_remove()</code> each receive only an <code>i2c_client</code>. How does each one reach its private state?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>imx477: the client data is the subdevice. <code>to_imx477()</code> applies <code>container_of()</code>, because the subdevice is inside <code>struct imx477</code>.</li>
+<li>virtcam: <code>to_camera_common_data()</code> gives the context of tegracam, again through <code>container_of()</code>. The member <code>priv</code> of the context is <code>struct virtcam</code>. Probe stored it with <code>tegracam_set_privdata()</code>.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">The probe of virtcam fails inside <code>tegracam_v4l2subdev_register()</code>. Which cleanup happens by itself, and which one is written in the driver?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>By itself: the two <code>devm_kzalloc()</code> allocations. devres releases them when probe returns the error.</li>
+<li>In the driver: <code>tegracam_device_unregister()</code>. A registration is not managed by devres, so the error path undoes it.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">No camera is connected. On which board does the sensor driver of this lesson still probe, and why?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>On the Jetson. <code>virtcam_probe()</code> makes no transfer on the bus, so it cannot find out that the sensor is absent.</li>
+<li>On the Raspberry Pi 5, <code>imx477_probe()</code> reads the identity register. The read fails, and probe returns an error.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">A <code>dev_info()</code> is added to <code>virtcam_parse_dt()</code>, and the module is rebuilt. Where does the new line appear relative to the banner of tegracam?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li>Before the banner.</li>
+<li><code>parse_dt</code> runs inside <code>tegracam_device_register()</code>. tegracam calls it, and it prints the banner last.</li>
+</ul>
+</div></details></div>
+
+<div class="quiz"><div class="q">What does <code>virtcam 9-001a</code> state, and which part of it is not in the device tree?</div><details class="more"><summary>Show the answer</summary><div class="fb">
+
+<ul>
+<li><code>virtcam</code> is the name of the driver, from <code>.driver.name</code>.</li>
+<li><code>9-001a</code> is the name of the device: I2C bus 9, address 0x1a.</li>
+<li>The address is the <code>reg</code> property of the node. The bus number is assigned at boot, and <code>/sys/bus/i2c/devices/</code> shows it.</li>
+</ul>
+</div></details></div>
+
+<h2 id="lab">Lab</h2>
+<p>The lab is the board work. It loads the <code>hello</code> module with and without its parameter and captures the kernel log. Then it runs the experiment of section 3 with the toy driver, in both orders. The last step is a writing exercise: it tags every line of <code>virtcam_probe()</code> with the five role tags.</p>
+<ul>
+<li>Instructions: <a href="lab.html">lab/README.md</a>.</li>
+<li>Lesson 02 — Device tree and overlays, and how each board applies one follows the device half of section 4. It starts at the source file and ends in the running kernel.</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://docs.kernel.org/i2c/writing-clients.html">Implementing I2C device drivers — The Linux Kernel documentation</a> — <code>probe</code>, <code>remove</code> and the fields of <code>i2c_driver</code>, the reference behind sections 3 and 4.</li>
+<li><a href="https://docs.kernel.org/driver-api/driver-model/index.html">Driver Model — The Linux Kernel documentation</a> — the Driver Binding and Devres pages define the order of a bind and what devres manages.</li>
+<li><a href="https://docs.kernel.org/kbuild/modules.html">Building External Modules — The Linux Kernel documentation</a> — the reference for <code>M=</code>, the two-part <code>Makefile</code> and <code>Module.symvers</code>.</li>
+<li><a href="https://docs.kernel.org/input/input-programming.html">Creating an input device driver — The Linux Kernel documentation</a> — the introduction of the input framework for driver writers, behind section 5.</li>
+<li><a href="https://docs.kernel.org/admin-guide/tainted-kernels.html">Tainted kernels — The Linux Kernel documentation</a> — the meaning of the taint flags, and where to read them on a running board.</li>
+</ul>
+</main>
+</body>
+</html>

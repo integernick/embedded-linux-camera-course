@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 03 Map Graph</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Map the graph, capture raw Bayer, sweep the controls</h1><p>Embedded Linux Camera Course · Lab 03</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<p>The sections of the lesson showed the three device nodes, the graph and the raw layout on a toy file. This lab is the board work. You read the real graph of the devkit, capture at both modes, and write one script that sweeps a control. The brightness of the captures is the evidence that the control writes reached the sensor.</p>
+<h2 id="goal">Goal</h2>
+<ul>
+<li>A filled map of the media graph of the devkit, each entity tied to its driver and its device node.</li>
+<li>The control list of the IMX477, saved as <code>imx477-ctrls.txt</code> for Lesson 08.</li>
+<li>Raw captures at both IMX477 modes with the exact sizes, and their PNGs from <code>bayer_view.py</code>.</li>
+<li>A sweep script, written from a skeleton, and a table of brightness against exposure and gain.</li>
+</ul>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
+<li>The IMX477 on CAM0, enabled since the lab of Lesson 02. <code>ls /dev/video*</code> shows <code>/dev/video0</code> after boot.</li>
+<li>About 200 MB free on the board for the raw files.</li>
+<li>Python 3 on the board. The viewer runs without <code>numpy</code>, and faster with it.</li>
+<li>No container. Every step runs on the board, or on the host to copy a file.</li>
+</ul>
+<h2 id="steps">Steps</h2>
+<h3 id="step-1--install-the-tools-and-copy-the-viewer-10-min">Step 1 — Install the tools and copy the viewer (10 min)</h3>
+<ol type="1">
+<li>Install <code>v4l-utils</code>, the package that holds <code>media-ctl</code> and <code>v4l2-ctl</code>:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ sudo apt install v4l-utils</code></pre></div>
+<p><code>apt</code> prints its install log. Both tools are then on the path.</p>
+<ol start="2" type="1">
+<li>Copy the viewer from the course clone on the host. The lab does not ask for the viewer to be written, so taking it from <code>solutions/</code> is intended:</li>
+</ol>
+<div class="codeblock"><pre><code>host$ ssh &quot;$BOARD_USER@$BOARD_IP&quot; &quot;mkdir -p ~/lab03&quot;
+host$ scp lessons/03-v4l2-userspace/solutions/bayer_view.py &quot;$BOARD_USER@$BOARD_IP:lab03/&quot;</code></pre></div>
+<p><code>ssh</code> prints nothing, and <code>scp</code> prints one progress line.</p>
+<ol start="3" type="1">
+<li>Check that the tool works without the camera:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> cd ~/lab03 &amp;&amp; python3 bayer_view.py --self-test | tail -1</span>
+<span class="out">self-test: OK (13 checks, artifacts in /tmp/bayer_view_selftest_mkk049p2)</span></code></pre></div>
+<p>The directory name differs on every run. You should see <code>self-test: OK</code> with 13 checks and the exit code 0. Without <code>tail -1</code>, the output is one <code>ok:</code> line per check.</p>
+<h3 id="step-2--list-the-nodes-and-map-the-graph-15-min">Step 2 — List the nodes and map the graph (15 min)</h3>
+<ol type="1">
+<li>List the device nodes:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ ls -l /dev/video* /dev/media* /dev/v4l-subdev*</code></pre></div>
+<p>Expected: one <code>/dev/video0</code>, one <code>/dev/media0</code> and two <code>/dev/v4l-subdev*</code> nodes, all with major 81. If <code>/dev/video0</code> is missing, the overlay is not applied. Return to the lab of Lesson 02.</p>
+<ol start="2" type="1">
+<li>Dump the graph:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ media-ctl -p -d /dev/media0</code></pre></div>
+<p>Expected: three entities and two links marked <code>[ENABLED]</code>, as in section 3 of the lesson.</p>
+<ol start="3" type="1">
+<li>Fill in this worksheet from the dump. It is the first deliverable of the lab:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity name (from the dump)</th>
+<th>Kind</th>
+<th>/dev node</th>
+<th>Its source pad links to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>The kinds are: sensor subdev, NVCSI channel subdev, video node. Answer two questions in writing. Which entity does the I2C sensor driver create? Which two entities belong to platform drivers that the overlay of Lesson 02 did not create?</p>
+<ol start="4" type="1">
+<li><p>Draw the three entities with arrows in the direction of the data flow.</p></li>
+<li><p>Record the NVCSI entity name exactly as printed. Section 3 of the lesson expects <code>13e00000.host1x:nvcsi@15a00000-0</code> on kernel 6.8. Your record confirms or corrects that expectation.</p></li>
+</ol>
+<h3 id="step-3--enumerate-the-formats-and-save-the-control-list-10-min">Step 3 — Enumerate the formats and save the control list (10 min)</h3>
+<ol type="1">
+<li>List the formats:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 --list-formats-ext</code></pre></div>
+<p>Record the fourcc and both pairs of size and rate. Compare them with the two rows of <code>imx477_frmfmt[]</code> in <code>nvidia-oot/drivers/media/i2c/imx477_mode_tbls.h</code> that section 4 quotes.</p>
+<ol start="2" type="1">
+<li>Save the control list to a file. Lesson 08 compares it with the list of virtcam:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -l | tee imx477-ctrls.txt</code></pre></div>
+<p>Note the min, max and default of <code>gain</code>, <code>exposure</code>, <code>frame_rate</code> and <code>sensor_mode</code>. Compare the max of gain and of exposure with the device-tree values quoted in section 7. Each is higher by exactly one. State the reason in one sentence.</p>
+<h3 id="step-4--capture-five-frames-at-each-mode-15-min">Step 4 — Capture five frames at each mode (15 min)</h3>
+<ol type="1">
+<li>Select the mode by control first, then stream. The two commands are separate on purpose, because controls persist:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=0
+orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=3840,height=2160,pixelformat=RG10 \
+        --stream-mmap --stream-count=5 --stream-to=mode0.raw
+orin$ ls -l mode0.raw</code></pre></div>
+<p>Expected: five <code>&lt;</code> marks, then a file of 82,944,000 bytes. That is 3840 × 2160 × 2 bytes × 5 frames. If <code>ls -l</code> shows another size, stop and read the Troubleshooting table.</p>
+<ol start="2" type="1">
+<li>Repeat for mode 1. The <code>sensor_mode</code> control comes first:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c sensor_mode=1
+orin$ v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 \
+        --stream-mmap --stream-count=5 --stream-to=mode1.raw
+orin$ ls -l mode1.raw</code></pre></div>
+<p>Expected: 20,736,000 bytes, that is 1920 × 1080 × 2 × 5. Confirm that the driver accepted the smaller mode: <code>v4l2-ctl -d /dev/video0 -V</code> must report 1920x1080.</p>
+<h3 id="step-5--view-the-bayer-data-15-min">Step 5 — View the Bayer data (15 min)</h3>
+<ol type="1">
+<li>Convert frame 0 of each capture to a 16-bit grayscale PNG, then to a color PNG with a simple demosaic:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ python3 bayer_view.py mode0.raw --width 3840 --height 2160 --bits 10 --out mode0.png
+orin$ python3 bayer_view.py mode0.raw --width 3840 --height 2160 --bits 10 --demosaic --out mode0_rgb.png
+orin$ python3 bayer_view.py mode1.raw --width 1920 --height 1080 --bits 10 --out mode1.png
+orin$ python3 bayer_view.py mode1.raw --width 1920 --height 1080 --bits 10 --demosaic --out mode1_rgb.png</code></pre></div>
+<p>Each command prints one <code>wrote</code> line. A 4K frame takes a few seconds without <code>numpy</code>.</p>
+<ol start="2" type="1">
+<li>Open the PNGs in an image viewer, on the board or after an <code>scp</code> to the host. Record three observations:
+<ul>
+<li>The grayscale PNG is viewable, because the tool scaled 10 bits up to 16. At 800% zoom on a bright, uniform area, the 2×2 checkerboard of the mosaic is visible.</li>
+<li>The <code>--demosaic</code> PNG has real colors and a green cast. State the reason in one sentence (section 6 of the lesson).</li>
+<li>Point the camera at a red object and capture one more frame. In the grayscale PNG the red area shows one bright site and three dim sites per 2×2 cell.</li>
+</ul></li>
+</ol>
+<h3 id="step-6--write-the-sweep-script-15-min">Step 6 — Write the sweep script (15 min)</h3>
+<p>This step is the writing exercise. The script sets one control to several values and measures each capture. Create <code>~/lab03/sweep.sh</code> from this skeleton:</p>
+<div class="codeblock"><pre><code>#!/usr/bin/env bash
+# sweep.sh CONTROL VALUE...   for example: ./sweep.sh exposure 1000 4000 16000
+set -euo pipefail
+DEV=${DEV:-/dev/video0}
+WIDTH=${WIDTH:-1920}
+HEIGHT=${HEIGHT:-1080}
+VIEWER=${VIEWER:-bayer_view.py}
+ctrl=$1
+shift
+run() {
+    if [ &quot;${DRY_RUN:-0}&quot; = 1 ]; then printf &#x27;%s\n&#x27; &quot;$*&quot;; else &quot;$@&quot;; fi
+}
+for value in &quot;$@&quot;; do
+    # TODO: set the control to $value with v4l2-ctl -c
+    # TODO: stream three frames of WIDTH x HEIGHT in RG10 into ${ctrl}_${value}.raw
+    # TODO: print the --stats of frame 2 of that file with the viewer
+done</code></pre></div>
+<ol type="1">
+<li><p>Replace each <code>TODO</code> with one <code>run</code> line. Every command goes through <code>run</code>, so <code>DRY_RUN=1</code> prints the commands instead of running them.</p></li>
+<li><p>Check the script without the camera:</p></li>
+</ol>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">orin$</span> chmod +x sweep.sh</span>
+<span class="cmd"><span class="prompt">orin$</span> DRY_RUN=1 ./sweep.sh exposure 1000 4000 16000</span>
+<span class="out">v4l2-ctl -d /dev/video0 -c exposure=1000</span>
+<span class="out">v4l2-ctl -d /dev/video0 --set-fmt-video=width=1920,height=1080,pixelformat=RG10 --stream-mmap --stream-count=3 --stream-to=exposure_1000.raw</span>
+<span class="out">python3 bayer_view.py exposure_1000.raw --width 1920 --height 1080 --bits 10 --frame 2 --stats</span></code></pre></div>
+<p>The dry run prints these three lines, then the same three for 4000 and 16000: nine lines in all. Nothing is captured.</p>
+<ol start="3" type="1">
+<li>Run it for real. Keep the scene and the lighting fixed, because no automatic control runs on this path:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ v4l2-ctl -d /dev/video0 -c bypass_mode=0,sensor_mode=1
+orin$ ./sweep.sh exposure 1000 4000 16000
+orin$ v4l2-ctl -d /dev/video0 -c exposure=4000
+orin$ ./sweep.sh gain 16 64 256</code></pre></div>
+<p>Expected: for each value, three <code>&lt;</code> marks and the four lines of statistics. The <code>mean</code> grows with the value until <code>saturated</code> grows.</p>
+<h3 id="step-7--fill-the-brightness-table-10-min">Step 7 — Fill the brightness table (10 min)</h3>
+<ol type="1">
+<li>Fill the deliverable table from the <code>--stats</code> lines. The mean is in DN out of 1023:</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value (control units)</th>
+<th>Physical value</th>
+<th>Mean (DN)</th>
+<th>Saturated %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>exposure</td>
+<td>1000</td>
+<td>1 ms</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>exposure</td>
+<td>4000</td>
+<td>4 ms</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>exposure</td>
+<td>16000</td>
+<td>16 ms</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>gain</td>
+<td>16</td>
+<td>1.0x</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>gain</td>
+<td>64</td>
+<td>4.0x</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>gain</td>
+<td>256</td>
+<td>16.0x</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<ol start="2" type="1">
+<li>Answer three questions under the table:
+<ul>
+<li>Is the mean roughly linear in exposure until saturation starts? Four times the exposure should give about four times the mean.</li>
+<li>Why does the trend flatten when <code>Saturated %</code> grows?</li>
+<li>Why does the script read frame 2 and not frame 0? The control writes arrive while the sensor already streams its first frames.</li>
+</ul></li>
+</ol>
+<h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
+<p>This lab has no Raspberry Pi form yet. Three of its steps are different there, and none is verified on a board <em>(verified-on-target: pending)</em>.</p>
+<ul>
+<li><strong>Step 2.</strong> <code>media-ctl -p</code> prints more entities: the sensor, the CSI-2 receiver, the front end and eight video nodes.</li>
+<li><strong>Step 3.</strong> The mode list comes from the subdevice of the sensor, not from a video node.</li>
+<li><strong>Step 4.</strong> Before a capture, a program enables the link to <code>csi2_ch0</code> and sets a format on each pad. The frames are packed, so <code>bayer_view.py</code> cannot read them as they are.</li>
+</ul>
+<h2 id="expected-output">Expected output</h2>
+<ol type="1">
+<li><strong>The worksheet.</strong> The three-row entity table with each row tied to its <code>/dev</code> node. The two written answers, the drawing, and the recorded NVCSI entity name.</li>
+<li><strong><code>imx477-ctrls.txt</code></strong>, saved in <code>~/lab03</code> for Lesson 08, with the one-sentence reason for the two <code>+1</code> ranges.</li>
+<li><strong>The captures.</strong> <code>mode0.raw</code> of 82,944,000 bytes and <code>mode1.raw</code> of 20,736,000 bytes, with their PNG pairs and the three observations.</li>
+<li><strong><code>sweep.sh</code></strong>, with a dry run that prints the nine expected lines.</li>
+<li><strong>The brightness table</strong> with six measured means, and the three answers.</li>
+</ol>
+<p>A typical form of the result. The absolute numbers depend on the scene and the lighting:</p>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>exposure 1000  -&gt; mean  92.4 DN, sat 0.0%
+exposure 4000  -&gt; mean 341.7 DN, sat 0.2%
+exposure 16000 -&gt; mean 953.1 DN, sat 41.8%   &lt;- flattening: pixels clip at 1023</code></pre></div>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No <code>/dev/video0</code> at all</td>
+<td>The overlay of Lesson 02 is not applied, or the wrong extlinux entry booted</td>
+<td>Repeat the verification of the lab of Lesson 02: <code>extlinux.conf</code>, reboot, <code>dmesg | grep imx477</code></td>
+</tr>
+<tr>
+<td><code>select timeout</code> during <code>--stream-mmap</code></td>
+<td>No pixels reach VI: mode and format do not match, an Argus session hangs, or a CSI problem</td>
+<td>Run the two <code>-c</code> commands again. Run <code>sudo systemctl restart nvargus-daemon</code>. Check <code>dmesg | tail -30</code>. Lesson 14 lists further causes</td>
+</tr>
+<tr>
+<td>The capture file is four times the expected size</td>
+<td><code>sensor_mode</code> is still 0 while 1920x1080 was requested</td>
+<td>Run <code>v4l2-ctl -c sensor_mode=1</code>, set the format again, and confirm with <code>v4l2-ctl -V</code></td>
+</tr>
+<tr>
+<td><code>bayer_view.py</code> refuses: "is not a multiple of one frame"</td>
+<td>Width and height do not match the captured mode, or the copy is truncated</td>
+<td>Use the exact width and height of the mode. Repeat the <code>scp</code>. Check the <code>ls -l</code> arithmetic first</td>
+</tr>
+<tr>
+<td>The PNG opens and is black</td>
+<td>The raw file was viewed without the tool and without scaling</td>
+<td>Use <code>bayer_view.py</code>, which shifts 10-bit samples up to 16 bits, or multiply the data by 64</td>
+</tr>
+<tr>
+<td><code>Device or resource busy</code></td>
+<td>Another consumer streams the node</td>
+<td>Run <code>sudo fuser -v /dev/video0</code>, stop the pipeline, and retry</td>
+</tr>
+<tr>
+<td><code>Permission denied</code> on <code>/dev/video0</code></td>
+<td>The user is not in the <code>video</code> group</td>
+<td>Use <code>sudo</code> for the commands, or run <code>sudo usermod -aG video $USER</code> and log in again</td>
+</tr>
+<tr>
+<td>The dry run of <code>sweep.sh</code> prints nothing, or runs the commands</td>
+<td>A <code>run</code> prefix is missing, or <code>DRY_RUN=1</code> was not set</td>
+<td>Put <code>run</code> in front of every command inside the loop. Set <code>DRY_RUN=1</code> in the same command line</td>
+</tr>
+<tr>
+<td>The sweep means change very little with exposure</td>
+<td>The scene is saturated, or the lighting changed</td>
+<td>Dim the scene or shorten the exposures. Keep the lighting constant across the sweep</td>
+</tr>
+</tbody>
+</table></div>
+</main>
+</body>
+</html>

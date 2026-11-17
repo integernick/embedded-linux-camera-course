@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solutions 01 Load Module</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Load a module, bind a driver, annotate a probe</h1><p>Embedded Linux Camera Course · Solutions 01</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#steps-13--expected-results">Steps 1–3 — expected results</a></li><li><a href="#step-4--the-two-orders">Step 4 — the two orders</a></li><li><a href="#step-5--the-annotated-worksheet">Step 5 — the annotated worksheet</a></li><li><a href="#stretch--the-ownership-answer">Stretch — the ownership answer</a></li><li><a href="#mechanical-verification">Mechanical verification</a></li></ul></nav>
+<ul>
+<li>Read this file only after the transcript, the notes of Step 4 and the filled worksheet exist.</li>
+</ul>
+<h2 id="steps-13--expected-results">Steps 1–3 — expected results</h2>
+<ul>
+<li>The transcript depends on the board, so no byte-exact answer exists. These conditions must hold.</li>
+<li>Step 1: <code>uname -r</code> returns the first field of the <code>vermagic</code> that Step 2 prints. The container build gives <code>6.8.12-1021-tegra</code>.</li>
+<li>Step 2: each build ends with an <code>LD [M]</code> line. Both <code>modinfo -F vermagic</code> lines are equal.</li>
+<li>The other fields of the string are configuration options. Only a full match lets the kernel load the file.</li>
+<li>Step 3: <code>insmod</code> and <code>rmmod</code> exit 0 and print nothing. The evidence of a load is in the kernel log.</li>
+<li>The first <code>ssh</code> prints <code>world</code>, the default of the parameter, read from sysfs.</li>
+<li>The <code>grep</code> prints a greeting and a goodbye for each load, the second pair with <code>Orin</code>.</li>
+<li>The release in the greeting equals <code>uname -r</code>, because <code>utsname()-&gt;release</code> reads it from the running kernel.</li>
+<li>The taint line: section 2 states that it does not appear on a Jetson, because NVIDIA's out-of-tree modules set the flag at boot.</li>
+<li><code>cat /proc/sys/kernel/tainted</code> prints the flags as a number. Bit 12, value 4096, is the out-of-tree flag.</li>
+</ul>
+<h2 id="step-4--the-two-orders">Step 4 — the two orders</h2>
+<ul>
+<li>Driver first: the <code>insmod</code> prints nothing, and the count of <code>toy 7-0050</code> lines is 0. The <code>bound</code> line appears at the <code>echo</code>.</li>
+<li>The process that ran <code>toy_probe()</code> is the <code>tee</code> that wrote to <code>new_device</code>. The I2C core calls <code>probe()</code> while it creates the device.</li>
+<li>For that reason the <code>bound</code> line comes before the <code>Instantiated device</code> line. The core prints that line after the device exists.</li>
+<li>Device first: the <code>echo</code> prints only the <code>Instantiated device</code> line. The <code>bound</code> line appears at the <code>insmod</code>.</li>
+<li>The process that ran <code>toy_probe()</code> is <code>insmod</code>. The call of <code>i2c_add_driver()</code> in the generated entry function finds the waiting device.</li>
+<li>At <code>delete_device</code> the core prints <code>Deleting device</code> first and then removes the device, so <code>unbound</code> comes second.</li>
+<li>In both orders the driver made no transfer on the bus. The device existed because a line of text was written to sysfs.</li>
+<li>That is the property that section 7 names for virtcam: a bind proves a match, not a sensor.</li>
+</ul>
+<h2 id="step-5--the-annotated-worksheet">Step 5 — the annotated worksheet</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Code (abridged)</th>
+<th>Tag(s)</th>
+<th>What it does (one clause)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>virtcam_probe(client)</code></td>
+<td><code>[client]</code></td>
+<td>the bus device is the only input of the probe</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>dev = &amp;client-&gt;dev</code></td>
+<td><code>[client]</code></td>
+<td>local name for the <code>struct device</code> inside the client</td>
+</tr>
+<tr>
+<td>3</td>
+<td>locals: <code>tc_dev</code>, <code>priv</code>, <code>err</code></td>
+<td><code>[priv]</code> <code>[framework]</code></td>
+<td>declares the two structs that this probe builds</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>dev_info(dev, "probing virtual sensor assumed at addr 0x%02x\n", ...)</code></td>
+<td><code>[client]</code></td>
+<td>first log line, through the device of the client, which gives the <code>virtcam 9-001a</code> prefix</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>if (!IS_ENABLED(CONFIG_OF) ... ) return -EINVAL;</code></td>
+<td><code>[dt]</code></td>
+<td>refuses to probe without a device-tree node</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>priv = devm_kzalloc(dev, sizeof(struct virtcam), ...)</code></td>
+<td><code>[priv]</code></td>
+<td>allocates the private state, owned by devres and zeroed</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>tc_dev = devm_kzalloc(dev, sizeof(struct tegracam_device), ...)</code></td>
+<td><code>[framework]</code></td>
+<td>allocates the framework handle as a separate object with the same lifetime</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>priv-&gt;i2c_client = tc_dev-&gt;client = client;</code></td>
+<td><code>[client]</code> <code>[priv]</code> <code>[framework]</code></td>
+<td>the three-struct pattern in one statement: both structs store the client</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>tc_dev-&gt;dev = dev;</code> + <code>strscpy(tc_dev-&gt;name, "virtcam", ...)</code></td>
+<td><code>[framework]</code></td>
+<td>identity of the handle: the device, and the name that the banner prints</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>tc_dev-&gt;dev_regmap_config = &amp;virtcam_regmap_config;</code></td>
+<td><code>[framework]</code></td>
+<td>gives the framework the layout of the register map to build</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>tc_dev-&gt;sensor_ops / v4l2sd_internal_ops / tcctrl_ops = &amp;...</code></td>
+<td><code>[framework]</code></td>
+<td>sets the three tables that the framework calls back through</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>err = tegracam_device_register(tc_dev);</code> + error return</td>
+<td><code>[framework]</code> (runs <code>[dt]</code> <code>[power]</code> inside)</td>
+<td>the framework builds <code>s_data</code>, calls the <code>parse_dt</code> and <code>power_get</code> functions of the driver, and prints its banner</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>priv-&gt;tc_dev / priv-&gt;s_data / priv-&gt;subdev = ...</code></td>
+<td><code>[priv]</code></td>
+<td>back-pointers: the private state stores where the framework objects are</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>tegracam_set_privdata(tc_dev, (void *)priv);</code></td>
+<td><code>[framework]</code> <code>[priv]</code></td>
+<td>stores <code>priv</code> in <code>s_data-&gt;priv</code>, so that <code>remove()</code> can find it</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>err = tegracam_v4l2subdev_register(tc_dev, true);</code> + unwind</td>
+<td><code>[framework]</code></td>
+<td>the sensor becomes a V4L2 subdevice in the media graph, and a failure undoes the earlier registration by hand</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>err = virtcam_power_on_probe(priv);</code> + two-step unwind</td>
+<td><code>[power]</code></td>
+<td>enables the clock, the only action of the probe on hardware, and its unwind is the body of <code>remove()</code></td>
+</tr>
+<tr>
+<td>17</td>
+<td>success <code>dev_info</code> + <code>return 0;</code></td>
+<td><code>[client]</code></td>
+<td>last log line, through the device of the client, after which the bind completes</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="rows-with-more-than-one-defensible-answer">Rows with more than one defensible answer</h3>
+<ul>
+<li><strong>Rows 4 and 17 as <code>[client]</code>.</strong> A log line takes the tag of the object that it logs through. These lines use only <code>&amp;client-&gt;dev</code>. The answer "none" is defensible, and <code>[framework]</code> is not.</li>
+<li><strong>Row 8 with fewer than three tags.</strong> One statement writes the client pointer into both other structs. It is the whole pattern in one line.</li>
+<li><strong>Row 12 as <code>[framework]</code> only.</strong> The solution adds <code>[dt]</code> and <code>[power]</code>, because <code>parse_dt</code> and <code>power_get</code> run inside that call.</li>
+<li>Section 7 quotes the line of the framework that calls <code>parse_dt</code>. A print added to <code>virtcam_parse_dt()</code> shows the same on a board: the line appears before the banner.</li>
+<li><strong>Row 5 as <code>[client]</code>.</strong> The condition reads <code>client-&gt;dev.of_node</code>, and its subject is the existence of the node. <code>[dt]</code> is the tag that carries the information.</li>
+<li>Check: count the tags. <code>[framework]</code> appears in about half of the rows.</li>
+<li>A tegracam probe is mostly bookkeeping for the framework. That is why a sensor driver without hardware access can be this small.</li>
+</ul>
+<h2 id="stretch--the-ownership-answer">Stretch — the ownership answer</h2>
+<h3 id="why-a-pointer-and-not-an-embedded-struct">Why a pointer and not an embedded struct</h3>
+<ul>
+<li><code>struct tegracam_device</code> is an object of the framework, not of the driver.</li>
+<li>The tegracam functions treat it as a separate handle. Its layout belongs to NVIDIA.</li>
+<li>A pointer keeps that boundary visible in the type. Everything that <code>struct virtcam</code> points at has another owner.</li>
+<li>The driver holds <code>i2c_client</code> and <code>v4l2_subdev</code> as pointers for the same reason.</li>
+<li>An embedded struct would also tie the size and the layout of the private state to a struct that NVIDIA can change in any release.</li>
+</ul>
+<h3 id="what-would-break">What would break</h3>
+<p>Today nothing breaks. <code>tegracam_device_unregister()</code> frees the objects that the framework allocated, and only those:</p>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/drivers/media/platform/tegra/camera/tegracam_core.c</span><span>lines 204–208</span></div><pre><code>    devm_kfree(tc_dev-&gt;dev, entry);
+    devm_kfree(tc_dev-&gt;dev, tc_dev-&gt;s_data-&gt;tegracam_ctrl_hdl);
+    devm_kfree(tc_dev-&gt;dev, tc_dev-&gt;s_data-&gt;power);
+    devm_kfree(tc_dev-&gt;dev, tc_dev-&gt;s_data);
+    tc_dev-&gt;s_data = NULL;</code></pre></div>
+<ul>
+<li>It never frees <code>tc_dev</code> itself. The driver allocated <code>tc_dev</code>, so the devres of the driver frees it. With <code>tc_dev</code> embedded, this code still works.</li>
+<li>The risk is a later version of tegracam that frees its handle or counts references to it.</li>
+<li>The input framework already works that way. An <code>input_dev</code> is reference-counted and freed by the input core. So the joystick driver gets it from <code>devm_input_allocate_device()</code>.</li>
+<li>A <code>struct input_dev</code> inside <code>struct qwiic_jsk</code> would corrupt the heap. The final release of the input core would call <code>kfree()</code> on a pointer into the middle of the driver's allocation.</li>
+<li><code>v4l2_subdev</code> is the opposite case: it is designed to be embedded. The context of tegracam embeds one, and the Raspberry Pi driver embeds one in its private state:</li>
+</ul>
+<div class="codeblock"><div class="src"><b>Jetson Linux r39.2.1</b><span class="path">nvidia-oot/include/media/camera_common.h</span><span>lines 225</span></div><pre><code>    struct v4l2_subdev          subdev;</code></pre></div>
+<div class="codeblock"><div class="src"><b>Raspberry Pi kernel 6.18</b><span class="path">drivers/media/i2c/imx477.c</span><span>lines 1023</span></div><pre><code>    struct v4l2_subdev sd;</code></pre></div>
+<ul>
+<li>Three framework objects follow three different ownership rules.</li>
+<li>With every object of another owner behind a pointer, an update of the framework never requires a new check of which kind the driver holds.</li>
+<li>Lesson 08 uses this boundary when it examines what virtcam omits.</li>
+</ul>
+<h2 id="mechanical-verification">Mechanical verification</h2>
+<ul>
+<li><span class="fileref" title="verify-build-jp7.sh">verify-build-jp7.sh</span> builds <code>hello</code> and <code>toy_i2c</code> against the pristine <code>kernel-noble</code> tree. It asserts the <code>vermagic</code>, the aliases, and every number that the sections read from the sources.</li>
+<li><span class="fileref" title="verify-build-rpi.sh">verify-build-rpi.sh</span> builds the same two modules against the pinned Raspberry Pi 6.18 tree. It asserts the diff of the joystick driver and the line numbers that section 7 quotes from <code>imx477.c</code>.</li>
+<li>Everything that needs a board is <code>verified-on-target: pending</code>: the load transcripts, the taint line and the two orders of Step 4.</li>
+</ul>
+</main>
+</body>
+</html>

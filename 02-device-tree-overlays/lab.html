@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 02 Overlays Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* layout: a header band, then one centred reading column that opens with a contents box */
+:root { --ink:#1f2328; --muted:#57606a; --rule:#d0d7de; --bg:#ffffff; --panel:#f6f8fa; --link:#0969da;
+        --jetson:#d9efd9; --jetson-s:#2f7d3a; --pi:#fbe1ea; --pi-s:#a8325e;
+        --note:#e3ecf7; --note-s:#3b5f8a; --def:#fff0c2; --def-s:#b07a00; --warn:#fde8e8; --warn-s:#a13a3a;
+        --code-bg:#0d1117; --code-fg:#e6edf3; --code-dim:#9da7b3; --code-prompt:#7ee787; --figure:#ffffff;
+        --serif: Georgia, "Times New Roman", serif;
+        --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace; }
+* { box-sizing: border-box; }
+body { margin:0; font: 17px/1.6 var(--serif); color:var(--ink); background:var(--bg); }
+header.lesson { padding-block: 40px 20px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--rule); background: var(--panel); }
+header.lesson .in { max-width: 820px; margin: 0 auto; }
+header.lesson h1 { font-size: 2rem; margin: 0 0 8px; line-height: 1.2; text-wrap: balance; }
+header.lesson p { margin: 4px 0; color: var(--muted); }
+.crumbs { font: .85rem var(--mono); }
+.crumbs a { margin-right: 14px; }
+.state { color: var(--muted); font-size: .92rem; }
+.chip { display:inline-block; font: .82rem var(--mono); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--muted); margin: 6px 6px 0 0; }
+.chip.jetson { background: var(--jetson); border-color: var(--jetson-s); color: var(--jetson-s); }
+.chip.pi { background: var(--pi); border-color: var(--pi-s); color: var(--pi-s); }
+main { max-width: 860px; margin: 0 auto; padding-block: 0 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+nav.toc { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 16px 24px; margin: 28px 0; }
+nav.toc ol { margin: 8px 0 0; padding-left: 22px; } nav.toc li { margin: 4px 0; }
+nav.toc .rest { margin-top: 10px; font-size: .95rem; color: var(--muted); }
+nav.toc .rest a { margin-right: 14px; }
+h2 { font-size: 1.6rem; line-height: 1.25; margin: 56px 0 12px; padding-top: 12px; border-top: 2px solid var(--ink); text-wrap: balance; }
+h3 { font-size: 1.2rem; line-height: 1.3; margin: 34px 0 8px; }
+p { margin: 12px 0; }
+ul, ol { margin: 12px 0; padding-left: 26px; } li { margin: 4px 0; }
+a { color: var(--link); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.fileref { border-bottom: 1px dotted var(--muted); }
+code { font: .88em var(--mono); background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.codeblock { margin: 16px 0; }
+.codeblock .src { display:flex; flex-wrap:wrap; gap: 2px 14px; padding: 6px 14px; font: .78rem var(--mono); color: var(--muted); background: var(--panel); border: 1px solid var(--rule); border-bottom: 0; border-radius: 8px 8px 0 0; }
+.codeblock .src b { color: var(--ink); }
+.codeblock .src .path { overflow-wrap: anywhere; }
+.codeblock .src .tag { margin-left: auto; color: var(--warn-s); }
+pre { margin: 0; background: var(--code-bg); color: var(--code-fg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font: 14px/1.5 var(--mono); white-space: pre; tab-size: 8; }
+.codeblock .src + pre { border-radius: 0 0 8px 8px; }
+pre code { background: none; padding: 0; font: inherit; color: inherit; overflow-wrap: normal; }
+pre .prompt { color: var(--code-prompt); user-select: none; }
+pre .cmd { font-weight: bold; }
+pre .out { color: var(--code-dim); }
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; line-height: 1.45; }
+th, td { border: 1px solid var(--rule); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+.sbs th:nth-child(2) { background: var(--jetson); color: var(--jetson-s); }
+.sbs th:nth-child(3) { background: var(--pi); color: var(--pi-s); }
+.sbs td:first-child { font-weight: bold; width: 26%; }
+.sbs td:nth-child(2) { border-left: 3px solid var(--jetson-s); }
+.sbs td:nth-child(3) { border-left: 3px solid var(--pi-s); }
+h3.sbs-head { margin-bottom: 0; }
+p.board > strong:first-child { display:inline-block; font: bold .8rem var(--mono); padding: 1px 8px; border-radius: 5px; margin-right: 4px; border: 1px solid; }
+p.board.jetson > strong:first-child { background: var(--jetson); color: var(--jetson-s); border-color: var(--jetson-s); }
+p.board.pi > strong:first-child { background: var(--pi); color: var(--pi-s); border-color: var(--pi-s); }
+.fig { margin: 22px 0; padding: 16px; border: 1px solid var(--rule); border-radius: 10px; background: var(--figure); overflow-x: auto; }
+.fig img { display:block; margin: 0 auto; max-width: 100%; height: auto; }
+.fig .cap { font-size: .9rem; color: var(--muted); margin-top: 10px; }
+.callout { border-left: 5px solid var(--note-s); background: var(--note); padding: 12px 18px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+.callout.important { border-color: var(--def-s); background: var(--def); }
+.callout.warning, .callout.caution { border-color: var(--warn-s); background: var(--warn); }
+.callout.tip { border-color: var(--jetson-s); background: var(--jetson); }
+.callout > .title { font-weight: bold; margin-bottom: 4px; } .callout > .title p { margin: 0; }
+.callout > :last-child { margin-bottom: 0; } .callout code { background: var(--bg); }
+details.more { margin: 16px 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+details.more > summary { cursor: pointer; padding: 9px 14px; font-size: .95rem; color: var(--muted); }
+details.more > summary b { color: var(--ink); }
+details.more[open] { background: var(--bg); }
+details.more[open] > summary { background: var(--panel); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
+details.more > :not(summary) { margin-left: 14px; margin-right: 14px; }
+details.more > ul, details.more > ol { margin-left: 14px; }
+.quiz { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; margin: 20px 0; background: var(--panel); }
+.quiz .q { font-weight: bold; margin-bottom: 8px; }
+.quiz details > summary { display: inline-block; cursor: pointer; padding: 7px 12px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-size: .95rem; list-style: none; }
+.quiz details > summary::-webkit-details-marker { display: none; }
+.quiz details > summary:hover { border-color: var(--note-s); }
+.quiz details[open] > summary { background: var(--jetson); border-color: var(--jetson-s); }
+.quiz .fb { margin-top: 10px; font-size: .95rem; padding: 10px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--rule); }
+.quiz .fb > :first-child { margin-top: 0; } .quiz .fb > :last-child { margin-bottom: 0; }
+@media (max-width: 640px) { body { font-size: 16px; } header.lesson h1 { font-size: 1.5rem; } pre { font-size: 12.5px; } }
+</style>
+</head>
+<body>
+<header class="lesson"><div class="in"><p class="crumbs"><a href="../index.html">Course</a><a href="index.html">Lesson</a><a href="lab.html">Lab</a><a href="solution.html">Solution</a></p><h1>Overlays on the board: enable, verify, stack</h1><p>Embedded Linux Camera Course · Lab 02</p></div></header>
+<main><nav class="toc"><b>Contents</b><ul><li><a href="#goal">Goal</a></li><li><a href="#hardware">Hardware</a></li><li><a href="#steps">Steps</a></li><li><a href="#on-a-raspberry-pi-5">On a Raspberry Pi 5</a></li><li><a href="#expected-output">Expected output</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<p>The sections of the lesson showed every host-side step with its output. This lab is the board work. You write one boot entry that enables a camera. Then you write a stack of two overlays and apply it.</p>
+<h2 id="goal">Goal</h2>
+<ul>
+<li>The stock IMX477 enabled on CAM0 through a hand-written boot entry. Evidence: the marker in <code>/proc/cmdline</code>, the live device tree, <code>/dev/video0</code> and <code>i2cdetect</code>.</li>
+<li>Two practice overlays, written from a skeleton and checked on the host in both orders.</li>
+<li>The same stack applied on the board, verified in <code>/proc/device-tree</code>, and removed.</li>
+<li>The virtcam overlay compiled and checked, and its boot entry prepared for later lessons.</li>
+<li>Final state: the IMX477 stays enabled, because Lesson 03 depends on it.</li>
+</ul>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Orin Nano devkit with JetPack 7.2.1 (Jetson Linux r39.2.1), reachable over SSH. <code>BOARD_USER</code> and <code>BOARD_IP</code> are exported as in Lab 01.</li>
+<li>Raspberry Pi High Quality Camera (IMX477) on the <strong>CAM0</strong> connector, seated per <span class="fileref" title="../../../setup/hardware-setup.md">setup/hardware-setup.md</span> section 5. Power off while seating the ribbon.</li>
+<li>A Linux host with the course container <code>jetson-build-jp7</code> running. The course clone is bind-mounted at <code>/course</code>, as <span class="fileref" title="../../../setup/canonical-commands.md">setup/canonical-commands.md</span> section 1 sets it up.</li>
+<li>The r39.2.1 tree, built once, so that <code>build/nvidia-public/devicetree/generic-dtbs/</code> exists. This lab builds no kernel.</li>
+<li>Strongly recommended: the serial console of the hardware guide, section 4. It is the recovery path from a boot entry that does not boot.</li>
+</ul>
+<h2 id="steps">Steps</h2>
+<h3 id="step-1--record-the-baseline-5-min">Step 1 — Record the baseline (5 min)</h3>
+<ol type="1">
+<li>Read the identity of the running tree, and check that no camera is active:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> cat /proc/device-tree/compatible | tr &#x27;\0&#x27; &#x27;\n&#x27;</span>
+<span class="out">nvidia,p3768-0000+p3767-0005</span>
+<span class="out">nvidia,p3767-0005</span>
+<span class="out">nvidia,tegra234</span>
+<span class="cmd"><span class="prompt">orin$</span> ls /dev/video*</span>
+<span class="out">ls: cannot access &#x27;/dev/video*&#x27;: No such file or directory</span></code></pre></div>
+<p>The first string names the base DTB that the board booted. Write it down, because Step 2 needs it. A board with the super configuration prints <code>nvidia,p3768-0000+p3767-0005-super</code>.</p>
+<p>If <code>/dev/video0</code> already exists, a camera overlay is active. Read <code>extlinux.conf</code> and note which one before you continue.</p>
+<ol start="2" type="1">
+<li>Back up the boot configuration:</li>
+</ol>
+<div class="codeblock"><pre><code>orin$ sudo cp /boot/extlinux/extlinux.conf /boot/extlinux/extlinux.conf.orig</code></pre></div>
+<p><code>cp</code> prints nothing on success.</p>
+<h3 id="step-2--write-the-boot-entry-and-reboot-15-min">Step 2 — Write the boot entry and reboot (15 min)</h3>
+<ol type="1">
+<li>Find the stock CAM0 overlay. JetPack ships the camera dtbos in <code>/boot</code>:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> ls /boot/tegra234-p3767-camera-p3768-imx477-*.dtbo</span>
+<span class="out">/boot/tegra234-p3767-camera-p3768-imx477-A.dtbo</span>
+<span class="out">/boot/tegra234-p3767-camera-p3768-imx477-C.dtbo</span>
+<span class="out">/boot/tegra234-p3767-camera-p3768-imx477-dual-4lane.dtbo</span>
+<span class="out">/boot/tegra234-p3767-camera-p3768-imx477-dual.dtbo</span>
+<span class="out">/boot/tegra234-p3767-camera-p3768-imx477-imx219.dtbo</span></code></pre></div>
+<p>The <code>-A</code> file is the CAM0 one (section 3).</p>
+<ol start="2" type="1">
+<li><p>Choose the base DTB with the three <code>fdtget</code> commands of section 5. Take the file whose first <code>compatible</code> string equals the string of Step 1.</p></li>
+<li><p>Open the boot configuration. <code>sudoedit</code> opens a copy of the file in the editor and writes it back on exit:</p></li>
+</ol>
+<div class="codeblock"><pre><code>orin$ sudoedit /boot/extlinux/extlinux.conf</code></pre></div>
+<ol start="4" type="1">
+<li>Duplicate the <code>primary</code> block under the name <code>imx477-a</code>. Add the <code>FDT</code> and <code>OVERLAYS</code> lines, append the marker to <code>APPEND</code>, and set <code>DEFAULT imx477-a</code>. The result has this form:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>LABEL imx477-a
+      MENU LABEL devkit IMX477 on CAM0
+      LINUX /boot/Image
+      INITRD /boot/initrd
+      FDT /boot/tegra234-p3768-0000+p3767-0005-nv.dtb
+      OVERLAYS /boot/tegra234-p3767-camera-p3768-imx477-A.dtbo
+      APPEND &lt;the APPEND line of the stock entry, unchanged&gt; course_label=imx477-a</code></pre></div>
+<p>Two items of that block come from your board, not from the example. They are the <code>APPEND</code> line of your <code>primary</code> entry and the <code>FDT</code> value of substep 2. If your <code>primary</code> entry already has an <code>FDT</code> line, keep its value.</p>
+<div class="callout warning">
+<div class="title">
+<p>Warning</p>
+</div>
+<p>Keep the stock <code>primary</code> entry unchanged, and never guess <code>root=</code>. If the new entry cannot boot, you can select <code>primary</code> from the boot menu on the serial console. With both entries broken, the board needs a reflash.</p>
+</div>
+<ol start="5" type="1">
+<li>Run the three checks before the reboot, then reboot:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> grep -nE &#x27;^DEFAULT|^LABEL&#x27; /boot/extlinux/extlinux.conf</span>
+<span class="out">2:DEFAULT imx477-a</span>
+<span class="out">6:LABEL primary</span>
+<span class="out">13:LABEL imx477-a</span>
+<span class="cmd"><span class="prompt">orin$</span> grep -nE &#x27;&lt;|\.\.\.&#x27; /boot/extlinux/extlinux.conf</span>
+<span class="cmd"><span class="prompt">orin$</span> ls -l /boot/tegra234-p3767-camera-p3768-imx477-A.dtbo</span>
+<span class="out">-rw-r--r-- 1 root root 5717 Sep 18 19:39 /boot/tegra234-p3767-camera-p3768-imx477-A.dtbo</span>
+<span class="cmd"><span class="prompt">orin$</span> sudo reboot</span></code></pre></div>
+<p><code>DEFAULT</code> must be character-identical to the <code>LABEL</code>. The second <code>grep</code> must print nothing: it finds a placeholder that remained. The overlay file must exist at the path of the entry. Also check that no <code>FDTOVERLAY</code> line exists outside a <code>LABEL</code> block.</p>
+<h3 id="step-3--verify-the-entry-the-live-tree-the-video-node-and-the-i2c-bus-15-min">Step 3 — Verify the entry, the live tree, the video node and the I2C bus (15 min)</h3>
+<ol type="1">
+<li>After the reboot, check which entry booted and that the overlay arrived:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> grep -o &#x27;course_label=[^ ]*&#x27; /proc/cmdline</span>
+<span class="out">course_label=imx477-a</span>
+<span class="cmd"><span class="prompt">orin$</span> find /proc/device-tree -name &#x27;*imx477*&#x27;</span>
+<span class="out">/proc/device-tree/__symbols__/rbpcv3_imx477_vi_in0</span>
+<span class="out">/proc/device-tree/__symbols__/rbpcv3_imx477_csi_in0</span>
+<span class="out">/proc/device-tree/__symbols__/rbpcv3_imx477_csi_out0</span>
+<span class="out">/proc/device-tree/__symbols__/rbpcv3_imx477_out0</span>
+<span class="out">/proc/device-tree/bus@0/cam_i2cmux/i2c@0/rbpcv3_imx477_a@1a</span>
+<span class="cmd"><span class="prompt">orin$</span> cat /proc/device-tree/bus@0/cam_i2cmux/i2c@0/rbpcv3_imx477_a@1a/status; echo</span>
+<span class="out">okay</span>
+<span class="cmd"><span class="prompt">orin$</span> ls /dev/video*</span>
+<span class="out">/dev/video0</span></code></pre></div>
+<p>You should see the marker, the sensor node with the four labels of section 4, and <code>/dev/video0</code>. If the marker is missing, UEFI booted another entry: check <code>DEFAULT</code>.</p>
+<ol start="2" type="1">
+<li>Check the probe with <code>sudo dmesg | grep -i imx477</code>. You should see the probe lines of the driver and one more line:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>tegra-camrtc-capture-vi tegra-capture-vi: subdev imx477 9-001a bound</code></pre></div>
+<p>With that line the <a href="../glossary.html#vi">VI</a> side accepts the sensor. The bus number in it depends on the board. If the <code>grep</code> shows nothing, go to <em>Troubleshooting</em>.</p>
+<ol start="3" type="1">
+<li>List the mux channels, then scan the channel of CAM0:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> i2cdetect -l | grep mux</span>
+<span class="out">i2c-9   i2c         i2c-2-mux (chan_id 0)               I2C adapter</span>
+<span class="out">i2c-10  i2c         i2c-2-mux (chan_id 0)               I2C adapter</span>
+<span class="cmd"><span class="prompt">orin$</span> sudo i2cdetect -y -r 9</span>
+<span class="out">     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f</span>
+<span class="out">00:          -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">10: -- -- -- -- -- -- -- -- -- -- UU -- -- -- -- --</span>
+<span class="out">20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</span>
+<span class="out">70: -- -- -- -- -- -- -- --</span></code></pre></div>
+<p>Both adapters read <code>chan_id 0</code>, because the stock <code>-A</code> overlay gives only <code>i2c@0</code> a channel number (section 7). The camera is on the first one, bus 9. Scan that bus. You should see <code>UU</code> at <code>0x1a</code>: the node merged and the driver bound. Bus 10 reaches the same channel, and nothing in this lab uses it.</p>
+<h3 id="step-4--write-the-two-practice-overlays-20-min">Step 4 — Write the two practice overlays (20 min)</h3>
+<p>This step is the writing exercise. The two files form a factored stack on the real base tree. The two toy overlays of section 8 do the same. They use the I2C bus of the 40-pin header, where they cannot disturb the camera.</p>
+<ol type="1">
+<li>Open a shell in the container and set the variables of the lesson:</li>
+</ol>
+<div class="codeblock"><pre><code>host$ docker exec -it jetson-build-jp7 bash
+container$ TREE=/build/work-l4t-r39.2.1/Linux_for_Tegra/source
+container$ DTBS=$TREE/build/nvidia-public/devicetree/generic-dtbs
+container$ W=/course/lessons/02-device-tree-overlays/_work-r39.2.1
+container$ mkdir -p &quot;$W&quot;
+container$ INC1=$(find &quot;$TREE/hardware&quot; -type d -path &#x27;*nv-public/include/kernel&#x27; | head -1)
+container$ INC2=$(find &quot;$TREE/hardware&quot; -type d -path &#x27;*nv-public/include/platforms&#x27; | head -1)</code></pre></div>
+<p>None of these commands prints anything. The <code>_work-r39.2.1</code> directory is git-ignored and is inside the course clone. So everything that the container writes there is on the host.</p>
+<ol start="2" type="1">
+<li><p>Create <code>practice-mux-overlay.dts</code> in that directory, on the host. It targets <code>gen8_i2c</code>, the bus <code>i2c@c250000</code> of the 40-pin header.</p>
+<p>It creates a fake I2C mux with one child bus. The child bus carries a label that the second file can target. Fill in this skeleton:</p></li>
+</ol>
+<div class="codeblock"><pre><code>/dts-v1/;
+/plugin/;
+
+#include &lt;dt-bindings/tegra234-p3767-0000-common.h&gt;
+
+/ {
+    overlay-name = &quot;...&quot;;                 /* TODO: name it */
+    compatible = JETSON_COMPATIBLE_P3768;
+
+    fragment@0 {
+        target = &lt;&amp;...&gt;;              /* TODO: which base-tree label? */
+        __overlay__ {
+            /* TODO: I2C bus child bookkeeping: the two cells properties */
+
+            /* TODO: label: mux@70 { compatible; reg; the two cells
+               properties; status; and one child i2c@0 { reg = &lt;0&gt;; the
+               two cells properties; } carrying its OWN label }.
+               Pick an obviously fake compatible so no driver can bind. */
+        };
+    };
+};</code></pre></div>
+<ol start="3" type="1">
+<li>Create <code>practice-cam-overlay.dts</code>. It targets the label of the child bus that the first file exports. It adds a fake sensor at <code>0x1a</code> under that bus:</li>
+</ol>
+<div class="codeblock"><pre><code>/dts-v1/;
+/plugin/;
+
+#include &lt;dt-bindings/tegra234-p3767-0000-common.h&gt;
+
+/ {
+    overlay-name = &quot;...&quot;;                 /* TODO: name it */
+    compatible = JETSON_COMPATIBLE_P3768;
+
+    fragment@0 {
+        target = &lt;&amp;...&gt;;              /* TODO: the label the mux overlay exports */
+        __overlay__ {
+            /* TODO: the two cells properties again, so dtc can check reg */
+
+            /* TODO: label: cam@1a { compatible; reg; status; } */
+        };
+    };
+};</code></pre></div>
+<ol start="4" type="1">
+<li>Compile both files with the two stages of section 3, <code>cpp</code> first and then <code>dtc -@</code>:</li>
+</ol>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> cpp -nostdinc -undef -x assembler-with-cpp -I &quot;$INC1&quot; -I &quot;$INC2&quot; &quot;$W/practice-mux-overlay.dts&quot; -o &quot;$W/practice-mux-overlay.pre.dts&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> dtc -@ -I dts -O dtb -o &quot;$W/practice-mux-overlay.dtbo&quot; &quot;$W/practice-mux-overlay.pre.dts&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> cpp -nostdinc -undef -x assembler-with-cpp -I &quot;$INC1&quot; -I &quot;$INC2&quot; &quot;$W/practice-cam-overlay.dts&quot; -o &quot;$W/practice-cam-overlay.pre.dts&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> dtc -@ -I dts -O dtb -o &quot;$W/practice-cam-overlay.dtbo&quot; &quot;$W/practice-cam-overlay.pre.dts&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> ls -la &quot;$W&quot;/practice-*.dtbo</span>
+<span class="out">-rw-r--r-- 1 root root  884 Oct  5 11:08 /course/lessons/02-device-tree-overlays/_work-r39.2.1/practice-cam-overlay.dtbo</span>
+<span class="out">-rw-r--r-- 1 root root 1049 Oct  5 11:08 /course/lessons/02-device-tree-overlays/_work-r39.2.1/practice-mux-overlay.dtbo</span></code></pre></div>
+<p><code>cpp</code> and <code>dtc</code> print nothing on success. Your sizes differ with the strings that you chose. If <code>dtc</code> prints a syntax error on an <code>#include</code> line, the <code>cpp</code> stage was skipped.</p>
+<ol start="5" type="1">
+<li>Check the stack against the base DTB in both orders. This is the merge that UEFI performs:</li>
+</ol>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> fdtoverlay -i &quot;$DTBS/tegra234-p3768-0000+p3767-0005-nv.dtb&quot; -o &quot;$W/bad.dtb&quot; &quot;$W/practice-cam-overlay.dtbo&quot; &quot;$W/practice-mux-overlay.dtbo&quot;</span>
+<span class="out"></span>
+<span class="out">Failed to apply &#x27;/course/lessons/02-device-tree-overlays/_work-r39.2.1/practice-cam-overlay.dtbo&#x27;: FDT_ERR_NOTFOUND</span>
+<span class="cmd"><span class="prompt">container$</span> fdtoverlay -i &quot;$DTBS/tegra234-p3768-0000+p3767-0005-nv.dtb&quot; -o &quot;$W/ok.dtb&quot; &quot;$W/practice-mux-overlay.dtbo&quot; &quot;$W/practice-cam-overlay.dtbo&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> fdtget &quot;$W/ok.dtb&quot; /__symbols__ practice_cam</span>
+<span class="out">/bus@0/i2c@c250000/mux@70/i2c@0/cam@1a</span></code></pre></div>
+<p>The first command must fail as shown, and the second must print nothing. Use your own label name in the <code>fdtget</code> line.</p>
+<p>If the first command succeeds, your cam overlay targets a label of the base tree. The two files are then not a stack.</p>
+<p>If the second command fails with <code>FDT_ERR_NOTFOUND</code>, one of two labels is wrong. Either the <code>target</code> of the mux overlay does not exist in the base tree. Or the <code>target</code> of the cam overlay does not match the label that the mux overlay exports. Fix either failure now, before a reboot.</p>
+<h3 id="step-5--apply-the-stack-on-the-board-verify-remove-15-min">Step 5 — Apply the stack on the board, verify, remove (15 min)</h3>
+<ol type="1">
+<li>Copy both blobs to the board and install them:</li>
+</ol>
+<div class="codeblock"><pre><code>host$ ssh &quot;$BOARD_USER@$BOARD_IP&quot; &#x27;mkdir -p ~/course-deploy&#x27;
+host$ scp lessons/02-device-tree-overlays/_work-r39.2.1/practice-mux-overlay.dtbo lessons/02-device-tree-overlays/_work-r39.2.1/practice-cam-overlay.dtbo &quot;$BOARD_USER@$BOARD_IP:~/course-deploy/&quot;
+orin$ sudo mkdir -p /boot/course
+orin$ sudo cp ~/course-deploy/practice-mux-overlay.dtbo ~/course-deploy/practice-cam-overlay.dtbo /boot/course/</code></pre></div>
+<p><code>ssh</code>, <code>mkdir</code> and <code>cp</code> print nothing on success. <code>scp</code> prints one progress line for each file.</p>
+<ol start="2" type="1">
+<li>In <code>extlinux.conf</code>, extend the <code>OVERLAYS</code> line of the <code>imx477-a</code> entry to one line. No spaces follow the commas, and mux comes before cam:</li>
+</ol>
+<div class="codeblock"><pre><code>      OVERLAYS /boot/tegra234-p3767-camera-p3768-imx477-A.dtbo,/boot/course/practice-mux-overlay.dtbo,/boot/course/practice-cam-overlay.dtbo</code></pre></div>
+<p>The position of the stock overlay is free, because it is self-contained. The relative order of the practice pair is not.</p>
+<ol start="3" type="1">
+<li>Rerun the three checks of Step 2 with the two new paths, reboot, and verify that all three overlays merged:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> grep -o &#x27;course_label=[^ ]*&#x27; /proc/cmdline</span>
+<span class="out">course_label=imx477-a</span>
+<span class="cmd"><span class="prompt">orin$</span> ls /proc/device-tree/bus@0/i2c@c250000/mux@70/i2c@0/</span>
+<span class="out">#address-cells  #size-cells  cam@1a  name  phandle  reg</span>
+<span class="cmd"><span class="prompt">orin$</span> cat /proc/device-tree/bus@0/i2c@c250000/mux@70/i2c@0/cam@1a/compatible; echo</span>
+<span class="out">jetson-course,practice-cam</span>
+<span class="cmd"><span class="prompt">orin$</span> ls -d /sys/bus/i2c/devices/7-00*</span>
+<span class="out">/sys/bus/i2c/devices/7-0070</span>
+<span class="cmd"><span class="prompt">orin$</span> ls /sys/bus/i2c/devices/7-0070/driver</span>
+<span class="out">ls: cannot access &#x27;/sys/bus/i2c/devices/7-0070/driver&#x27;: No such file or directory</span>
+<span class="cmd"><span class="prompt">orin$</span> ls /dev/video*</span>
+<span class="out">/dev/video0</span></code></pre></div>
+<p>You should see three things, and each one is worth a note:</p>
+<ul>
+<li>The nodes exist although no hardware does. A DT node is a declaration, not a detection (section 1).</li>
+<li>The mux node became an <code>i2c_client</code> on bus 7, <code>7-0070</code>, with no driver bound. The cam node became nothing, because its parent bus is the child of a mux that no driver probed.</li>
+<li>The IMX477 still works with both practice overlays applied.</li>
+</ul>
+<ol start="4" type="1">
+<li>Remove the two <code>/boot/course/practice-*</code> entries from the <code>OVERLAYS</code> line, keep the IMX477, and reboot. Confirm that <code>mux@70</code> is gone and that <code>/dev/video0</code> remains.</li>
+</ol>
+<h3 id="step-6--prepare-the-virtcam-entry-for-later-lessons-10-min">Step 6 — Prepare the virtcam entry for later lessons (10 min)</h3>
+<p>virtcam is the course's own sensor driver. The lesson's section <a href="index.html#the-two-cameras">The two cameras</a> states what it is and why the course uses it. This step prepares only its overlay. Lesson 08 loads the driver.</p>
+<ol type="1">
+<li>Compile the overlay with the same two stages and check it against the base DTB. Then read back the sensor node and the badge:</li>
+</ol>
+<div class="codeblock"><pre><code><span class="cmd"><span class="prompt">container$</span> W=/course/virtcam/_work-r39.2.1</span>
+<span class="cmd"><span class="prompt">container$</span> mkdir -p &quot;$W&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> D=tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay</span>
+<span class="cmd"><span class="prompt">container$</span> cpp -nostdinc -undef -x assembler-with-cpp -I &quot;$INC1&quot; -I &quot;$INC2&quot; &quot;/course/virtcam/$D.dts&quot; -o &quot;$W/$D.pre.dts&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> dtc -@ -I dts -O dtb -o &quot;$W/$D.dtbo&quot; &quot;$W/$D.pre.dts&quot;</span>
+<span class="out">/course/virtcam/tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay.dts:73.10-279.6: Warning (unit_address_vs_reg): /fragment@0/__overlay__/bus@0: node has a unit name, but no reg or ranges property</span>
+<span class="out">...</span>
+<span class="cmd"><span class="prompt">container$</span> fdtoverlay -i &quot;$DTBS/tegra234-p3768-0000+p3767-0005-nv.dtb&quot; -o &quot;$W/check.dtb&quot; &quot;$W/$D.dtbo&quot;</span>
+<span class="cmd"><span class="prompt">container$</span> fdtget &quot;$W/check.dtb&quot; /bus@0/cam_i2cmux/i2c@0/virtcam@1a compatible</span>
+<span class="out">course,virtcam</span>
+<span class="cmd"><span class="prompt">container$</span> fdtget &quot;$W/check.dtb&quot; /tegra-camera-platform/modules/module0 badge</span>
+<span class="out">jakku_front_VIRTCAM</span></code></pre></div>
+<p><code>dtc</code> prints seven warnings of two kinds, five <code>unit_address_vs_reg</code> and two <code>graph_child_address</code>. The transcript shows the first. They are the kind that the toy overlay of section 3 printed. The two <code>fdtget</code> lines are the evidence. They show the sensor node at its full path, and the <a href="../glossary.html#badge">badge</a> that <a href="../glossary.html#argus">Argus</a> looks up.</p>
+<ol start="2" type="1">
+<li>Copy the blob to the board and add an entry for it. Keep <code>DEFAULT imx477-a</code>:</li>
+</ol>
+<div class="codeblock"><pre><code>host$ scp virtcam/_work-r39.2.1/tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay.dtbo &quot;$BOARD_USER@$BOARD_IP:~/course-deploy/&quot;
+orin$ sudo cp ~/course-deploy/tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay.dtbo /boot/course/
+orin$ sudoedit /boot/extlinux/extlinux.conf</code></pre></div>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code>LABEL virtcam
+      MENU LABEL virtcam on CAM0, 2 lanes
+      LINUX /boot/Image
+      INITRD /boot/initrd
+      FDT /boot/tegra234-p3768-0000+p3767-0005-nv.dtb
+      OVERLAYS /boot/course/tegra234-p3767-camera-p3768-virtcam-cam0-2lane-overlay.dtbo
+      APPEND &lt;the APPEND line of the stock entry, unchanged&gt; course_label=virtcam</code></pre></div>
+<p>Use the <code>APPEND</code> line of your board plus the marker, and the same <code>FDT</code> value as the <code>imx477-a</code> entry.</p>
+<ol start="3" type="1">
+<li>Check the file, and do not boot the new entry in this lab:</li>
+</ol>
+<div class="codeblock"><div class="src"><span class="tag">illustrative, not captured on a board</span></div><pre><code><span class="cmd"><span class="prompt">orin$</span> grep -nE &#x27;^DEFAULT|^LABEL&#x27; /boot/extlinux/extlinux.conf</span>
+<span class="out">2:DEFAULT imx477-a</span>
+<span class="out">6:LABEL primary</span>
+<span class="out">13:LABEL imx477-a</span>
+<span class="out">20:LABEL virtcam</span></code></pre></div>
+<p>You should see three entries, with <code>DEFAULT imx477-a</code>. A later lesson deploys the kernel side, <code>virtcam.ko</code>. If you boot the entry now, you get a <code>virtcam@1a</code> node, an <code>i2c_client</code> without a driver, and no <code>/dev/video0</code>. That is the match of Lesson 01 with the driver half missing.</p>
+<h2 id="on-a-raspberry-pi-5">On a Raspberry Pi 5</h2>
+<p>Steps 2 and 3 have a Raspberry Pi form. It is not verified on a board yet <em>(verified-on-target: pending)</em>.</p>
+<ul>
+<li><strong>The boot configuration.</strong> Copy <code>/boot/firmware/config.txt</code> first. Then add the lines <code>camera_auto_detect=0</code> and <code>dtoverlay=imx477</code>, and reboot.</li>
+<li><strong>The live tree.</strong> <code>find /proc/device-tree -name '*imx477*'</code> must print the node <code>imx477@1a</code> under <code>i2c@80000</code>.</li>
+<li><strong>The bus.</strong> The camera is on bus 11. <code>i2cdetect -y 11</code> must show <code>UU</code> at address <code>0x1a</code>.</li>
+<li><strong>The practice stack.</strong> Steps 4 to 6 use the base tree of the Jetson and have no Raspberry Pi form.</li>
+</ul>
+<h2 id="expected-output">Expected output</h2>
+<p>All items are captured from the board and from the container.</p>
+<ol type="1">
+<li><strong>Boot evidence.</strong>
+<ul>
+<li><code>course_label=imx477-a</code> from <code>/proc/cmdline</code>.</li>
+<li><code>find /proc/device-tree -name '*imx477*'</code> showing <code>bus@0/cam_i2cmux/i2c@0/rbpcv3_imx477_a@1a</code> and the four <code>__symbols__</code> entries, with its <code>status</code> reading <code>okay</code>.</li>
+<li><code>ls /dev/video*</code> showing <code>/dev/video0</code>.</li>
+<li>The <code>i2cdetect</code> scan with <code>UU</code> at <code>0x1a</code> on the mux channel of CAM0.</li>
+</ul></li>
+<li><strong>The practice stack.</strong>
+<ul>
+<li>Both <code>.dts</code> sources.</li>
+<li>The <code>fdtoverlay</code> transcript with <code>FDT_ERR_NOTFOUND</code> for cam before mux, and the <code>fdtget</code> line for mux before cam.</li>
+<li>The on-board <code>/proc/device-tree/.../mux@70/i2c@0/cam@1a</code> listing with the <code>7-0070</code> observation, and the check after the removal.</li>
+<li>Final board state: IMX477 enabled, practice stack removed.</li>
+</ul></li>
+<li><strong>The prepared virtcam entry.</strong>
+<ul>
+<li>The two <code>fdtget</code> lines from the container.</li>
+<li><code>grep -nE '^DEFAULT|^LABEL'</code> listing <code>primary</code>, <code>imx477-a</code> and <code>virtcam</code> with <code>DEFAULT imx477-a</code>.</li>
+</ul></li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The board does not boot after Step 2</td>
+<td><code>APPEND</code> or <code>root=</code> damaged during the edit, or <code>FDT</code> names a file that does not exist</td>
+<td>On the serial console, select <code>primary</code> at the boot menu. Restore <code>extlinux.conf.orig</code>. Check the real DTB name with <code>ls /boot/*.dtb</code></td>
+</tr>
+<tr>
+<td><code>/proc/cmdline</code> has no <code>course_label</code></td>
+<td><code>DEFAULT</code> still names <code>primary</code>, or jetson-io added an entry of its own below</td>
+<td>Run <code>grep -nE '^DEFAULT|^LABEL'</code> and make <code>DEFAULT</code> match the entry character for character</td>
+</tr>
+<tr>
+<td>The board boots with the marker, and <code>find /proc/device-tree -name '*imx477*'</code> is empty</td>
+<td>A typo in the <code>OVERLAYS</code> path, no <code>FDT</code> line, or a conflicting <code>FDTOVERLAY</code> line</td>
+<td>Check the dtbo path with <code>ls</code>. Add the <code>FDT</code> line. Remove <code>FDTOVERLAY</code> lines</td>
+</tr>
+<tr>
+<td>The node exists, <code>status</code> is <code>okay</code>, and no <code>/dev/video0</code></td>
+<td>The sensor probe failed after the merge. This is a driver or hardware problem, not a DT problem</td>
+<td>Run <code>sudo dmesg | grep -iE 'imx477|tegra-capture'</code>. <code>-121</code> means no answer on I2C: power off, reseat the ribbon, and confirm that the camera is on CAM0, not CAM1</td>
+</tr>
+<tr>
+<td><code>find ... -name 'imx477*'</code> is empty although the node exists</td>
+<td>The leading wildcard is missing. The node is <code>rbpcv3_imx477_a@1a</code></td>
+<td>Use <code>-name '*imx477*'</code></td>
+</tr>
+<tr>
+<td><code>i2cdetect</code> shows <code>--</code> everywhere on both mux buses</td>
+<td>The camera is unpowered or unseated, or the wrong buses were scanned</td>
+<td>Power off and reseat. Find the adapters with <code>i2cdetect -l | grep mux</code>. <code>UU</code> needs a bound driver, so check <code>dmesg</code> too</td>
+</tr>
+<tr>
+<td><code>dtc</code> prints a syntax error on <code>#include</code></td>
+<td>The <code>cpp</code> stage was skipped, and <code>dtc</code> has no preprocessor</td>
+<td>Use the two stages of Step 4</td>
+</tr>
+<tr>
+<td><code>fdtoverlay ... FDT_ERR_NOTFOUND</code> in the <em>correct</em> order</td>
+<td>The <code>target</code> label is misspelled, absent from the <code>__symbols__</code> of the base tree, or not exported by the mux overlay</td>
+<td>Run <code>fdtget "$DTBS/tegra234-p3768-0000+p3767-0005-nv.dtb" /__symbols__ gen8_i2c</code> to see a valid base label. Decompile the mux blob and read its <code>__symbols__</code></td>
+</tr>
+<tr>
+<td><code>fdtoverlay</code> succeeds in the <em>wrong</em> order too</td>
+<td>The cam overlay targets a label of the base tree, so the files are not a stack</td>
+<td>Target the label that the mux overlay exports</td>
+</tr>
+<tr>
+<td>The practice nodes are missing after the reboot</td>
+<td>The dtbos are not at the <code>OVERLAYS</code> paths, a comma is wrong, or cam is listed before mux</td>
+<td>Run <code>ls /boot/course/</code>. Read the <code>OVERLAYS</code> line character by character</td>
+</tr>
+<tr>
+<td>The <code>dtc</code> step of virtcam prints errors, not warnings</td>
+<td>Wrong include directories, or <code>cpp</code> skipped</td>
+<td>Rerun the two <code>find</code> lines. <code>INC1</code> must end in <code>nv-public/include/kernel</code></td>
+</tr>
+</tbody>
+</table></div>
+</main>
+</body>
+</html>
